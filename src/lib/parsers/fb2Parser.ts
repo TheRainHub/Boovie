@@ -237,7 +237,7 @@ export async function parseFb2(file: Blob, fileName: string, onProgress?: Progre
     const zip = await JSZip.loadAsync(bytes);
     const entry = Object.values(zip.files).find((f) => !f.dir && /\.fb2$/i.test(f.name));
     if (!entry) throw new ParseError("В архиве нет файла .fb2");
-    bytes = await entry.async("uint8array");
+    bytes = (await entry.async("uint8array")) as Uint8Array<ArrayBuffer>;
   }
   onProgress?.(0.3, "Определение кодировки");
   const { text } = decodeXml(bytes);

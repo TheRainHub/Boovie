@@ -15,8 +15,8 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 const BASE_CSS = `
   @page { size: 148mm 210mm; margin: 16mm 14mm 18mm; }
   body { font-family: 'Liberation Serif', 'DejaVu Serif', serif; font-size: 11pt; line-height: 1.45; color: #111; }
-  .cover { page-break-after: always; height: 176mm; display: flex; align-items: center; justify-content: center; }
-  .cover img { max-height: 176mm; max-width: 100%; }
+  .cover { page-break-after: always; height: 166mm; display: flex; align-items: center; justify-content: center; }
+  .cover img { max-height: 166mm; max-width: 100%; }
   h1 { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 22pt; letter-spacing: -0.01em; margin: 0 0 8mm; page-break-before: always; }
   h2 { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18pt; margin: 0 0 6mm; page-break-before: always; }
   p { margin: 0; text-indent: 1.4em; text-align: justify; hyphens: auto; }

@@ -173,7 +173,7 @@ export async function parseEpub(file: Blob, fileName: string, onProgress?: Progr
   }
   let cover: Blob | undefined;
   if (coverPath && zip.file(coverPath) && !coverPath.endsWith(".svg")) {
-    cover = new Blob([await zip.file(coverPath)!.async("uint8array")], { type: byPath.get(coverPath)?.type || mimeFromName(coverPath) });
+    cover = new Blob([(await zip.file(coverPath)!.async("uint8array")) as Uint8Array<ArrayBuffer>], { type: byPath.get(coverPath)?.type || mimeFromName(coverPath) });
   }
 
   // Assets are loaded lazily as chapters reference them.

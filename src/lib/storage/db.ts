@@ -14,7 +14,7 @@ export function getDB(): TitanDB {
   if (instance) return instance;
   const db = new Dexie("titan-library") as TitanDB;
   db.version(1).stores({
-    books: "id, addedAt, format, isStoreBook, storeId, lastOpenedAt",
+    books: "id, addedAt, format, storeId, lastOpenedAt",
     chapters: "id, bookId, [bookId+index]",
     progress: "bookId, updatedAt",
     files: "id, bookId, role",

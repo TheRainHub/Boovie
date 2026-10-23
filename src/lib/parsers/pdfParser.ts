@@ -134,7 +134,7 @@ export async function parsePdf(file: Blob, fileName: string, onProgress?: Progre
   onProgress?.(0.02, "Открытие PDF");
   const lib = pdfjs ?? (await loadPdfjs());
   let doc: PDFDocumentProxy;
-  const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false });
+  const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
   try {
     doc = await task.promise;
   } catch (e) {

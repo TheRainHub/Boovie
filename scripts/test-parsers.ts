@@ -99,20 +99,20 @@ async function main() {
     out.file("mimetype", "application/epub+zip", { compression: "STORE" });
     for (const [name, f] of Object.entries(src.files)) {
       if (f.dir || name === "mimetype" || name.endsWith("nav.xhtml")) continue;
-      let data: string | Uint8Array = await f.async("uint8array");
+      let data: string | Uint8Array<ArrayBuffer> = (await f.async("uint8array")) as Uint8Array<ArrayBuffer>;
       if (name.endsWith(".opf")) data = (await f.async("string")).replace(/<item id="nav"[^>]+\/>/, "");
       out.file(name, data);
     }
-    const b = await parseEpub(new Blob([await out.generateAsync({ type: "uint8array" })]), "p.epub");
+    const b = await parseEpub(new Blob([(await out.generateAsync({ type: "uint8array" })) as Uint8Array<ArrayBuffer>]), "p.epub");
     assert.deepEqual(b.chapters.slice(1).map((c) => c.title), ["Глава I", "Глава II", "Глава III", "Глава IV", "Глава V", "Глава VI", "Заключение"]);
   });
 
   console.log("PDF");
   await test("outline → chapters with page ranges", async () => {
     const b = await parsePdf(blobOf(join(root, "books/dyadya-vanya.pdf")), "dyadya-vanya.pdf", undefined, pdfjs as never);
-    assert.equal(b.pageCount, 59);
+    assert.equal(b.pageCount, 58);
     assert.deepEqual(b.chapters.map((c) => c.title), ["Начало", "Действующие лица", "Действие первое", "Действие второе", "Действие третье", "Действие четвертое"]);
-    assert.equal(b.chapters.at(-1)!.endPage, 59);
+    assert.equal(b.chapters.at(-1)!.endPage, 58);
     for (let i = 1; i < b.chapters.length; i++) assert.equal(b.chapters[i].startPage, b.chapters[i - 1].endPage! + 1);
   });
   await test("no outline → heading-size detection", async () => {

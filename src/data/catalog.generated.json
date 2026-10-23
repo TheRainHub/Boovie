@@ -393,12 +393,12 @@
     {
      "url": "/store/books/dyadya-vanya.pdf",
      "name": "dyadya-vanya.pdf",
-     "size": 494856
+     "size": 494304
     }
    ],
-   "pages": 59,
+   "pages": 58,
    "chapterCount": 5,
-   "fileSize": 494856
+   "fileSize": 494304
   },
   {
    "id": "flatland",
@@ -423,11 +423,11 @@
     {
      "url": "/store/books/flatland.pdf",
      "name": "flatland.pdf",
-     "size": 963439
+     "size": 962957
     }
    ],
-   "pages": 119,
-   "fileSize": 963439
+   "pages": 118,
+   "fileSize": 962957
   },
   {
    "id": "time-machine",
