@@ -30,6 +30,7 @@ const VOID = new Set(["br", "hr", "img", "col", "wbr"]);
 const SEMANTIC_CLASSES = [
   "epigraph", "poem", "stanza", "verse", "dedication", "footnote", "endnote", "noteref", "text-author", "subtitle",
   "center", "right", "small-caps", "smallcaps", "first", "salutation", "signature", "letter", "note",
+  "black-on-transparent",
 ];
 
 export function escapeText(s: string): string {
@@ -89,7 +90,8 @@ export function serializeNode(node: Node, ctx: SanitizeContext): string {
     const key = src && ctx.resolveImage ? ctx.resolveImage(src) : null;
     if (!key) return "";
     const alt = el.getAttribute("alt") ?? "";
-    return `<img data-asset="${escapeAttr(key)}" alt="${escapeAttr(alt)}">`;
+    const cls = semanticClass(el);
+    return `<img data-asset="${escapeAttr(key)}" alt="${escapeAttr(alt)}"${cls ? ` class="${cls}"` : ""}>`;
   }
   if (name === "svg") {
     // Common EPUB cover wrapper: <svg><image xlink:href="cover.jpg"/></svg>. Inline SVG drawing is dropped.

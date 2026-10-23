@@ -160,7 +160,9 @@ export function TextReader({
 
   const next = useCallback(() => {
     if (paged && page < pages - 1) setPage(page + 1);
-    else if (!paged && viewport.current && scrollFrac < 0.995) viewport.current.scrollBy({ top: viewport.current.clientHeight * 0.9, behavior: "smooth" });
+    else if (!paged && viewport.current && viewport.current.scrollTop + viewport.current.clientHeight < viewport.current.scrollHeight - 4) {
+      viewport.current.scrollBy({ top: viewport.current.clientHeight * 0.9, behavior: "smooth" });
+    }
     else if (chapterIndex < chapters.length - 1) goChapter(chapterIndex + 1, 0);
     else {
       void markChaptersComplete(book.id, [chapterIndex]);
@@ -168,7 +170,7 @@ export function TextReader({
       toast("Книга прочитана до конца", "success");
     }
     setHud(false);
-  }, [book.id, chapterIndex, chapters.length, goChapter, page, paged, pages, scrollFrac]);
+  }, [book.id, chapterIndex, chapters.length, goChapter, page, paged, pages]);
 
   const prev = useCallback(() => {
     if (paged && page > 0) setPage(page - 1);
@@ -277,7 +279,7 @@ export function TextReader({
   } as CSSProperties;
 
   return (
-    <div className="fixed inset-0 select-text" style={{ background: paper.bg, ...vars }}>
+    <div className="fixed inset-0 select-text" data-paper={paper.dark ? "dark" : "light"} style={{ background: paper.bg, ...vars }}>
       <div
         ref={viewport}
         className={cn("absolute inset-0", paged ? "overflow-hidden" : "overflow-y-auto overscroll-contain")}

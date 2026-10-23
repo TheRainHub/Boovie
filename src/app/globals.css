@@ -269,6 +269,9 @@ button,
   border-radius: 4px;
   break-inside: avoid;
 }
+[data-paper="dark"] .book-content img.black-on-transparent {
+  filter: invert(1) brightness(0.88);
+}
 .book-content sup.noteref {
   font-size: 0.7em;
   color: var(--paper-accent);
