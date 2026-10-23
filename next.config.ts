@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Cache Components / PPR need a server at request time and are incompatible with `output: "export"`;
+  // every page here is a static shell that renders local (IndexedDB) data on the client.
   reactStrictMode: true,
   turbopack: {
     rules: {
