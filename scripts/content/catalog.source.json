@@ -1,0 +1,160 @@
+{
+  "categories": {
+    "classics": "Классика",
+    "scifi": "Фантастика",
+    "design": "Индустриальный дизайн",
+    "psychology": "Психология",
+    "tech": "Технологии",
+    "bio": "Биографии"
+  },
+  "items": [
+    {
+      "id": "pikovaya-dama", "work": "pikovaya-dama", "kind": "ebook", "format": "epub",
+      "title": "Пиковая дама", "author": "Александр Пушкин", "year": 1834, "language": "ru",
+      "categories": ["classics"], "rating": 4.9, "rank": 2, "addedAt": "2026-10-20",
+      "companion": "pikovaya-dama-audio",
+      "cover": { "tint": "graphite", "motif": "spade" },
+      "synopsis": "Молодой военный инженер Германн — расчётливый и осторожный человек, у которого, по словам Томского, «профиль Наполеона, а душа Мефистофеля», — узнаёт легенду о трёх картах, которые никогда не проигрывают. Ради тайны старой графини он готов переступить через всё. Самая загадочная повесть Пушкина: Петербург тридцатых годов, азарт, мистика и цена одержимости."
+    },
+    {
+      "id": "pikovaya-dama-audio", "work": "pikovaya-dama", "kind": "audiobook", "format": "m4b",
+      "title": "Пиковая дама", "author": "Александр Пушкин", "year": 1834, "language": "ru",
+      "narrator": "RHVoice · голос «Александр»", "voice": "aleksandr-hq",
+      "categories": ["classics"], "rating": 4.7, "rank": 3, "addedAt": "2026-10-21",
+      "companion": "pikovaya-dama",
+      "cover": { "tint": "graphite", "motif": "spade" },
+      "synopsis": "Полная аудиоверсия повести в одном файле M4B со встроенными главами — переключайтесь между главами прямо с экрана блокировки. Озвучено синтезатором речи RHVoice. Синхронизируется с электронной версией: начните читать, продолжите слушать."
+    },
+    {
+      "id": "dama-s-sobachkoy", "work": "dama-s-sobachkoy", "kind": "ebook", "format": "fb2",
+      "title": "Дама с собачкой", "author": "Антон Чехов", "year": 1899, "language": "ru",
+      "categories": ["classics", "psychology"], "rating": 4.8, "rank": 4, "addedAt": "2026-10-18",
+      "companion": "dama-s-sobachkoy-audio",
+      "cover": { "tint": "steel", "motif": "waves" },
+      "synopsis": "Ялта, набережная, белый шпиц и случайное курортное знакомство, которое Гуров поначалу считает очередным лёгким романом. Но возвращение в Москву ничего не заканчивает. Четыре коротких главы — и одна из самых точных историй о любви, пришедшей слишком поздно."
+    },
+    {
+      "id": "dama-s-sobachkoy-audio", "work": "dama-s-sobachkoy", "kind": "audiobook", "format": "mp3-multi",
+      "title": "Дама с собачкой", "author": "Антон Чехов", "year": 1899, "language": "ru",
+      "narrator": "RHVoice · голос «Ирина»", "voice": "irina",
+      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 6, "addedAt": "2026-10-22",
+      "companion": "dama-s-sobachkoy",
+      "cover": { "tint": "steel", "motif": "waves" },
+      "synopsis": "Аудиокнига из четырёх MP3-файлов — по одному на главу, с ID3-тегами и обложкой. Пример того, как приложение собирает несколько дорожек в единую книгу. Озвучено синтезатором речи RHVoice."
+    },
+    {
+      "id": "vystrel-audio", "work": "vystrel", "kind": "audiobook", "format": "mp3-chapters",
+      "title": "Выстрел", "author": "Александр Пушкин", "year": 1831, "language": "ru",
+      "narrator": "RHVoice · голос «Михаил»", "voice": "mikhail",
+      "categories": ["classics"], "rating": 4.5, "rank": 9, "addedAt": "2026-10-23",
+      "cover": { "tint": "oxide", "motif": "target" },
+      "synopsis": "Первая из «Повестей Белкина»: отставной гусар Сильвио шесть лет хранит право на неиспользованный выстрел. Один MP3-файл с главами в ID3-тегах (CHAP) — приложение читает их прямо из файла. Озвучено синтезатором речи RHVoice."
+    },
+    {
+      "id": "viy-audio", "work": "viy", "kind": "audiobook", "format": "mp3-single",
+      "title": "Вий", "author": "Николай Гоголь", "year": 1835, "language": "ru",
+      "narrator": "RHVoice · голос «Юрий»", "voice": "yuriy",
+      "categories": ["classics"], "rating": 4.7, "rank": 5, "addedAt": "2026-10-19",
+      "cover": { "tint": "obsidian", "motif": "eye" },
+      "synopsis": "Философ Хома Брут три ночи читает молитвы над гробом панночки в заброшенной церкви. Гоголевская повесть написана без деления на главы, поэтому плеер автоматически размечает файл на части по 20 минут. Озвучено синтезатором речи RHVoice."
+    },
+    {
+      "id": "chernyi-monah", "work": "chernyi-monah", "kind": "ebook", "format": "epub",
+      "title": "Чёрный монах", "author": "Антон Чехов", "year": 1894, "language": "ru",
+      "categories": ["psychology", "classics"], "rating": 4.6, "rank": 11, "addedAt": "2026-10-12",
+      "cover": { "tint": "obsidian", "motif": "monolith" },
+      "synopsis": "Магистр философии Андрей Коврин уезжает в деревню лечить расстроенные нервы — и начинает видеть чёрного монаха, который убеждает его в собственной гениальности. Чехов, врач по образованию, с клинической точностью описывает манию величия и цену, которую близкие платят за чужую «избранность»."
+    },
+    {
+      "id": "povesti-belkina", "work": "povesti-belkina", "kind": "ebook", "format": "fb2",
+      "title": "Повести Белкина", "author": "Александр Пушкин", "year": 1831, "language": "ru",
+      "categories": ["classics"], "rating": 4.7, "rank": 10, "addedAt": "2026-10-08",
+      "cover": { "tint": "titanium", "motif": "bars" },
+      "synopsis": "Пять повестей, будто бы записанных скромным помещиком Иваном Петровичем Белкиным: «Выстрел», «Метель», «Гробовщик», «Станционный смотритель» и «Барышня-крестьянка». Пушкинская проза в чистом виде — лаконичная, ироничная, безупречно построенная."
+    },
+    {
+      "id": "kapitanskaya-dochka", "work": "kapitanskaya-dochka", "kind": "ebook", "format": "fb2",
+      "title": "Капитанская дочка", "author": "Александр Пушкин", "year": 1836, "language": "ru",
+      "categories": ["classics"], "rating": 4.8, "rank": 7, "addedAt": "2026-09-30",
+      "cover": { "tint": "bone", "motif": "snow" },
+      "synopsis": "Записки Петра Гринёва — недоросля, отправленного служить в глухую Белогорскую крепость накануне пугачёвского бунта. Метель, вожатый, присяга и любовь к Маше Мироновой. «Береги честь смолоду» — роман о том, как сохранить себя, когда рушится мир."
+    },
+    {
+      "id": "anna-karenina", "work": "anna-karenina", "kind": "ebook", "format": "fb2.zip",
+      "title": "Анна Каренина", "author": "Лев Толстой", "year": 1878, "language": "ru",
+      "categories": ["classics", "psychology"], "rating": 4.9, "rank": 1, "addedAt": "2026-09-14",
+      "cover": { "tint": "ink", "motif": "rails" },
+      "synopsis": "«Все счастливые семьи похожи друг на друга…» Восемь частей, двести тридцать девять глав: история Анны и Вронского, переплетённая с поисками смысла Константина Лёвина. Файл FB2 в ZIP-архиве с вложенной структурой частей и глав."
+    },
+    {
+      "id": "prestuplenie-i-nakazanie", "work": "prestuplenie-i-nakazanie", "kind": "ebook", "format": "epub",
+      "title": "Преступление и наказание", "author": "Фёдор Достоевский", "year": 1866, "language": "ru",
+      "categories": ["classics", "psychology"], "rating": 4.8, "rank": 8, "addedAt": "2026-09-22",
+      "cover": { "tint": "oxide", "motif": "slash" },
+      "synopsis": "Бывший студент Родион Раскольников проверяет на себе теорию о «право имеющих». Душный петербургский июль, каморка под крышей, следователь Порфирий Петрович и Соня Мармеладова. Шесть частей и эпилог — главный психологический роман XIX века."
+    },
+    {
+      "id": "otcy-i-deti", "work": "otcy-i-deti", "kind": "ebook", "format": "fb2-cp1251",
+      "title": "Отцы и дети", "author": "Иван Тургенев", "year": 1862, "language": "ru",
+      "categories": ["classics"], "rating": 4.6, "rank": 13, "addedAt": "2026-09-05",
+      "cover": { "tint": "slate", "motif": "pair" },
+      "synopsis": "Нигилист Евгений Базаров приезжает с другом в имение Кирсановых — и спор поколений из гостиной переходит в дуэль. Файл в классической кодировке windows-1251, как в старых библиотеках FB2: приложение определяет её автоматически."
+    },
+    {
+      "id": "dyadya-vanya", "work": "dyadya-vanya", "kind": "ebook", "format": "pdf",
+      "title": "Дядя Ваня", "author": "Антон Чехов", "year": 1897, "language": "ru",
+      "categories": ["classics"], "rating": 4.5, "rank": 15, "addedAt": "2026-10-15",
+      "cover": { "tint": "sand", "motif": "horizon" },
+      "synopsis": "Сцены из деревенской жизни в четырёх действиях. Отставной профессор Серебряков приезжает в имение, которое годами содержали дядя Ваня и Соня, — и рушит хрупкое равновесие. PDF с оглавлением (outline): каждое действие — отдельная глава."
+    },
+    {
+      "id": "flatland", "work": "flatland", "kind": "ebook", "format": "pdf-no-outline",
+      "title": "Flatland", "subtitle": "A Romance of Many Dimensions", "author": "Edwin A. Abbott", "year": 1884, "language": "en",
+      "categories": ["tech", "scifi"], "rating": 4.6, "rank": 12, "addedAt": "2026-10-10",
+      "cover": { "tint": "titanium", "motif": "polygons" },
+      "synopsis": "Квадрат из двумерного мира рассказывает о геометрическом обществе, где статус определяется числом углов, — пока гость из Пространства не открывает ему третье измерение. Математическая сатира на английском. PDF без встроенного оглавления: главы определяются по крупным заголовкам."
+    },
+    {
+      "id": "time-machine", "work": "time-machine", "kind": "ebook", "format": "epub",
+      "title": "The Time Machine", "author": "H. G. Wells", "year": 1895, "language": "en",
+      "categories": ["scifi"], "rating": 4.7, "rank": 14, "addedAt": "2026-10-17",
+      "cover": { "tint": "steel", "motif": "clock" },
+      "synopsis": "Путешественник во Времени отправляется в 802 701 год и находит человечество разделённым на беспечных элоев и подземных морлоков. Роман, с которого началась научная фантастика о путешествиях во времени. На английском, издание Standard Ebooks."
+    },
+    {
+      "id": "war-of-the-worlds", "work": "war-of-the-worlds", "kind": "ebook", "format": "epub",
+      "title": "The War of the Worlds", "author": "H. G. Wells", "year": 1898, "language": "en",
+      "categories": ["scifi"], "rating": 4.6, "rank": 16, "addedAt": "2026-09-27",
+      "cover": { "tint": "oxide", "motif": "tripod" },
+      "synopsis": "Цилиндры с Марса падают на английские пустоши, и из них поднимаются боевые треножники. Первое большое вторжение инопланетян в литературе — глазами обычного человека, пытающегося выжить. На английском, издание Standard Ebooks."
+    },
+    {
+      "id": "franklin-autobiography", "work": "franklin-autobiography", "kind": "ebook", "format": "epub",
+      "title": "The Autobiography of Benjamin Franklin", "author": "Benjamin Franklin", "year": 1791, "language": "en",
+      "categories": ["bio", "tech"], "rating": 4.5, "rank": 17, "addedAt": "2026-10-05",
+      "cover": { "tint": "bone", "motif": "lightning" },
+      "synopsis": "Печатник, изобретатель громоотвода и бифокальных очков, дипломат и один из отцов-основателей США рассказывает, как он себя сделал: от подмастерья в Бостоне до учёного с мировым именем. Знаменитый «план тринадцати добродетелей». На английском."
+    },
+    {
+      "id": "meditations", "work": "meditations", "kind": "ebook", "format": "epub",
+      "title": "Meditations", "author": "Marcus Aurelius", "translator": "George Long", "year": 180, "language": "en",
+      "categories": ["psychology"], "rating": 4.8, "rank": 18, "addedAt": "2026-10-02",
+      "cover": { "tint": "sand", "motif": "circle" },
+      "synopsis": "Личные записи римского императора, никогда не предназначавшиеся для публикации: как сохранять спокойствие, отличать зависящее от тебя от независящего и исполнять свой долг. Основа стоической психологии, в переводе Джорджа Лонга. На английском."
+    },
+    {
+      "id": "news-from-nowhere", "work": "news-from-nowhere", "kind": "ebook", "format": "epub",
+      "title": "News from Nowhere", "author": "William Morris", "year": 1890, "language": "en",
+      "categories": ["design"], "rating": 4.3, "rank": 19, "addedAt": "2026-10-14",
+      "cover": { "tint": "slate", "motif": "leaf" },
+      "synopsis": "Уильям Моррис — основатель движения «Искусства и ремёсла» и один из отцов современного дизайна — описывает Англию будущего, где труд стал творчеством, а вещи делают хорошо и для себя. Манифест о ремесле, качестве и среде. На английском."
+    },
+    {
+      "id": "leisure-class", "work": "leisure-class", "kind": "ebook", "format": "epub",
+      "title": "The Theory of the Leisure Class", "author": "Thorstein Veblen", "year": 1899, "language": "en",
+      "categories": ["design", "psychology"], "rating": 4.2, "rank": 20, "addedAt": "2026-09-18",
+      "cover": { "tint": "ink", "motif": "stack" },
+      "synopsis": "Книга, давшая миру термин «демонстративное потребление». Веблен объясняет, почему вещи ценят не только за функцию, но и за то, что они сообщают о владельце, — обязательное чтение для всех, кто проектирует продукты. На английском."
+    }
+  ]
+}
