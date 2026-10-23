@@ -71,6 +71,10 @@ async function render(id, html, outline) {
     const x = readFileSync(file, 'utf8');
     let inner = x.slice(x.indexOf('>', x.indexOf('<body')) + 1, x.lastIndexOf('</body>'));
     inner = inner.replace(/src="([^"]+)"/g, (_, s) => `src="${pathToFileURL(join(dirname(file), s)).href}"`)
+      // Cross-file links (endnotes.xhtml#note-1) become in-document anchors; anything else non-http is unlinked,
+      // otherwise Chromium bakes absolute file:// URIs of the build machine into the PDF.
+      .replace(/href="(?:[^"#]*\.xhtml)?#([^"]+)"/g, 'href="#$1"')
+      .replace(/href="(?!https?:|#)[^"]*"/g, "")
       .replace(/<h[2-6]([^>]*)>/g, '<h2$1>').replace(/<\/h[2-6]>/g, '</h2>')
       .replace(/<(section|article)[^>]*>/g, '<div>').replace(/<\/(section|article)>/g, '</div>');
     body += inner;
