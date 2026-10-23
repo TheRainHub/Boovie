@@ -4,23 +4,41 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "build": "next build && node scripts/generate-sw-manifest.mjs",
+    "start": "npx --yes serve@14 out -l 3000",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx scripts/test-parsers.ts",
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
+    "cap:sync": "npm run build && cap sync"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "clsx": "^2.1.1",
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
+    "framer-motion": "^14.6.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.61.0",
     "next": "16.4.3",
+    "pdfjs-dist": "^6.4.299",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "fake-indexeddb": "^6.2.6",
+    "linkedom": "^0.18.14",
+    "playwright-core": "^1.64.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
