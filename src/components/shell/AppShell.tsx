@@ -6,6 +6,7 @@ import { FullPlayer } from "@/components/player/FullPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { Toaster } from "@/components/ui/Toaster";
 import { persistNow, restoreLastSession, unlockAudio } from "@/lib/audio/player";
+import { withBase } from "@/lib/basePath";
 import { useTheme } from "@/lib/theme";
 import { BottomDock } from "./BottomDock";
 import { ImportTray } from "./ImportTray";
@@ -38,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     void restoreLastSession();
 
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => undefined);
+      navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => undefined);
     }
     return () => {
       mq.removeEventListener("change", onScheme);

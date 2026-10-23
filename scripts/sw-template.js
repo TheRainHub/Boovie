@@ -3,7 +3,9 @@ const VERSION = "__BUILD_VERSION__";
 const PRECACHE = __PRECACHE__;
 const CACHE = `titan-${VERSION}`;
 const RUNTIME = "titan-runtime";
-const SHELLS = ["/", "/store/", "/book/", "/settings/"];
+// "" at a domain root, "/Boovie" on GitHub Pages project sites.
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
+const SHELLS = ["/", "/store/", "/book/", "/settings/"].map((p) => BASE + p);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,7 +30,7 @@ self.addEventListener("activate", (event) => {
 
 function shellFor(url) {
   const path = url.pathname.endsWith("/") ? url.pathname : `${url.pathname}/`;
-  return SHELLS.includes(path) ? path : "/";
+  return SHELLS.includes(path) ? path : `${BASE}/`;
 }
 
 async function networkFirst(request, url) {
@@ -43,7 +45,7 @@ async function networkFirst(request, url) {
     }
     return res;
   } catch {
-    return (await caches.match(shellFor(url))) || (await caches.match("/")) || Response.error();
+    return (await caches.match(shellFor(url))) || (await caches.match(`${BASE}/`)) || Response.error();
   }
 }
 
@@ -72,12 +74,12 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   // Book and audio files are downloaded into IndexedDB/OPFS by the app; stream previews need Range requests.
-  if (url.pathname.startsWith("/store/books/") || url.pathname.startsWith("/store/audio/")) return;
+  if (url.pathname.startsWith(`${BASE}/store/books/`) || url.pathname.startsWith(`${BASE}/store/audio/`)) return;
   if (request.headers.has("range")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, url));
-  } else if (url.pathname.startsWith("/_next/static/")) {
+  } else if (url.pathname.startsWith(`${BASE}/_next/static/`)) {
     event.respondWith(cacheFirst(request));
   } else {
     event.respondWith(staleWhileRevalidate(request));

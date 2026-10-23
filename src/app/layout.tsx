@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Literata } from "next/font/google";
 import { AppShell } from "@/components/shell/AppShell";
+import { withBase } from "@/lib/basePath";
 import { THEME_STORAGE_KEY } from "@/lib/themeKey";
 import "./globals.css";
 
@@ -12,12 +13,12 @@ export const metadata: Metadata = {
   title: { default: "Titan — книги и аудиокниги", template: "%s · Titan" },
   description: "Офлайн-читалка PDF, FB2, EPUB и плеер аудиокниг MP3/M4B с магазином классики.",
   applicationName: "Titan",
-  manifest: "/manifest.webmanifest",
+  manifest: withBase("/manifest.webmanifest"),
   appleWebApp: { capable: true, title: "Titan", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
-    icon: [{ url: "/icons/favicon-64.png", sizes: "64x64", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: withBase("/icons/favicon-64.png"), sizes: "64x64", type: "image/png" }],
+    apple: [{ url: withBase("/icons/apple-touch-icon.png"), sizes: "180x180" }],
   },
   other: {
     // Next emits `mobile-web-app-capable`; older iOS versions only honor the apple-prefixed tag.

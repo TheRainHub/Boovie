@@ -1,3 +1,4 @@
+import { withBase } from "@/lib/basePath";
 import data from "./catalog.generated.json";
 
 export type CategoryId = "classics" | "scifi" | "design" | "psychology" | "tech" | "bio";
@@ -37,7 +38,11 @@ export interface StoreItem {
 }
 
 export const CATEGORIES = data.categories as Record<CategoryId, string>;
-export const STORE_ITEMS = data.items as StoreItem[];
+export const STORE_ITEMS = (data.items as StoreItem[]).map((i) => ({
+  ...i,
+  coverUrl: withBase(i.coverUrl),
+  files: i.files.map((f) => ({ ...f, url: withBase(f.url) })),
+}));
 
 export function storeItem(id: string | undefined): StoreItem | undefined {
   return id ? STORE_ITEMS.find((i) => i.id === id) : undefined;

@@ -48,6 +48,13 @@ npm run lint && npm run typecheck
 npm run cap:sync     # after `npx cap add ios|android`
 ```
 
+## Deploy
+
+GitHub Pages: `.github/workflows/deploy-pages.yml` runs the tests, builds with `NEXT_PUBLIC_BASE_PATH` set to the
+project sub-path (`/Boovie`) and publishes `out/` on every push to `main` — live at
+https://therainhub.github.io/Boovie/. Any other static host: `npm run build` and upload `out/`
+(set `NEXT_PUBLIC_BASE_PATH` when serving from a sub-path).
+
 ## Layout
 
 ```
