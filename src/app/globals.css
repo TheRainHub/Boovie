@@ -1,26 +1,320 @@
 @import "tailwindcss";
 
+/* Theme is driven by data-theme on <html> (set before first paint by an inline script). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Theme 1 · Brushed Silver ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --bg: #eceef2;
+  --surface: #f6f7f9;
+  --surface-sheen: linear-gradient(180deg, #ffffff 0%, #f1f3f6 100%);
+  --surface-2: #e2e5ea;
+  --ink: #0f1115;
+  --ink-2: #5e6673;
+  --ink-3: #8e96a4;
+  --accent: #1e2229;
+  --on-accent: #f8fafc;
+  --steel: #5a7184;
+  --hairline: rgb(15 17 21 / 0.08);
+  --track: #d3d8df;
+  --thumb: linear-gradient(180deg, #ffffff 0%, #e4e8ee 48%, #cfd5dd 52%, #e9ecf1 100%);
+  --thumb-edge: rgb(15 17 21 / 0.18);
+  --card-shadow: 0 1px 0 0 rgb(255 255 255 / 0.9) inset, 0 4px 24px rgb(15 23 42 / 0.06);
+  --cover-shadow: 0 18px 40px -18px rgb(15 23 42 / 0.45), 0 2px 6px rgb(15 23 42 / 0.12);
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --dock-h: 64px;
+}
+
+/* ── Theme 2 · Obsidian Graphite ──────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0b0d;
+  --surface: #131519;
+  --surface-sheen: linear-gradient(180deg, #1a1d23 0%, #121418 100%);
+  --surface-2: #1a1d22;
+  --ink: #eceff4;
+  --ink-2: #848d9c;
+  --ink-3: #525866;
+  --accent: #e2e6ed;
+  --on-accent: #0a0b0d;
+  --steel: #7b93a8;
+  --hairline: rgb(255 255 255 / 0.07);
+  --track: #2a2e36;
+  --thumb: linear-gradient(180deg, #f4f6f9 0%, #c9cfd8 48%, #a8b0bc 52%, #d8dde4 100%);
+  --thumb-edge: rgb(0 0 0 / 0.5);
+  --card-shadow: 0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 8px 28px rgb(0 0 0 / 0.35);
+  --cover-shadow: 0 22px 44px -20px rgb(0 0 0 / 0.9), 0 2px 6px rgb(0 0 0 / 0.5);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-steel: var(--steel);
+  --color-hairline: var(--hairline);
+  --color-track: var(--track);
+  --font-sans: var(--font-inter), ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+  --font-serif: Georgia, var(--font-literata), "Times New Roman", serif;
+  --ease-machined: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--steel) 35%, transparent);
+}
+
+button,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--steel);
+  outline-offset: 2px;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────────────────────── */
+@utility metal-card {
+  background: var(--surface-sheen);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--card-shadow);
+}
+
+/* Faint anisotropic brushing for large aluminium surfaces. */
+@utility brushed {
+  background-image:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.018) 0 1px, transparent 1px 5px);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility pt-safe {
+  padding-top: var(--sat);
+}
+@utility pb-safe {
+  padding-bottom: var(--sab);
+}
+
+/* ── Machined range slider ─────────────────────────────────────────────────────────────
+   Thin anodized track, steel fill (via --fill), brushed pill thumb. */
+.metal-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+  --fill: 0%;
+  touch-action: pan-y;
+}
+.metal-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--steel) 0 var(--fill), var(--track) var(--fill) 100%);
+}
+.metal-range::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--track);
+}
+.metal-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--steel);
+}
+.metal-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 14px;
+  margin-top: -5.5px;
+  border-radius: 999px;
+  background: var(--thumb);
+  border: 0.5px solid var(--thumb-edge);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.9);
+  transition: transform 120ms var(--ease-machined);
+}
+.metal-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.metal-range::-moz-range-thumb {
+  width: 22px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--thumb);
+  border: 0.5px solid var(--thumb-edge);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.metal-range.metal-range-sm::-webkit-slider-thumb {
+  width: 16px;
+  height: 10px;
+  margin-top: -3.5px;
+}
+
+/* ── Book typography (reader) ─────────────────────────────────────────────────────────── */
+.book-content {
+  font-family: var(--reader-font);
+  font-size: var(--reader-size);
+  line-height: var(--reader-leading);
+  color: var(--paper-ink);
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
+}
+.book-content p {
+  margin: 0;
+  text-indent: 1.5em;
+  text-align: var(--reader-align);
+}
+.book-content p.empty-line {
+  text-indent: 0;
+}
+.book-content h1,
+.book-content h2,
+.book-content h3,
+.book-content h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-align: center;
+  text-indent: 0;
+  margin: 1.6em 0 1.1em;
+  break-after: avoid;
+  color: var(--paper-heading);
+}
+.book-content h1 {
+  font-size: 1.45em;
+}
+.book-content h2 {
+  font-size: 1.22em;
+}
+.book-content h3,
+.book-content h4 {
+  font-size: 1.05em;
+}
+.book-content h3.subtitle {
+  font-weight: 500;
+  font-style: italic;
+}
+.book-content blockquote {
+  margin: 1em 0 1.2em 1.5em;
+}
+.book-content blockquote.epigraph {
+  margin: 0.4em 0 1.6em 30%;
+  font-size: 0.9em;
+  font-style: italic;
+  color: var(--paper-muted);
+}
+.book-content blockquote p,
+.book-content .poem p,
+.book-content p.text-author {
+  text-indent: 0;
+  text-align: left;
+}
+.book-content p.text-author {
+  font-style: normal;
+  margin-top: 0.3em;
+  text-align: right;
+}
+.book-content .poem {
+  margin: 1em 0 1em 1.5em;
+}
+.book-content .stanza {
+  margin-bottom: 0.8em;
+}
+.book-content img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(var(--page-h, 80vh) - 2em);
+  height: auto;
+  margin: 1em auto;
+  border-radius: 4px;
+  break-inside: avoid;
+}
+.book-content sup.noteref {
+  font-size: 0.7em;
+  color: var(--paper-accent);
+}
+.book-content a {
+  color: var(--paper-accent);
+  text-decoration: none;
+}
+.book-content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.9em;
+}
+.book-content td,
+.book-content th {
+  border: 1px solid var(--paper-rule);
+  padding: 0.3em 0.5em;
+}
+.book-content hr {
+  border: 0;
+  border-top: 1px solid var(--paper-rule);
+  margin: 1.5em 20%;
+}
+.book-content pre,
+.book-content code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.book-content .small-caps {
+  font-variant: small-caps;
+}
+.book-content .center {
+  text-align: center;
+  text-indent: 0;
+}
+
+/* Cover reflection (store detail, player). */
+.cover-reflect {
+  -webkit-box-reflect: below 4px linear-gradient(transparent 82%, rgb(255 255 255 / 0.22));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }
