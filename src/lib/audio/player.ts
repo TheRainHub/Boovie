@@ -6,9 +6,11 @@
  * the file that holds them and the offset inside that file — this covers single M4B files with embedded
  * chapters and multi-file MP3 books alike.
  *
- * A file is loaded only when playback starts. iOS Safari doesn't load media before a user-initiated play and
- * ignores `currentTime` set before it, so the saved position is kept as a pending target and applied (and
- * checked) once the file actually plays; the sound stays muted until the jump has landed.
+ * A file is loaded only when playback starts, and at the saved spot through a media fragment (`#t=`): iOS Safari
+ * doesn't load media before a user-started play, and a `currentTime` set around that moment can be reported as
+ * done and then lost when playback begins. So every jump is a target that counts as reached only once playback
+ * has run from there; until then the position isn't taken from the element (or saved), and a jump the app
+ * didn't ask for (the element rolling back to 0:00) is undone instead of becoming the new position.
  */
 import { create } from "zustand";
 import { getChapters, getProgress, markChaptersComplete, updateProgress } from "../library/repository";
@@ -86,9 +88,10 @@ const set = (patch: Partial<PlayerState>) => usePlayer.setState(patch);
 let audio: HTMLAudioElement | null = null;
 /** The file whose URL is in the element's src. */
 let currentFileId: string | null = null;
-/** File time the element still has to reach (see the header comment); null once it is there. */
-let pendingTime: number | null = null;
-let pendingTries = 0;
+/** File time the element still has to reach (see the header comment); null once playback runs from there. */
+let target: { time: number; mute: boolean; since: number; lastTry: number; reloaded: boolean } | null = null;
+/** Set if this engine failed to open a file with a media fragment; then seeks alone have to do. */
+let fragmentsOff = false;
 let loadToken = 0;
 let lastPersist = 0;
 let lastPositionState = 0;
@@ -117,24 +120,31 @@ function el(): HTMLAudioElement {
   a.addEventListener("waiting", () => set({ isLoading: true }));
   a.addEventListener("playing", () => {
     set({ isLoading: false });
-    applyPending(a);
+    nudge(a);
   });
   a.addEventListener("canplay", () => {
     set({ isLoading: false });
-    applyPending(a);
+    nudge(a);
   });
-  a.addEventListener("loadedmetadata", () => applyPending(a));
-  a.addEventListener("seeked", () => {
-    if (pendingTime !== null && Math.abs(a.currentTime - pendingTime) < 1) landed(a);
-  });
+  a.addEventListener("loadedmetadata", () => nudge(a));
   a.addEventListener("ended", onEnded);
   a.addEventListener("error", () => {
     if (!a.src || unlocking()) return;
+    if (!fragmentsOff && a.src.includes("#t=") && currentFileId) {
+      // In case this engine can't open a blob URL with a fragment: open the file plainly and seek instead.
+      fragmentsOff = true;
+      const fileId = currentFileId;
+      void getFileUrl(fileId).then((url) => {
+        if (!url || currentFileId !== fileId) return;
+        a.src = url;
+        void startPlayback(a);
+      });
+      return;
+    }
     // The element can't recover from a media error: drop the file (and its URL) so the next play loads it afresh.
     if (currentFileId) revokeFileUrls([currentFileId]);
     currentFileId = null;
-    pendingTime = null;
-    a.muted = false;
+    arrived(a);
     set({ error: "Не удалось воспроизвести файл, нажмите ещё раз", isLoading: false, isPlaying: false });
   });
   audio = a;
@@ -161,32 +171,75 @@ export function unlockAudio(): void {
   a.play().then(() => a.pause()).catch(() => undefined);
 }
 
-/** Ask the element to be at `fileTime`; it is re-applied on the next media events until it sticks. */
-function aim(a: HTMLAudioElement, fileTime: number, opts: { mute?: boolean } = {}): void {
-  pendingTime = fileTime;
-  pendingTries = 0;
-  if (opts.mute) a.muted = true;
-  applyPending(a);
+/** A media fragment makes the engine start the file there itself — iOS honours it where an early seek gets lost. */
+function startUrl(url: string, fileTime: number): string {
+  return fileTime > 0.5 && !fragmentsOff ? `${url}#t=${fileTime.toFixed(2)}` : url;
 }
 
-function applyPending(a: HTMLAudioElement): void {
-  if (pendingTime === null || a.readyState < 1) return;
-  if (isFinite(a.duration) && a.duration > 0) pendingTime = Math.min(pendingTime, Math.max(0, a.duration - 0.25));
-  if (Math.abs(a.currentTime - pendingTime) < 1) {
-    landed(a);
-    return;
-  }
-  if (a.seeking) return;
+/** Make `fileTime` the element's target (see the header comment). `mute` keeps it quiet until it gets there. */
+function aim(a: HTMLAudioElement, fileTime: number, opts: { mute?: boolean } = {}): void {
+  target = { time: fileTime, mute: !!opts.mute, since: 0, lastTry: 0, reloaded: false };
+  if (opts.mute) a.muted = true;
+  nudge(a);
+}
+
+/** Seek towards the target unless the element is already there (or busy seeking). */
+function nudge(a: HTMLAudioElement): void {
+  if (!target || a.readyState < 1 || a.seeking) return;
+  if (isFinite(a.duration) && a.duration > 0) target.time = Math.min(target.time, Math.max(0, a.duration - 0.25));
+  if (Math.abs(a.currentTime - target.time) < 1.5) return;
+  target.lastTry = Date.now();
   try {
-    a.currentTime = pendingTime;
+    a.currentTime = target.time;
   } catch {
     /* not seekable yet: the next event retries */
   }
 }
 
-function landed(a: HTMLAudioElement): void {
-  pendingTime = null;
+function arrived(a: HTMLAudioElement): void {
+  target = null;
   a.muted = false;
+}
+
+/** Last resort while playing: load the file again, starting at the target through the media fragment. */
+async function reloadAtTarget(a: HTMLAudioElement): Promise<void> {
+  const fileId = currentFileId;
+  if (!target || !fileId) return;
+  target.reloaded = true;
+  target.since = Date.now();
+  const url = await getFileUrl(fileId);
+  if (!url || !target || fileId !== currentFileId) return;
+  a.src = startUrl(url, target.time);
+  await startPlayback(a);
+}
+
+/**
+ * Called on timeupdate while playing with a target set. Returns true while the element isn't running from the
+ * target yet, so its time must not be shown or saved.
+ */
+function chasing(a: HTMLAudioElement): boolean {
+  if (!target) return false;
+  const cur = a.currentTime;
+  if (cur > target.time - 1.5 && cur < target.time + 8) {
+    a.muted = false;
+    if (cur - target.time < 0.4) return true; // there, but wait until playback has actually run from it
+    arrived(a);
+    return false;
+  }
+  const now = Date.now();
+  if (target.mute) a.muted = true;
+  if (!target.since) target.since = now;
+  if (target.reloaded && now - target.since > 5000) {
+    // The file won't go there: stop rather than carry on (and save) from the wrong place.
+    arrived(a);
+    a.pause();
+    set({ error: "Не получилось перейти к сохранённому месту, нажмите ещё раз" });
+  } else if (!target.reloaded && now - target.since > 2000) {
+    void reloadAtTarget(a);
+  } else if (now - target.lastTry > 700) {
+    nudge(a);
+  }
+  return true;
 }
 
 function chapterAtGlobal(t: number): PlayerChapter | undefined {
@@ -227,20 +280,17 @@ function onTime(): void {
   // Only playback moves the position. A paused element reports seeks we already know about and resets
   // (iOS drops a paused file's media while the app is away) that must not overwrite the saved spot.
   if (a.paused || a.readyState === 0) return;
-  if (pendingTime !== null) {
-    // Still on the way to the saved spot: keep showing (and saving) the target, not where the element starts.
-    if (Math.abs(a.currentTime - pendingTime) < 1) landed(a);
-    else {
-      if (!a.seeking && a.readyState >= 1) {
-        if (++pendingTries > 6) landed(a); // the file can't seek there; play from where it is
-        else applyPending(a);
-      }
-      if (pendingTime !== null) return;
-    }
-  }
+  if (chasing(a)) return;
   const ch = chapterAtFileTime(currentFileId, a.currentTime);
   if (!ch) return;
   const position = ch.startTime + (a.currentTime - ch.fileStart);
+  // Playback never runs backwards: a big step back that the app didn't ask for is the element losing its place
+  // (iOS restarting the file), so go back to where the listener was instead of taking it as the new position.
+  const known = chapterAtGlobal(s.position);
+  if (known && known.fileId === currentFileId && position < s.position - 3) {
+    aim(a, known.fileStart + (s.position - known.startTime), { mute: true });
+    return;
+  }
 
   if (ch.index !== s.chapterIndex) {
     const prev = s.chapterIndex;
@@ -290,7 +340,7 @@ async function persist(force = false): Promise<void> {
 }
 
 async function onEnded(): Promise<void> {
-  landed(el());
+  arrived(el());
   const s = get();
   const cur = s.chapters[s.chapterIndex];
   if (!cur || !s.bookId) return;
@@ -321,7 +371,7 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
   updateMediaMetadata();
   setPositionState(ch.duration, t - ch.startTime, s.rate);
 
-  if (currentFileId === ch.fileId && a.src && !a.error) {
+  if (currentFileId === ch.fileId && a.src && !a.error && a.readyState > 0) {
     // A paused element that has to travel (e.g. reset by iOS while the app was away) stays quiet until it gets there.
     aim(a, fileTime, { mute: a.paused && Math.abs(a.currentTime - fileTime) > 1.5 });
     if (autoplay) await startPlayback(a);
@@ -344,9 +394,9 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
     return;
   }
   currentFileId = ch.fileId;
-  a.src = url;
-  a.playbackRate = s.rate;
   a.defaultPlaybackRate = s.rate;
+  a.src = startUrl(url, fileTime);
+  a.playbackRate = s.rate;
   aim(a, fileTime, { mute: fileTime > 0.5 });
   await startPlayback(a);
   void persist(true);
@@ -379,8 +429,7 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
     }));
     const cover = book.coverFileId ? (await getFileUrl(book.coverFileId)) ?? book.coverUrl : book.coverUrl;
     currentFileId = null;
-    pendingTime = null;
-    a.muted = false;
+    arrived(a);
     set({
       bookId,
       title: book.title,
@@ -432,8 +481,9 @@ export async function play(): Promise<void> {
   const start = s.position >= s.duration - 1 ? 0 : s.position;
   const ch = chapterAtGlobal(start);
   const expected = ch ? ch.fileStart + (start - ch.startTime) : 0;
-  // Not loaded yet, another file, or the element lost its place (iOS resets media while the app is away).
-  if (!ch || currentFileId !== ch.fileId || !a.src || a.src === SILENT || a.error || (pendingTime === null && Math.abs(a.currentTime - expected) > 1.5)) {
+  // The element lost its place (iOS drops a paused file's media while the app is away): load it again at the spot.
+  if (!target && currentFileId && Math.abs(a.currentTime - expected) > 1.5) currentFileId = null;
+  if (!ch || currentFileId !== ch.fileId || !a.src || a.src === SILENT || a.error) {
     await seek(start, { autoplay: true });
     return;
   }
@@ -505,8 +555,7 @@ export function closePlayer(): void {
   a.removeAttribute("src");
   a.load();
   currentFileId = null;
-  pendingTime = null;
-  a.muted = false;
+  arrived(a);
   set({ bookId: null, chapters: [], expanded: false, isPlaying: false, position: 0 });
   try {
     localStorage.removeItem(LAST_KEY);
