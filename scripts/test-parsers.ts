@@ -269,6 +269,54 @@ async function main() {
     assert.equal(await detectKind(blobOf(join(root, "audio/pikovaya-dama-audio.m4b")), "x"), "audio");
   });
 
+  console.log("Integrations");
+  const { parseOpds, formatLabel, isSupportedType } = await import("../src/lib/integrations/opds");
+  const { chapterParagraphs, speechChunks } = await import("../src/lib/integrations/speech");
+  const { mp3Frames } = await import("../src/lib/parsers/audioMetadata");
+  await test("OPDS: Librarr library feed → entries, absolute download links, paging", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:dc="http://purl.org/dc/terms/" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <id>urn:librarr:library</id><title>My Library</title><updated>2026-10-24T10:00:00Z</updated>
+  <link rel="self" href="/opds/books?page=1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <link rel="next" href="/opds/books?page=2" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <opensearch:totalResults>73</opensearch:totalResults>
+  <entry><title>Мастер и Маргарита</title><id>urn:librarr:item:12</id><updated>2026-10-01T00:00:00Z</updated>
+    <author><name>Михаил Булгаков</name></author><dc:format>application/epub+zip</dc:format>
+    <link rel="http://opds-spec.org/acquisition" href="/opds/download/12" type="application/epub+zip"/></entry>
+  <entry><title>Dune &amp; Co</title><id>urn:librarr:item:13</id><updated>2026-10-01T00:00:00Z</updated>
+    <dc:format>audio/mp4</dc:format><link rel="http://opds-spec.org/acquisition" href="/opds/download/13" type="audio/mp4"/></entry>
+</feed>`;
+    const feed = parseOpds(xml, "https://books.example.net", new LinkedomParser() as unknown as DOMParser);
+    assert.equal(feed.total, 73);
+    assert.equal(feed.next, "https://books.example.net/opds/books?page=2");
+    assert.equal(feed.entries.length, 2);
+    assert.equal(feed.entries[0].author, "Михаил Булгаков");
+    assert.equal(feed.entries[0].acquisitions[0].href, "https://books.example.net/opds/download/12");
+    assert.equal(feed.entries[1].title, "Dune & Co");
+    assert.equal(formatLabel(feed.entries[1].acquisitions[0].type!), "M4B");
+    assert.ok(isSupportedType("application/epub+zip") && !isSupportedType("application/x-mobipocket-ebook"));
+  });
+  await test("speech: chapter HTML → paragraphs (no footnote marks) → chunks at sentence ends", async () => {
+    const parser = new LinkedomParser() as unknown as DOMParser;
+    const html = '<h2>Глава I</h2><p>Первый абзац.<sup class="noteref">1</sup></p><div class="poem"><div class="stanza"><p>Строка один</p><p>Строка два</p></div></div>';
+    assert.deepEqual(chapterParagraphs(html, parser), ["Глава I", "Первый абзац.", "Строка один", "Строка два"]);
+    const long = Array.from({ length: 60 }, (_, i) => `Предложение номер ${i} довольно длинное, чтобы набрать объём.`).join(" ");
+    const chunks = speechChunks(["Короткий абзац.", long], 400);
+    assert.ok(chunks.every((c) => c.length <= 400), "every chunk within the limit");
+    assert.ok(chunks.slice(1).every((c) => /[.!?…]$/.test(c)), "pieces end at sentence boundaries");
+    assert.equal(chunks.join(" ").replace(/\s+/g, " ").length, ["Короткий абзац.", long].join(" ").length);
+  });
+  await test("MP3 pieces concatenate: tags and the Xing frame are dropped, duration adds up", async () => {
+    const files = readdirSync(join(root, "audio")).filter((f) => f.startsWith("dama-s-sobachkoy-audio-")).sort().slice(0, 2);
+    const parts = files.map((f) => new Uint8Array(readFileSync(join(root, "audio", f))));
+    const metas = await Promise.all(parts.map((p) => readAudioMetadata(new Blob([p as BlobPart]))));
+    const joined = new Blob(parts.map((p) => mp3Frames(p) as BlobPart), { type: "audio/mpeg" });
+    const meta = await readAudioMetadata(joined);
+    const sum = metas.reduce((s, m) => s + (m.duration ?? 0), 0);
+    assert.equal(meta.container, "mp3");
+    assert.ok(Math.abs((meta.duration ?? 0) - sum) / sum < 0.08, `joined ${meta.duration} vs ${sum}`);
+  });
+
   console.log(failures ? `\n${failures} failed` : "\nall parser tests passed");
   process.exit(failures ? 1 : 0);
 }

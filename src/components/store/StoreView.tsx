@@ -2,17 +2,19 @@
 
 import { BookOpen, Download, Headphones, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { LibrarrShelf } from "@/components/integrations/LibrarrShelf";
 import { TopNav } from "@/components/shell/TopNav";
 import { BookCover } from "@/components/ui/BookCover";
 import { ChipTabs, cn, SectionTitle } from "@/components/ui/primitives";
 import { CATEGORIES, STORE_ITEMS, storeItem, type CategoryId, type StoreItem } from "@/data/catalog";
 import { useToned } from "@/lib/covers/tone";
+import { useLibrarr } from "@/lib/integrations/librarr";
 import { formatDuration } from "@/lib/format";
 import { BookDetailsSheet } from "./BookDetailsSheet";
 import { StoreCard } from "./StoreCard";
 import { useStoreActions } from "./useStoreActions";
 
-type Tab = "overview" | "audio" | "ebooks" | "top" | "new" | `cat:${CategoryId}`;
+type Tab = "overview" | "librarr" | "audio" | "ebooks" | "top" | "new" | `cat:${CategoryId}`;
 const CHIP_ORDER: CategoryId[] = ["classics", "scifi", "psychology", "design", "tech", "bio"];
 const FEATURED = ["anna-karenina", "viy-audio", "time-machine", "pikovaya-dama"];
 
@@ -23,6 +25,7 @@ export function StoreView() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<StoreItem | null>(null);
   const { owned } = useStoreActions();
+  const librarr = useLibrarr((s) => !!s.url);
 
   // Deep link from the home screen: /store/?item=<id>
   useEffect(() => {
@@ -51,7 +54,7 @@ export function StoreView() {
     <main className="mx-auto max-w-[1280px] pt-[calc(var(--sat)+14px)]">
       <TopNav />
 
-      <div className="px-5 sm:px-8">
+      <div className={cn("px-5 sm:px-8", tab === "librarr" && "hidden")}>
         <label className="mt-4 flex h-11 sm:max-w-[560px] items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5">
           <Search size={18} strokeWidth={2.1} className="shrink-0 text-ink-2" />
           <input
@@ -77,6 +80,7 @@ export function StoreView() {
         onChange={setTab}
         options={[
           { value: "overview", label: "Обзор" },
+          ...(librarr ? [{ value: "librarr" as Tab, label: "Librarr" }] : []),
           { value: "audio", label: "Аудиокниги" },
           { value: "ebooks", label: "Электронные" },
           { value: "top", label: "Топ" },
@@ -85,7 +89,9 @@ export function StoreView() {
         ]}
       />
 
-      {tab === "overview" && !searching ? (
+      {tab === "librarr" ? (
+        <LibrarrShelf />
+      ) : tab === "overview" && !searching ? (
         <Overview onSelect={setSelected} owned={owned} />
       ) : tab === "top" ? (
         <TopChart items={list} onSelect={setSelected} className="mt-4 px-5 sm:px-8 md:grid md:grid-cols-2 md:gap-x-10" />

@@ -41,6 +41,17 @@ landscape the player and the store details go two-column and the reader shows a 
   with a sample stream and «Скачать в библиотеку» (the download runs through the same parsers as local files).
 - **Covers** — embedded, from the folder, from the store, found online by title (Apple Books, Google Books, Open
   Library) or generated; the colour of every cover tints its screens (`src/lib/covers/tone.ts`).
+- **ElevenLabs voiceover** — any FB2/EPUB in the library can be turned into an audiobook with your own ElevenLabs
+  API key (Settings → Сервисы; the key stays in this device's storage and is sent only to api.elevenlabs.io).
+  Pick a voice and a model (Multilingual v2 or the cheaper Flash v2.5); the sheet shows the characters and credits
+  before you start. Chapters are synthesised in ~2 400-character pieces with neighbouring text as context, joined
+  into one MP3 per chapter and saved as the book's companion edition, so «Читать / Слушать» works with it. Stop at
+  any time: finished chapters are kept and «Продолжить озвучку» picks up from there. It runs while the app is open.
+- **Librarr** — connect a [Librarr](https://github.com/JeremiahM37/librarr) server (HTTPS address + `API_KEY`) and
+  its library appears as a store tab, read from its OPDS feed (`/opds/books`). Any EPUB/FB2/PDF/MP3/M4B there can be
+  downloaded into Boowie and then works offline like a local file. Boowie only reads the library; searching and
+  grabbing new books stays in Librarr. The browser blocks an https page from talking to an http server, so a home
+  server needs an HTTPS address (Tailscale, Cloudflare Tunnel, a reverse proxy).
 - **PWA** — static export, generated service worker (precached shell, cache-first chunks, offline navigation),
   `manifest.webmanifest`, Apple status-bar meta, safe-area insets everywhere.
 
@@ -83,6 +94,8 @@ src/lib/storage          Dexie schema, OPFS/IndexedDB blob store
 src/lib/library          repository (books, progress, bookmarks), importer, folder grouping, live-query hooks
 src/lib/covers           cover tone (colour), online lookup, generated covers
 src/lib/audio            player engine, Media Session, store previews
+src/lib/integrations     ElevenLabs API, speech chunking, voiceover jobs, OPDS parser, Librarr client
+src/components/integrations  ElevenLabsSettings, VoiceoverSheet, LibrarrSettings, LibrarrShelf
 scripts/content          store content pipeline (see its README for sources and licenses)
 ```
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { BookOpen, FilePlus2, FolderPlus, Headphones, ImageIcon, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
+import { AudioLines, BookOpen, FilePlus2, FolderPlus, Headphones, ImageIcon, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type CSSProperties } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { VoiceoverSheet } from "@/components/integrations/VoiceoverSheet";
 import { PauseGlyph, PlayGlyph } from "@/components/player/icons";
 import { TopNav } from "@/components/shell/TopNav";
 import { BookCover } from "@/components/ui/BookCover";
@@ -31,6 +32,7 @@ export function LibraryView() {
   const [filter, setFilter] = useState<Filter>("all");
   const [menuFor, setMenuFor] = useState<BookRecord | null>(null);
   const [coverFor, setCoverFor] = useState<BookRecord | null>(null);
+  const [voiceFor, setVoiceFor] = useState<BookRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const { inputs, openFiles, openFolder } = useImportPicker();
 
@@ -87,8 +89,9 @@ export function LibraryView() {
         )}
 
         <ImportSheet open={adding} onClose={() => setAdding(false)} onFiles={openFiles} onFolder={openFolder} />
-        <BookMenu book={menuFor} onClose={() => setMenuFor(null)} onCover={(b) => { setMenuFor(null); setCoverFor(b); }} />
+        <BookMenu book={menuFor} onClose={() => setMenuFor(null)} onCover={(b) => { setMenuFor(null); setCoverFor(b); }} onVoice={(b) => { setMenuFor(null); setVoiceFor(b); }} />
         <CoverPicker book={coverFor} onClose={() => setCoverFor(null)} />
+        <VoiceoverSheet book={voiceFor} onClose={() => setVoiceFor(null)} />
         {inputs}
       </main>
     </DropTarget>
@@ -167,7 +170,7 @@ function GridItem({ book, progress, index, onMenu }: { book: BookRecord; progres
   );
 }
 
-function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose: () => void; onCover: (b: BookRecord) => void }) {
+function BookMenu({ book, onClose, onCover, onVoice }: { book: BookRecord | null; onClose: () => void; onCover: (b: BookRecord) => void; onVoice: (b: BookRecord) => void }) {
   const [confirm, setConfirm] = useState(false);
   const close = () => {
     setConfirm(false);
@@ -205,6 +208,11 @@ function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose
                 {book.format === "audio" ? "Слушать" : "Читать"}
               </Button>
             </Link>
+            {book.format !== "audio" && book.format !== "pdf" && !book.companionId && (
+              <Button variant="secondary" size="lg" className="w-full" icon={<AudioLines size={18} strokeWidth={1.9} />} onClick={() => onVoice(book)}>
+                Озвучить через ElevenLabs
+              </Button>
+            )}
             <Button variant="secondary" size="lg" className="w-full" icon={<ImageIcon size={18} strokeWidth={1.9} />} onClick={() => onCover(book)}>
               Обложка
             </Button>

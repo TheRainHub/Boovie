@@ -1,8 +1,9 @@
 "use client";
 
-import { BookOpen, ChevronLeft, Download, Headphones } from "lucide-react";
+import { AudioLines, BookOpen, ChevronLeft, Download, Headphones } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { VoiceoverSheet } from "@/components/integrations/VoiceoverSheet";
 import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { PdfReader } from "@/components/reader/PdfReader";
 import { TextReader } from "@/components/reader/TextReader";
@@ -176,6 +177,9 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
   const source = storeItem(book.storeId);
   const companion = storeItem(source?.companion);
   const job = useImports((s) => s.jobs.find((j) => j.storeId === companion?.id && j.status === "running"));
+  const voicing = useImports((s) => s.jobs.find((j) => j.id === `voice-${book.id}` && j.status === "running"));
+  const [voiceSheet, setVoiceSheet] = useState(false);
+  const canVoice = want === "audio" && !companion && book.format !== "audio" && book.format !== "pdf";
   const router = useRouter();
 
   return (
@@ -191,10 +195,23 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
         <p className="mt-2 text-[16px] leading-relaxed text-ink-2">
           {companion
             ? "Скачайте её — и переключайтесь между чтением и прослушиванием с синхронизацией по главам."
-            : want === "audio"
-              ? "Для этой книги нет связанной аудиокниги. Загрузите MP3/M4B на полку, чтобы слушать."
-              : "Для этой аудиокниги нет связанного текста."}
+            : canVoice
+              ? "Её можно сделать: ElevenLabs озвучит книгу глава за главой, и чтение с прослушиванием будут переключаться с той же главы."
+              : want === "audio"
+                ? "Для этой книги нет связанной аудиокниги. Загрузите MP3/M4B на полку, чтобы слушать."
+                : "Для этой аудиокниги нет связанного текста."}
         </p>
+        {canVoice && (voicing ? (
+          <div className="mt-6 w-full">
+            <ProgressBar value={voicing.progress} />
+            <div className="mt-2 text-[14px] text-ink-2 tabular">{voicing.stage} · {Math.round(voicing.progress * 100)}%</div>
+          </div>
+        ) : (
+          <Button size="lg" className="mt-6" icon={<AudioLines size={18} strokeWidth={2} />} onClick={() => setVoiceSheet(true)}>
+            Озвучить через ElevenLabs
+          </Button>
+        ))}
+        <VoiceoverSheet book={voiceSheet ? book : null} onClose={() => setVoiceSheet(false)} />
         {companion && (
           job ? (
             <div className="mt-6 w-full">

@@ -21,6 +21,20 @@ export interface ImportJob {
   error?: string;
   bookId?: string;
   storeId?: string;
+  /** The job can be stopped from the tray (see `onCancel`). */
+  cancellable?: boolean;
+}
+
+const cancels = new Map<string, () => void>();
+
+/** Register what «Стоп» in the import tray does for a long-running job. */
+export function onCancel(jobId: string, fn: () => void): () => void {
+  cancels.set(jobId, fn);
+  return () => cancels.delete(jobId);
+}
+
+export function cancelJob(jobId: string): void {
+  cancels.get(jobId)?.();
 }
 
 interface ImportState {

@@ -229,6 +229,30 @@ function parseMpegHeader(b: Uint8Array, o: number): MpegHeader | null {
   return { bitrate, sampleRate, samplesPerFrame, frameLength, mpeg1, mono: b[o + 3] >> 6 === 3 };
 }
 
+/**
+ * The bare MPEG frames of an MP3: without the ID3v2 header, the Xing/Info/VBRI frame and a trailing ID3v1 tag.
+ * Pieces cut this way can be concatenated into one playable file (synthesized speech arrives in chunks), and the
+ * result is timed from its bitrate instead of a header that only described the first piece.
+ */
+export function mp3Frames(b: Uint8Array): Uint8Array {
+  let start = 0;
+  if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) {
+    start = 10 + (((b[6] & 0x7f) << 21) | ((b[7] & 0x7f) << 14) | ((b[8] & 0x7f) << 7) | (b[9] & 0x7f));
+  }
+  let end = b.length;
+  if (end - start > 128 && b[end - 128] === 0x54 && b[end - 127] === 0x41 && b[end - 126] === 0x47) end -= 128;
+  for (let o = start; o + 4 < Math.min(end, start + 8192); o++) {
+    const h = parseMpegHeader(b, o);
+    if (!h) continue;
+    const sideInfo = h.mpeg1 ? (h.mono ? 17 : 32) : h.mono ? 9 : 17;
+    const tag = String.fromCharCode(...b.subarray(o + 4 + sideInfo, o + 8 + sideInfo));
+    const vbri = String.fromCharCode(...b.subarray(o + 36, o + 40));
+    start = tag === "Xing" || tag === "Info" || vbri === "VBRI" ? o + h.frameLength : o;
+    break;
+  }
+  return b.subarray(start, end);
+}
+
 async function mpegDuration(blob: Blob, audioStart: number): Promise<number | undefined> {
   const b = await read(blob, audioStart, 64 * 1024);
   for (let o = 0; o + 4 < b.length; o++) {

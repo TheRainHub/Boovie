@@ -3,6 +3,8 @@
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ElevenLabsSettings } from "@/components/integrations/ElevenLabsSettings";
+import { LibrarrSettings } from "@/components/integrations/LibrarrSettings";
 import { Button, cn, IconButton, ProgressBar, Segmented } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { closePlayer } from "@/lib/audio/player";
@@ -94,6 +96,11 @@ export function SettingsView() {
         <Row label="Обложки из интернета" hint="Для книг без обложки — поиск по названию в Apple Books, Google Books и Open Library">
           <Switch on={covers.online} onChange={covers.set} label="Искать обложки в интернете" />
         </Row>
+      </Group>
+
+      <Group title="Сервисы">
+        <div className="border-b border-line"><ElevenLabsSettings /></div>
+        <LibrarrSettings />
       </Group>
 
       <Group title={`Хранилище · ${formatBytes(libraryBytes)}`}>
