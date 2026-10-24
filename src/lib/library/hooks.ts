@@ -10,8 +10,19 @@ export function useBooks(): BookRecord[] | undefined {
   return useLiveQuery(() => getDB().books.orderBy("addedAt").reverse().toArray(), []);
 }
 
-export function useBook(id: string | null | undefined): BookRecord | null | undefined {
-  return useLiveQuery(async () => (id ? (await getDB().books.get(id)) ?? null : null), [id]);
+/**
+ * A live query for one key. useLiveQuery keeps returning the previous key's result until the new query has
+ * answered, so a screen would briefly see «no book / no progress» for the next id and act on it (a reader
+ * opened at chapter 1 and saved that over the real position). This returns undefined until the answer is
+ * for this very key. `attempt` re-runs the query.
+ */
+function useKeyedQuery<T>(key: string | null | undefined, query: (key: string) => Promise<T>, empty: T, attempt = 0): T | undefined {
+  const res = useLiveQuery(async () => ({ key, attempt, value: key ? await query(key) : empty }), [key, attempt]);
+  return res && res.key === key && res.attempt === attempt ? res.value : undefined;
+}
+
+export function useBook(id: string | null | undefined, attempt = 0): BookRecord | null | undefined {
+  return useKeyedQuery(id, async (k) => (await getDB().books.get(k)) ?? null, null, attempt);
 }
 
 export function useAllProgress(): Map<string, ProgressRecord> | undefined {
@@ -19,18 +30,17 @@ export function useAllProgress(): Map<string, ProgressRecord> | undefined {
 }
 
 export function useProgress(bookId: string | null | undefined): ProgressRecord | null | undefined {
-  return useLiveQuery(async () => (bookId ? (await getDB().progress.get(bookId)) ?? null : null), [bookId]);
+  return useKeyedQuery(bookId, async (k) => (await getDB().progress.get(k)) ?? null, null);
 }
 
 /** Chapter metadata without the (potentially large) HTML payload. */
 export type ChapterMeta = Omit<ChapterRecord, "contentOrBlobRef"> & { contentOrBlobRef?: string };
 
 export function useChapterList(bookId: string | null | undefined): ChapterMeta[] | undefined {
-  return useLiveQuery(async () => {
-    if (!bookId) return [];
-    const rows = await getDB().chapters.where("[bookId+index]").between([bookId, 0], [bookId, Infinity]).toArray();
+  return useKeyedQuery(bookId, async (k) => {
+    const rows = await getDB().chapters.where("[bookId+index]").between([k, 0], [k, Infinity]).toArray();
     return rows.map(({ contentOrBlobRef, ...rest }) => ({ ...rest, contentOrBlobRef: rest.duration !== undefined ? contentOrBlobRef : undefined }));
-  }, [bookId]);
+  }, [] as ChapterMeta[]);
 }
 
 export function useStoreIdsInLibrary(): Map<string, string> | undefined {

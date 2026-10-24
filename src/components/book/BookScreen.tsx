@@ -17,20 +17,29 @@ import { useToned } from "@/lib/covers/tone";
 import { formatClock } from "@/lib/format";
 import { useBook, useChapterList, useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { downloadStoreItem, useImports } from "@/lib/library/importer";
-import { getProgress, updateProgress } from "@/lib/library/repository";
+import { getProgress, journaledPosition, updateProgress } from "@/lib/library/repository";
 import { PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
 import { mapChapterIndex } from "@/lib/reader/sync";
 import type { BookRecord } from "@/lib/storage/types";
 import { useTheme } from "@/lib/theme";
 
 type Mode = "read" | "listen";
+const LOOKUPS = 4;
 
 export function BookScreen() {
   const params = useSearchParams();
   const router = useRouter();
   const id = params.get("id");
-  const book = useBook(id);
+  // A miss right after the book was added is looked up again a few times before «not found».
+  const [attempt, setAttempt] = useState(0);
+  const book = useBook(id, attempt);
   const companion = useBook(book?.companionId);
+  const retrying = book === null && attempt % LOOKUPS !== LOOKUPS - 1;
+  useEffect(() => {
+    if (!retrying) return;
+    const t = setTimeout(() => setAttempt((a) => a + 1), 400);
+    return () => clearTimeout(t);
+  }, [retrying, attempt]);
 
   const textBook = book ? (book.format === "audio" ? companion : book) : undefined;
   const audioBook = book ? (book.format === "audio" ? book : companion) : undefined;
@@ -95,15 +104,20 @@ export function BookScreen() {
     }
   }, [audioBook, mode]);
 
-  if (book === undefined) return <Center><Spinner className="text-ink-2" /></Center>;
+  if (book === undefined || retrying) return <Center><Spinner className="text-ink-2" /></Center>;
   if (book === null) {
     return (
       <Center>
         <p className="text-[16px] text-ink-2">Книга не найдена на устройстве.</p>
-        <Button className="mt-4" onClick={() => router.push("/library/")}>К книгам</Button>
+        <div className="mt-4 flex gap-2">
+          <Button onClick={() => setAttempt((a) => a + 1)}>Попробовать ещё раз</Button>
+          <Button variant="secondary" onClick={() => router.push("/library/")}>К книгам</Button>
+        </div>
       </Center>
     );
   }
+  // The other edition is still loading: don't flash «no audio/text edition» meanwhile.
+  if (book.companionId && companion === undefined) return <Center><Spinner className="text-ink-2" /></Center>;
 
   const makeToggle = (toned: boolean) => (
     <Segmented
@@ -123,16 +137,19 @@ export function BookScreen() {
   if (mode === "read") {
     if (!textBook) return <MissingEdition book={book} want="text" toggle={toggle} />;
     if (!textChapters || textProgress === undefined) return <Center><Spinner /></Center>;
+    // A spot saved while the app was being hidden may not have reached the database.
+    const journal = journaledPosition(textBook.id, textProgress);
+    const at = journal ?? textProgress;
     if (textBook.format === "pdf") {
-      return <PdfReader key={`${textBook.id}-${readerKey}`} book={textBook} chapters={textChapters} initialPage={Math.round(textProgress?.scrollOffsetOrPage ?? 1) || 1} toggle={toggle} />;
+      return <PdfReader key={`${textBook.id}-${readerKey}`} book={textBook} chapters={textChapters} initialPage={Math.round(at?.scrollOffsetOrPage ?? 1) || 1} toggle={toggle} />;
     }
     return (
       <TextReader
         key={`${textBook.id}-${readerKey}`}
         book={textBook}
         chapters={textChapters}
-        initialChapter={textProgress?.currentChapterIndex ?? 0}
-        initialFraction={textProgress?.scrollOffsetOrPage ?? 0}
+        initialChapter={at?.currentChapterIndex ?? 0}
+        initialFraction={at?.scrollOffsetOrPage ?? 0}
         toggle={toggle}
       />
     );

@@ -13,7 +13,7 @@
  * didn't ask for (the element rolling back to 0:00) is undone instead of becoming the new position.
  */
 import { create } from "zustand";
-import { getChapters, getProgress, markChaptersComplete, updateProgress } from "../library/repository";
+import { getChapters, getProgress, journaledPosition, journalPosition, markChaptersComplete, updateProgress } from "../library/repository";
 import { getFileUrl, revokeFileUrls } from "../storage/blobStore";
 import { getDB } from "../storage/db";
 import { installMediaHandlers, setMediaMetadata, setPlaybackState, setPositionState, SKIP_BACK, SKIP_FORWARD } from "./mediaSession";
@@ -439,8 +439,8 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
       artwork: book.coverUrl,
       chapters,
       duration: book.duration ?? chapters.reduce((m, c) => Math.max(m, c.startTime + c.duration), 0),
-      position: progress.audioTimestamp,
-      chapterIndex: progress.currentChapterIndex,
+      position: journaledPosition(bookId, progress)?.audioTimestamp ?? progress.audioTimestamp,
+      chapterIndex: journaledPosition(bookId, progress)?.currentChapterIndex ?? progress.currentChapterIndex,
       rate: storedRate(),
       error: undefined,
     });
@@ -570,6 +570,11 @@ export function unloadIfCurrent(bookId: string): void {
   if (get().bookId === bookId) closePlayer();
 }
 
+/** Save right away (the app is being hidden); the journal copy survives even if the database write is cut off. */
 export function persistNow(): Promise<void> {
+  const s = get();
+  if (s.bookId && s.chapters.length) {
+    journalPosition(s.bookId, { audioTimestamp: s.position, currentChapterIndex: s.chapterIndex, percentage: s.duration ? (s.position / s.duration) * 100 : 0 });
+  }
   return persist(true);
 }

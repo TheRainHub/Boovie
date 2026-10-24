@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
-import { addBookmark, getChapter, getChapters, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
+import { addBookmark, getChapter, getChapters, journalPosition, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
 import { FONT_STACKS, PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
 import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
@@ -159,6 +159,27 @@ export function TextReader({
     }, 350);
     return () => clearTimeout(t);
   }, [book.id, chapterIndex, chapters, fraction, html, page, pages, paged, scrollFrac]);
+
+  // Leaving the app right after a page turn must not lose it: save at once when the page is hidden.
+  const saveNow = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    saveNow.current = () => {
+      if (html === null) return;
+      const pos = { currentChapterIndex: chapterIndex, scrollOffsetOrPage: fractionRef.current, percentage: textPercentage(chapters, chapterIndex, fractionRef.current) };
+      journalPosition(book.id, pos);
+      void updateProgress(book.id, pos);
+    };
+  });
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && saveNow.current();
+    const onPageHide = () => saveNow.current();
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, []);
 
   // ── Navigation ────────────────────────────────────────────────────────────────────
   const goChapter = useCallback((index: number, frac = 0, anchor?: string) => {

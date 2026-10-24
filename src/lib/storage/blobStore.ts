@@ -79,12 +79,16 @@ export async function getFileBlob(id: string): Promise<Blob | null> {
   if (record.storage === "idb") return record.blob ? withType(record.blob, record.mime) : null;
   const dir = await getOpfsDir();
   if (!dir) return null;
-  try {
-    const handle = await dir.getFileHandle(id);
-    return withType(await handle.getFile(), record.mime);
-  } catch {
-    return null;
+  // One retry: a file that was just written can be briefly unreadable on WebKit.
+  for (let i = 0; i < 2; i++) {
+    try {
+      const handle = await dir.getFileHandle(id);
+      return withType(await handle.getFile(), record.mime);
+    } catch {
+      if (i === 0) await new Promise((r) => setTimeout(r, 300));
+    }
   }
+  return null;
 }
 
 export async function deleteFiles(ids: string[]): Promise<void> {
@@ -109,7 +113,11 @@ const urlCache = new Map<string, Promise<string | null>>();
 export function getFileUrl(id: string): Promise<string | null> {
   let url = urlCache.get(id);
   if (!url) {
-    url = getFileBlob(id).then((b) => (b ? URL.createObjectURL(b) : null));
+    url = getFileBlob(id).then((b) => {
+      // Don't remember a miss: the next call looks again (the file may have just been written).
+      if (!b) urlCache.delete(id);
+      return b ? URL.createObjectURL(b) : null;
+    });
     urlCache.set(id, url);
   }
   return url;

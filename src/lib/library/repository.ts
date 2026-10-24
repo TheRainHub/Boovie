@@ -166,6 +166,55 @@ export async function updateProgress(bookId: string, patch: Partial<Omit<Progres
   });
 }
 
+/**
+ * The reading spot, written synchronously to localStorage when the app is hidden: an IndexedDB write started
+ * then may be cut off (the app suspended or closed). It is merged back when the book opens and at startup.
+ */
+const JOURNAL_KEY = "boowie-reading-journal";
+export type JournalEntry = Partial<Pick<ProgressRecord, "currentChapterIndex" | "scrollOffsetOrPage" | "audioTimestamp" | "percentage">> & { at: number };
+
+function readJournal(): Record<string, JournalEntry> {
+  try {
+    return JSON.parse(localStorage.getItem(JOURNAL_KEY) ?? "{}") as Record<string, JournalEntry>;
+  } catch {
+    return {};
+  }
+}
+
+export function journalPosition(bookId: string, pos: Omit<JournalEntry, "at">): void {
+  try {
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify({ ...readJournal(), [bookId]: { ...pos, at: Date.now() } }));
+  } catch {
+    /* storage full or blocked */
+  }
+}
+
+/** The journaled spot for a book if it is newer than the stored progress. */
+export function journaledPosition(bookId: string, progress: Pick<ProgressRecord, "updatedAt"> | null | undefined): JournalEntry | undefined {
+  const e = readJournal()[bookId];
+  return e && e.at > (progress?.updatedAt ?? 0) ? e : undefined;
+}
+
+/** Write journaled spots that never reached IndexedDB into the progress table (call at startup). */
+export async function flushJournal(): Promise<void> {
+  const journal = readJournal();
+  for (const [bookId, e] of Object.entries(journal)) {
+    const cur = await getDB().progress.get(bookId);
+    if (cur && cur.updatedAt < e.at) {
+      const patch: Partial<JournalEntry> = { ...e };
+      delete patch.at;
+      await updateProgress(bookId, patch, { touch: false });
+    }
+  }
+  try {
+    const now = readJournal();
+    for (const [bookId, e] of Object.entries(journal)) if (now[bookId]?.at === e.at) delete now[bookId];
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify(now));
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function markChaptersComplete(bookId: string, indices: number[]): Promise<void> {
   const cur = await getProgress(bookId);
   const set = new Set(cur.completedChapters ?? []);
