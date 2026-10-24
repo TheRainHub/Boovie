@@ -2,10 +2,11 @@
 const VERSION = "__BUILD_VERSION__";
 const PRECACHE = __PRECACHE__;
 const CACHE = `titan-${VERSION}`;
-const RUNTIME = "titan-runtime";
+// Per build too: entries from an older build must never be served to this one.
+const RUNTIME = `titan-runtime-${VERSION}`;
 // "" at a domain root, "/Boovie" on GitHub Pages project sites.
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
-const SHELLS = ["/", "/store/", "/book/", "/settings/"].map((p) => BASE + p);
+const SHELLS = ["/", "/library/", "/store/", "/book/", "/settings/"].map((p) => BASE + p);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -22,6 +23,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
+      // Everything from older builds goes, including the old unversioned "titan-runtime".
       await Promise.all(keys.filter((k) => k.startsWith("titan-") && k !== CACHE && k !== RUNTIME).map((k) => caches.delete(k)));
       await self.clients.claim();
     })(),
@@ -49,6 +51,28 @@ async function networkFirst(request, url) {
   }
 }
 
+/**
+ * Router payloads (`…/index.txt?_rsc=…`, `__next.*.txt`). A static export's payload doesn't depend on the query,
+ * so there is one copy per path, from this build's cache only. A cached copy is re-wrapped so the response URL is
+ * this request's: the router navigates to the response URL when builds differ, and a copy saved for another
+ * `?id=` would send the reader to the wrong book.
+ */
+async function flight(request, url) {
+  const key = url.origin + url.pathname;
+  try {
+    const res = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000)),
+    ]);
+    if (res.ok) void (await caches.open(CACHE)).put(key, res.clone());
+    return res;
+  } catch {
+    const hit = await (await caches.open(CACHE)).match(key);
+    if (!hit) return Response.error();
+    return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers: hit.headers });
+  }
+}
+
 async function cacheFirst(request) {
   const hit = await caches.match(request);
   if (hit) return hit;
@@ -58,10 +82,12 @@ async function cacheFirst(request) {
 }
 
 async function staleWhileRevalidate(request) {
-  const cached = (await caches.match(request)) || (await caches.match(request, { ignoreSearch: true }));
+  const runtime = await caches.open(RUNTIME);
+  // The query may be ignored only within this build's precache (icons with ?v=…); payloads never get here.
+  const cached = (await runtime.match(request)) || (await caches.open(CACHE).then((c) => c.match(request, { ignoreSearch: true })));
   const refresh = fetch(request)
     .then(async (res) => {
-      if (res.ok && res.type === "basic") (await caches.open(RUNTIME)).put(request, res.clone());
+      if (res.ok && res.type === "basic") void runtime.put(request, res.clone());
       return res;
     })
     .catch(() => undefined);
@@ -79,6 +105,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, url));
+  } else if (url.searchParams.has("_rsc") || request.headers.get("RSC") === "1" || url.pathname.endsWith(".txt")) {
+    event.respondWith(flight(request, url));
   } else if (url.pathname.startsWith(`${BASE}/_next/static/`)) {
     event.respondWith(cacheFirst(request));
   } else {
