@@ -7,6 +7,8 @@ export interface BookRecord {
   /** Static URL (store books) — the cover blob in `coverFileId` takes precedence when present. */
   coverUrl?: string;
   coverFileId?: string;
+  /** Where the cover came from; only generated covers are replaced automatically by an online match. */
+  coverSource?: "embedded" | "folder" | "store" | "online" | "generated" | "user";
   format: BookFormat;
   totalChapters: number;
   addedAt: number;

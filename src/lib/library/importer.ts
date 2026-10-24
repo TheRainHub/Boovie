@@ -1,10 +1,14 @@
 "use client";
 
 import { create } from "zustand";
+import { ensureCover } from "../covers/auto";
 import { parseAudio } from "../parsers/audioParser";
 import { isAudioName, parseBookFile } from "../parsers";
+import { mimeFromName, stripExtension } from "../parsers/text";
+import { extractZipEntry, isZip, listZip } from "../parsers/zipStream";
 import { getDB } from "../storage/db";
 import { requestPersistentStorage } from "../storage/blobStore";
+import { isImageName, planImport, type PickedFile } from "./grouping";
 import { linkCompanions, saveParsedBook } from "./repository";
 import type { StoreItem } from "@/data/catalog";
 
@@ -72,14 +76,40 @@ export function probeDuration(blob: Blob): Promise<number> {
   });
 }
 
+/** Expand ZIP archives that contain audio (an audiobook folder compressed in the iOS Files app). */
+async function expandArchives(files: PickedFile[], report: (stage: string) => void): Promise<PickedFile[]> {
+  const out: PickedFile[] = [];
+  for (const f of files) {
+    const zipLike = /\.zip$/i.test(f.name) && !/\.fb2\.zip$/i.test(f.name);
+    if (!zipLike || !(await isZip(f.blob))) {
+      out.push(f);
+      continue;
+    }
+    const entries = await listZip(f.blob).catch(() => []);
+    const media = entries.filter((e) => isAudioName(e.path) || isImageName(e.path));
+    if (!media.some((e) => isAudioName(e.path))) {
+      out.push(f); // e.g. a zipped FB2 — handled by the document parsers
+      continue;
+    }
+    const base = f.path ? f.path.replace(/\.zip$/i, "") : stripExtension(f.name);
+    for (let i = 0; i < media.length; i++) {
+      const e = media[i];
+      report(`Распаковка ${i + 1} из ${media.length}`);
+      const name = e.path.split("/").pop()!;
+      const blob = await extractZipEntry(f.blob, e, mimeFromName(name));
+      out.push({ blob, name, path: `${base}/${e.path}` });
+    }
+  }
+  return out;
+}
+
 /**
- * Import files picked by the user. Several audio files picked together form ONE audiobook
- * (each file a chapter); every document file becomes its own book.
+ * Import picked files or a whole folder. Every folder with audio becomes ONE audiobook (each file a chapter,
+ * CD/Disc subfolders merged, cover.jpg/folder.jpg as the cover); loose audio files picked together form one
+ * book too; every document becomes its own book. Covers are completed in the background (see ensureCover).
  */
 export async function importLocalFiles(files: File[]): Promise<string[]> {
   void requestPersistentStorage();
-  const audio = files.filter((f) => isAudioName(f.name) || f.type.startsWith("audio/"));
-  const docs = files.filter((f) => !audio.includes(f));
   const ids: string[] = [];
   const { upsert } = useImports.getState();
 
@@ -90,22 +120,52 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
       const bookId = await work((p, stage) => upsert({ id, progress: p, ...(stage ? { stage } : {}) }));
       upsert({ id, progress: 1, stage: "Готово", status: "done", bookId });
       ids.push(bookId);
+      void ensureCover(bookId).catch(() => undefined);
     } catch (e) {
       upsert({ id, status: "error", error: (e as Error).message || "Ошибка импорта" });
     }
   };
 
-  if (audio.length) {
-    const label = audio.length === 1 ? audio[0].name : `${audio.length} аудиофайлов`;
+  const picked: PickedFile[] = files.map((f) => ({
+    blob: f,
+    name: f.name,
+    path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || "",
+  }));
+  const hasArchive = picked.some((f) => /\.zip$/i.test(f.name) && !/\.fb2\.zip$/i.test(f.name));
+  const expanded = hasArchive
+    ? await (async () => {
+        const id = `job-${++jobSeq}`;
+        upsert({ id, label: "Архив", progress: 0, stage: "Чтение архива", status: "running" });
+        try {
+          return await expandArchives(picked, (stage) => upsert({ id, stage }));
+        } finally {
+          useImports.setState({ jobs: useImports.getState().jobs.filter((j) => j.id !== id) });
+        }
+      })()
+    : picked;
+
+  const plan = planImport(expanded);
+  if (!plan.audioGroups.length && !plan.documents.length) {
+    upsert({ id: `job-${++jobSeq}`, label: files[0]?.name ?? "Файлы", status: "error", error: "Нет поддерживаемых файлов: PDF, FB2, EPUB, MP3, M4B, M4A, ZIP" });
+    return ids;
+  }
+
+  for (const g of plan.audioGroups) {
+    const label = g.folderName ?? (g.audio.length === 1 ? g.audio[0].name : `${g.audio.length} аудиофайлов`);
     await run(label, async (report) => {
-      const parsed = await parseAudio(audio.map((f) => ({ blob: f, name: f.name })), (p, s) => report(p * 0.8, s), { probeDuration });
+      const parsed = await parseAudio(g.audio.map((f) => ({ blob: f.blob, name: f.name, path: f.path })), (p, s) => report(p * 0.8, s), { probeDuration, hint: g.hint });
+      let coverSource: "embedded" | "folder" = "embedded";
+      if (!parsed.cover && g.cover) {
+        parsed.cover = g.cover.blob;
+        coverSource = "folder";
+      }
       report(0.85, "Сохранение на устройство");
-      return saveParsedBook(parsed);
+      return saveParsedBook(parsed, { coverSource });
     });
   }
-  for (const f of docs) {
+  for (const f of plan.documents) {
     await run(f.name, async (report) => {
-      const parsed = await parseBookFile(f, f.name, (p, s) => report(p * 0.85, s), { probeDuration });
+      const parsed = await parseBookFile(f.blob, f.name, (p, s) => report(p * 0.85, s), { probeDuration });
       report(0.9, "Сохранение на устройство");
       return saveParsedBook(parsed);
     });

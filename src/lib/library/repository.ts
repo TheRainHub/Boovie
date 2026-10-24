@@ -13,6 +13,7 @@ export interface SaveOptions {
   annotation?: string;
   narrator?: string;
   language?: string;
+  coverSource?: BookRecord["coverSource"];
 }
 
 /** Persist a parsed book: blobs first (OPFS/IndexedDB), then records in one transaction. */
@@ -71,6 +72,7 @@ export async function saveParsedBook(parsed: ParsedBook, opts: SaveOptions = {})
       author: opts.author ?? parsed.author,
       coverUrl: opts.coverUrl,
       coverFileId,
+      coverSource: coverFileId ? opts.coverSource ?? (opts.isStoreBook ? "store" : "embedded") : undefined,
       format: parsed.format,
       totalChapters: chapters.length,
       addedAt: Date.now(),
@@ -114,6 +116,28 @@ export async function deleteBook(bookId: string): Promise<void> {
     await db.progress.delete(bookId);
     await db.books.delete(bookId);
   });
+}
+
+/** Replace a book's cover with a stored image (or a remote URL that couldn't be downloaded because of CORS). */
+export async function setBookCover(
+  bookId: string,
+  cover: { blob: Blob } | { url: string },
+  source: NonNullable<BookRecord["coverSource"]>,
+): Promise<void> {
+  const db = getDB();
+  const book = await db.books.get(bookId);
+  if (!book) return;
+  const old = book.coverFileId;
+  if ("blob" in cover) {
+    const rec = await putFile(cover.blob, { bookId, name: "cover", role: "cover" });
+    await db.books.update(bookId, { coverFileId: rec.id, coverSource: source });
+  } else {
+    await db.books.update(bookId, { coverFileId: undefined, coverUrl: cover.url, coverSource: source });
+  }
+  if (old) {
+    revokeFileUrls([old]);
+    await deleteFiles([old]);
+  }
 }
 
 export async function linkCompanions(aId: string, bId: string): Promise<void> {

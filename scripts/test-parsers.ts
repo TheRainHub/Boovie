@@ -27,7 +27,7 @@ async function main() {
   const { parseFb2 } = await import("../src/lib/parsers/fb2Parser");
   const { parseEpub } = await import("../src/lib/parsers/epubParser");
   const { parsePdf } = await import("../src/lib/parsers/pdfParser");
-  const { parseAudio, autoChapters } = await import("../src/lib/parsers/audioParser");
+  const { parseAudio, autoChapters, playableMime } = await import("../src/lib/parsers/audioParser");
   const { readAudioMetadata } = await import("../src/lib/parsers/audioMetadata");
   const { detectKind } = await import("../src/lib/parsers/index");
   const { naturalCompare, decodeXml } = await import("../src/lib/parsers/text");
@@ -156,12 +156,107 @@ async function main() {
     assert.equal(book.chapters[1].fileStart, 1200);
     assert.ok(Math.abs(book.duration! - 5947) < 3, String(book.duration));
   });
+  await test("FairPlay-protected M4B is refused with a clear message", async () => {
+    const bytes = new Uint8Array(readFileSync(join(root, "audio/pikovaya-dama-audio.m4b")));
+    // Turn the AAC sample entry into FairPlay's 'drms' (what iTunes/Apple Books purchases contain).
+    const stsd = Buffer.from(bytes).indexOf("stsd");
+    const entry = Buffer.from(bytes).indexOf("mp4a", stsd);
+    assert.ok(stsd > 0 && entry > stsd && entry - stsd < 32);
+    bytes.set([0x64, 0x72, 0x6d, 0x73], entry);
+    const meta = await readAudioMetadata(new Blob([bytes]));
+    assert.equal(meta.codec, "drms");
+    assert.equal(meta.encrypted, true);
+    await assert.rejects(parseAudio([{ blob: new Blob([bytes]), name: "Купленная книга.m4b" }]), /DRM/);
+    const clean = await readAudioMetadata(blobOf(join(root, "audio/pikovaya-dama-audio.m4b")));
+    assert.equal(clean.codec, "mp4a");
+    assert.equal(clean.encrypted, false);
+  });
+  await test("chapter titles from file names drop track numbers", async () => {
+    const { chapterTitleFromFile } = await import("../src/lib/parsers/audioParser");
+    assert.equal(chapterTitleFromFile("01 Prologue.mp3"), "Prologue");
+    assert.equal(chapterTitleFromFile("03. Глава третья.mp3"), "Глава третья");
+    assert.equal(chapterTitleFromFile("Глава 1.mp3"), "Глава 1");
+    assert.equal(chapterTitleFromFile("07.mp3"), "07");
+  });
+  await test("iOS-reported audio/x-m4b is stored as audio/mp4", async () => {
+    assert.equal(playableMime({ blob: new Blob([], { type: "audio/x-m4b" }), name: "Владычица озера, часть 1.m4b" }), "audio/mp4");
+    assert.equal(playableMime({ blob: new Blob([], { type: "audio/mpeg" }), name: "01.mp3" }), "audio/mpeg");
+    assert.equal(playableMime({ blob: new Blob([], { type: "audio/ogg" }), name: "track" }), "audio/ogg");
+  });
   await test("natural sort + auto chapter boundaries", async () => {
     assert.deepEqual(["track10.mp3", "track2.mp3", "track1.mp3"].sort(naturalCompare), ["track1.mp3", "track2.mp3", "track10.mp3"]);
     assert.deepEqual(["Глава 11.mp3", "Глава 9.mp3", "Глава 10.mp3"].sort(naturalCompare), ["Глава 9.mp3", "Глава 10.mp3", "Глава 11.mp3"]);
     assert.equal(autoChapters(40 * 60 + 1).length, 2);
     assert.equal(autoChapters(61 * 60).length, 3, "a 1-minute tail is folded into the last part");
     assert.equal(autoChapters(65 * 60).length, 4);
+  });
+
+  console.log("Folders, archives, names");
+  const { cleanTitle, splitAuthorTitle } = await import("../src/lib/covers/names");
+  const { planImport } = await import("../src/lib/library/grouping");
+  const { listZip, extractZipEntry, isZip } = await import("../src/lib/parsers/zipStream");
+  const JSZip = (await import("jszip")).default;
+  await test("titles cleaned from file and folder names", async () => {
+    assert.equal(cleanTitle("Владычица озера, часть 1.m4b"), "Владычица озера");
+    assert.equal(cleanTitle("01 - Дама с собачкой [MP3 128kbps] (2015).mp3"), "Дама с собачкой");
+    assert.equal(cleanTitle("Ведьмак_Кровь_эльфов_CD2.mp3"), "Ведьмак Кровь эльфов");
+    assert.equal(cleanTitle("The Time Machine (audiobook).m4b"), "The Time Machine");
+    assert.deepEqual(splitAuthorTitle("Сапковский Анджей - Владычица озера (2010) [MP3]"), { author: "Сапковский Анджей", title: "Владычица озера" });
+    assert.equal(splitAuthorTitle("Владычица озера"), null);
+  });
+  await test("a folder of chapter files becomes one book; CD subfolders merge; folder image is the cover", async () => {
+    const f = (path: string, size = 10, type = "") => ({ blob: new Blob([new Uint8Array(size)], { type }), name: path.split("/").pop()!, path });
+    const plan = planImport([
+      f("Сапковский Анджей - Владычица озера/CD1/01 Глава первая.mp3"),
+      f("Сапковский Анджей - Владычица озера/CD2/01 Глава десятая.mp3"),
+      f("Сапковский Анджей - Владычица озера/CD1/02 Глава вторая.mp3"),
+      f("Сапковский Анджей - Владычица озера/folder.jpg", 500),
+      f("Сапковский Анджей - Владычица озера/CD1/scan_back.jpg", 9000),
+      f("Сапковский Анджей - Владычица озера/info.txt"),
+      f("Другая книга/01.m4a"),
+      f("Другая книга/02.m4a"),
+      f("Отцы и дети.fb2"),
+    ]);
+    assert.equal(plan.audioGroups.length, 2);
+    const [witcher, other] = plan.audioGroups;
+    assert.equal(witcher.audio.length, 3);
+    assert.deepEqual(witcher.hint, { author: "Сапковский Анджей", title: "Владычица озера" });
+    assert.equal(witcher.cover?.name, "folder.jpg", "conventional cover name wins over a larger scan");
+    assert.equal(other.hint.title, "Другая книга");
+    assert.equal(other.cover, undefined);
+    assert.deepEqual(plan.documents.map((d) => d.name), ["Отцы и дети.fb2"]);
+    // Untagged tracks are ordered by their path, so CD1/02 comes before CD2/01.
+    const order = [...witcher.audio].sort((a, b) => naturalCompare(a.path, b.path)).map((f) => f.path.split("/").slice(-2).join("/"));
+    assert.deepEqual(order, ["CD1/01 Глава первая.mp3", "CD1/02 Глава вторая.mp3", "CD2/01 Глава десятая.mp3"]);
+    assert.deepEqual(plan.ignored.map((d) => d.name), ["info.txt"]);
+  });
+  await test("streaming ZIP (deflate + store) of an audiobook folder → one book", async () => {
+    const zip = new JSZip();
+    const mp3s = readdirSync(join(root, "audio")).filter((n) => n.startsWith("dama-s-sobachkoy-audio-"));
+    for (const n of mp3s) zip.file(`Чехов Антон - Дама с собачкой/${n}`, readFileSync(join(root, "audio", n)), { compression: "DEFLATE" });
+    zip.file("Чехов Антон - Дама с собачкой/cover.jpg", readFileSync(join(root, "covers/dama-s-sobachkoy.jpg")), { compression: "STORE" });
+    zip.file("__MACOSX/Чехов Антон - Дама с собачкой/._cover.jpg", "junk");
+    const archive = new Blob([(await zip.generateAsync({ type: "uint8array" })) as Uint8Array<ArrayBuffer>]);
+    assert.ok(await isZip(archive));
+    const entries = await listZip(archive);
+    assert.equal(entries.length, 5, entries.map((e) => e.path).join(", "));
+    const files = [];
+    for (const e of entries) {
+      const blob = await extractZipEntry(archive, e);
+      assert.equal(blob.size, e.size, `size of ${e.path}`);
+      files.push({ blob, name: e.path.split("/").pop()!, path: e.path });
+    }
+    const plan = planImport(files);
+    assert.equal(plan.audioGroups.length, 1);
+    assert.equal(plan.audioGroups[0].cover?.name, "cover.jpg");
+    const book = await parseAudio(plan.audioGroups[0].audio, undefined, { hint: plan.audioGroups[0].hint });
+    assert.equal(book.chapters.length, 4);
+    assert.equal(book.author, "Антон Чехов", "tags win over the folder name");
+  });
+  await test("ZIP with CP866 file names (Windows archivers)", async () => {
+    const entries = await listZip(blobOf(join(process.cwd(), "scripts/fixtures/cp866-names.zip")));
+    assert.deepEqual(entries.map((e) => e.path), ["Глава 01.txt", "Обложка.jpg"]);
+    assert.equal(await (await extractZipEntry(blobOf(join(process.cwd(), "scripts/fixtures/cp866-names.zip")), entries[0])).text(), "hello");
   });
 
   console.log("Detection");
