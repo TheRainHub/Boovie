@@ -25,17 +25,18 @@
    "companion": "pikovaya-dama-audio",
    "synopsis": "Молодой военный инженер Германн — расчётливый и осторожный человек, у которого, по словам Томского, «профиль Наполеона, а душа Мефистофеля», — узнаёт легенду о трёх картах, которые никогда не проигрывают. Ради тайны старой графини он готов переступить через всё. Самая загадочная повесть Пушкина: Петербург тридцатых годов, азарт, мистика и цена одержимости.",
    "coverUrl": "/store/covers/pikovaya-dama.jpg",
+   "coverCredit": "Эдвард Мунк, «Игроки в Монте-Карло», 1892",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/pikovaya-dama.epub",
      "name": "pikovaya-dama.epub",
-     "size": 75778
+     "size": 147198
     }
    ],
    "chapterCount": 7,
    "pages": 25,
-   "fileSize": 75778
+   "fileSize": 147198
   },
   {
    "id": "pikovaya-dama-audio",
@@ -55,17 +56,18 @@
    "companion": "pikovaya-dama",
    "synopsis": "Полная аудиоверсия повести в одном файле M4B со встроенными главами — переключайтесь между главами прямо с экрана блокировки. Озвучено синтезатором речи RHVoice. Синхронизируется с электронной версией: начните читать, продолжите слушать.",
    "coverUrl": "/store/covers/pikovaya-dama-audio.jpg",
+   "coverCredit": "Эдвард Мунк, «Игроки в Монте-Карло», 1892",
    "formatLabel": "M4B",
    "files": [
     {
      "url": "/store/audio/pikovaya-dama-audio.m4b",
      "name": "pikovaya-dama-audio.m4b",
-     "size": 18738504
+     "size": 18756941
     }
    ],
    "duration": 3619.13,
    "chapterCount": 7,
-   "fileSize": 18738504
+   "fileSize": 18756941
   },
   {
    "id": "dama-s-sobachkoy",
@@ -85,17 +87,18 @@
    "companion": "dama-s-sobachkoy-audio",
    "synopsis": "Ялта, набережная, белый шпиц и случайное курортное знакомство, которое Гуров поначалу считает очередным лёгким романом. Но возвращение в Москву ничего не заканчивает. Четыре коротких главы — и одна из самых точных историй о любви, пришедшей слишком поздно.",
    "coverUrl": "/store/covers/dama-s-sobachkoy.jpg",
+   "coverCredit": "Эмиль Фриан, «Отброшенные тени», 1891",
    "formatLabel": "FB2",
    "files": [
     {
      "url": "/store/books/dama-s-sobachkoy.fb2",
      "name": "dama-s-sobachkoy.fb2",
-     "size": 123307
+     "size": 171533
     }
    ],
    "chapterCount": 4,
    "pages": 17,
-   "fileSize": 123307
+   "fileSize": 171533
   },
   {
    "id": "dama-s-sobachkoy-audio",
@@ -116,32 +119,33 @@
    "companion": "dama-s-sobachkoy",
    "synopsis": "Аудиокнига из четырёх MP3-файлов — по одному на главу, с ID3-тегами и обложкой. Пример того, как приложение собирает несколько дорожек в единую книгу. Озвучено синтезатором речи RHVoice.",
    "coverUrl": "/store/covers/dama-s-sobachkoy-audio.jpg",
+   "coverCredit": "Эмиль Фриан, «Отброшенные тени», 1891",
    "formatLabel": "MP3 × 4",
    "files": [
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-01.mp3",
      "name": "dama-s-sobachkoy-audio-01.mp3",
-     "size": 1656192
+     "size": 1662117
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-02.mp3",
      "name": "dama-s-sobachkoy-audio-02.mp3",
-     "size": 2973986
+     "size": 2979911
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-03.mp3",
      "name": "dama-s-sobachkoy-audio-03.mp3",
-     "size": 3263812
+     "size": 3269737
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-04.mp3",
      "name": "dama-s-sobachkoy-audio-04.mp3",
-     "size": 1640738
+     "size": 1646663
     }
    ],
    "duration": 2349.16,
    "chapterCount": 4,
-   "fileSize": 9534728
+   "fileSize": 9558428
   },
   {
    "id": "vystrel-audio",
@@ -160,17 +164,18 @@
    "addedAt": "2026-10-23",
    "synopsis": "Первая из «Повестей Белкина»: отставной гусар Сильвио шесть лет хранит право на неиспользованный выстрел. Один MP3-файл с главами в ID3-тегах (CHAP) — приложение читает их прямо из файла. Озвучено синтезатором речи RHVoice.",
    "coverUrl": "/store/covers/vystrel-audio.jpg",
+   "coverCredit": "Ян Цёнглиньский, «Кавказец», 1890",
    "formatLabel": "MP3",
    "files": [
     {
      "url": "/store/audio/vystrel-audio.mp3",
      "name": "vystrel-audio.mp3",
-     "size": 5666495
+     "size": 5694763
     }
    ],
    "duration": 1406.73,
    "chapterCount": 2,
-   "fileSize": 5666495
+   "fileSize": 5694763
   },
   {
    "id": "viy-audio",
@@ -189,17 +194,18 @@
    "addedAt": "2026-10-19",
    "synopsis": "Философ Хома Брут три ночи читает молитвы над гробом панночки в заброшенной церкви. Гоголевская повесть написана без деления на главы, поэтому плеер автоматически размечает файл на части по 20 минут. Озвучено синтезатором речи RHVoice.",
    "coverUrl": "/store/covers/viy-audio.jpg",
+   "coverCredit": "Каспар Давид Фридрих, «Двое, созерцающие луну», 1825–1830",
    "formatLabel": "MP3",
    "files": [
     {
      "url": "/store/audio/viy-audio.mp3",
      "name": "viy-audio.mp3",
-     "size": 23818936
+     "size": 23846357
     }
    ],
    "duration": 5946.94,
    "chapterCount": 5,
-   "fileSize": 23818936
+   "fileSize": 23846357
   },
   {
    "id": "chernyi-monah",
@@ -218,17 +224,18 @@
    "addedAt": "2026-10-12",
    "synopsis": "Магистр философии Андрей Коврин уезжает в деревню лечить расстроенные нервы — и начинает видеть чёрного монаха, который убеждает его в собственной гениальности. Чехов, врач по образованию, с клинической точностью описывает манию величия и цену, которую близкие платят за чужую «избранность».",
    "coverUrl": "/store/covers/chernyi-monah.jpg",
+   "coverCredit": "Франсиско де Сурбаран, «Святой Франциск в медитации», 1635–1639",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/chernyi-monah.epub",
      "name": "chernyi-monah.epub",
-     "size": 82265
+     "size": 119060
     }
    ],
    "chapterCount": 9,
    "pages": 33,
-   "fileSize": 82265
+   "fileSize": 119060
   },
   {
    "id": "povesti-belkina",
@@ -246,17 +253,18 @@
    "addedAt": "2026-10-08",
    "synopsis": "Пять повестей, будто бы записанных скромным помещиком Иваном Петровичем Белкиным: «Выстрел», «Метель», «Гробовщик», «Станционный смотритель» и «Барышня-крестьянка». Пушкинская проза в чистом виде — лаконичная, ироничная, безупречно построенная.",
    "coverUrl": "/store/covers/povesti-belkina.jpg",
+   "coverCredit": "Гюстав Курбе, «Влюблённые в деревне», 1844",
    "formatLabel": "FB2",
    "files": [
     {
      "url": "/store/books/povesti-belkina.fb2",
      "name": "povesti-belkina.fb2",
-     "size": 294949
+     "size": 297963
     }
    ],
    "chapterCount": 7,
    "pages": 68,
-   "fileSize": 294949
+   "fileSize": 297963
   },
   {
    "id": "kapitanskaya-dochka",
@@ -274,17 +282,18 @@
    "addedAt": "2026-09-30",
    "synopsis": "Записки Петра Гринёва — недоросля, отправленного служить в глухую Белогорскую крепость накануне пугачёвского бунта. Метель, вожатый, присяга и любовь к Маше Мироновой. «Береги честь смолоду» — роман о том, как сохранить себя, когда рушится мир.",
    "coverUrl": "/store/covers/kapitanskaya-dochka.jpg",
+   "coverCredit": "Альфонс Муха, «Отмена крепостного права на Руси», 1914",
    "formatLabel": "FB2",
    "files": [
     {
      "url": "/store/books/kapitanskaya-dochka.fb2",
      "name": "kapitanskaya-dochka.fb2",
-     "size": 423573
+     "size": 517971
     }
    ],
    "chapterCount": 14,
    "pages": 105,
-   "fileSize": 423573
+   "fileSize": 517971
   },
   {
    "id": "anna-karenina",
@@ -303,17 +312,18 @@
    "addedAt": "2026-09-14",
    "synopsis": "«Все счастливые семьи похожи друг на друга…» Восемь частей, двести тридцать девять глав: история Анны и Вронского, переплетённая с поисками смысла Константина Лёвина. Файл FB2 в ZIP-архиве с вложенной структурой частей и глав.",
    "coverUrl": "/store/covers/anna-karenina.jpg",
+   "coverCredit": "Джон Сингер Сарджент, «Портрет Элизабет Уинтроп Чанлер», 1893",
    "formatLabel": "FB2 · ZIP",
    "files": [
     {
      "url": "/store/books/anna-karenina.fb2.zip",
      "name": "anna-karenina.fb2.zip",
-     "size": 865904
+     "size": 898511
     }
    ],
    "chapterCount": 239,
    "pages": 940,
-   "fileSize": 865904
+   "fileSize": 898511
   },
   {
    "id": "prestuplenie-i-nakazanie",
@@ -332,17 +342,18 @@
    "addedAt": "2026-09-22",
    "synopsis": "Бывший студент Родион Раскольников проверяет на себе теорию о «право имеющих». Душный петербургский июль, каморка под крышей, следователь Порфирий Петрович и Соня Мармеладова. Шесть частей и эпилог — главный психологический роман XIX века.",
    "coverUrl": "/store/covers/prestuplenie-i-nakazanie.jpg",
+   "coverCredit": "Эдвард Мунк, «Автопортрет с сигаретой», 1895",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/prestuplenie-i-nakazanie.epub",
      "name": "prestuplenie-i-nakazanie.epub",
-     "size": 644657
+     "size": 743116
     }
    ],
    "chapterCount": 41,
    "pages": 595,
-   "fileSize": 644657
+   "fileSize": 743116
   },
   {
    "id": "otcy-i-deti",
@@ -360,17 +371,18 @@
    "addedAt": "2026-09-05",
    "synopsis": "Нигилист Евгений Базаров приезжает с другом в имение Кирсановых — и спор поколений из гостиной переходит в дуэль. Файл в классической кодировке windows-1251, как в старых библиотеках FB2: приложение определяет её автоматически.",
    "coverUrl": "/store/covers/otcy-i-deti.jpg",
+   "coverCredit": "Анри Фантен-Латур, «У стола», 1872",
    "formatLabel": "FB2 · CP1251",
    "files": [
     {
      "url": "/store/books/otcy-i-deti.fb2",
      "name": "otcy-i-deti.fb2",
-     "size": 439838
+     "size": 485224
     }
    ],
    "chapterCount": 28,
    "pages": 197,
-   "fileSize": 439838
+   "fileSize": 485224
   },
   {
    "id": "dyadya-vanya",
@@ -388,17 +400,18 @@
    "addedAt": "2026-10-15",
    "synopsis": "Сцены из деревенской жизни в четырёх действиях. Отставной профессор Серебряков приезжает в имение, которое годами содержали дядя Ваня и Соня, — и рушит хрупкое равновесие. PDF с оглавлением (outline): каждое действие — отдельная глава.",
    "coverUrl": "/store/covers/dyadya-vanya.jpg",
+   "coverCredit": "Илья Репин, «Портрет отца художника», 1879",
    "formatLabel": "PDF",
    "files": [
     {
      "url": "/store/books/dyadya-vanya.pdf",
      "name": "dyadya-vanya.pdf",
-     "size": 501384
+     "size": 545975
     }
    ],
    "pages": 58,
    "chapterCount": 5,
-   "fileSize": 501384
+   "fileSize": 545975
   },
   {
    "id": "flatland",
@@ -418,16 +431,17 @@
    "addedAt": "2026-10-10",
    "synopsis": "Квадрат из двумерного мира рассказывает о геометрическом обществе, где статус определяется числом углов, — пока гость из Пространства не открывает ему третье измерение. Математическая сатира на английском. PDF без встроенного оглавления: главы определяются по крупным заголовкам.",
    "coverUrl": "/store/covers/flatland.jpg",
+   "coverCredit": "Эдвард Уодсворт, «Роттердам», 1914",
    "formatLabel": "PDF",
    "files": [
     {
      "url": "/store/books/flatland.pdf",
      "name": "flatland.pdf",
-     "size": 951867
+     "size": 1021078
     }
    ],
    "pages": 118,
-   "fileSize": 951867
+   "fileSize": 1021078
   },
   {
    "id": "time-machine",
@@ -445,17 +459,18 @@
    "addedAt": "2026-10-17",
    "synopsis": "Путешественник во Времени отправляется в 802 701 год и находит человечество разделённым на беспечных элоев и подземных морлоков. Роман, с которого началась научная фантастика о путешествиях во времени. На английском, издание Standard Ebooks.",
    "coverUrl": "/store/covers/time-machine.jpg",
+   "coverCredit": "Поль Сезанн, «Чёрные мраморные часы», около 1870",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/time-machine.epub",
      "name": "time-machine.epub",
-     "size": 573900
+     "size": 664004
     }
    ],
    "chapterCount": 13,
    "pages": 99,
-   "fileSize": 573900
+   "fileSize": 664004
   },
   {
    "id": "war-of-the-worlds",
@@ -473,17 +488,18 @@
    "addedAt": "2026-09-27",
    "synopsis": "Цилиндры с Марса падают на английские пустоши, и из них поднимаются боевые треножники. Первое большое вторжение инопланетян в литературе — глазами обычного человека, пытающегося выжить. На английском, издание Standard Ebooks.",
    "coverUrl": "/store/covers/war-of-the-worlds.jpg",
+   "coverCredit": "Неизвестный художник, «Великий лондонский пожар», XVII век",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/war-of-the-worlds.epub",
      "name": "war-of-the-worlds.epub",
-     "size": 872301
+     "size": 1002748
     }
    ],
    "chapterCount": 31,
    "pages": 187,
-   "fileSize": 872301
+   "fileSize": 1002748
   },
   {
    "id": "franklin-autobiography",
@@ -502,17 +518,18 @@
    "addedAt": "2026-10-05",
    "synopsis": "Печатник, изобретатель громоотвода и бифокальных очков, дипломат и один из отцов-основателей США рассказывает, как он себя сделал: от подмастерья в Бостоне до учёного с мировым именем. Знаменитый «план тринадцати добродетелей». На английском.",
    "coverUrl": "/store/covers/franklin-autobiography.jpg",
+   "coverCredit": "Дэвид Мартин, «Портрет Бенджамина Франклина», 1767",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/franklin-autobiography.epub",
      "name": "franklin-autobiography.epub",
-     "size": 537246
+     "size": 587492
     }
    ],
    "chapterCount": 21,
    "pages": 202,
-   "fileSize": 537246
+   "fileSize": 587492
   },
   {
    "id": "meditations",
@@ -531,17 +548,18 @@
    "addedAt": "2026-10-02",
    "synopsis": "Личные записи римского императора, никогда не предназначавшиеся для публикации: как сохранять спокойствие, отличать зависящее от тебя от независящего и исполнять свой долг. Основа стоической психологии, в переводе Джорджа Лонга. На английском.",
    "coverUrl": "/store/covers/meditations.jpg",
+   "coverCredit": "Лоуренс Альма-Тадема, «После аудиенции», 1879",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/meditations.epub",
      "name": "meditations.epub",
-     "size": 736248
+     "size": 860148
     }
    ],
    "chapterCount": 12,
    "pages": 137,
-   "fileSize": 736248
+   "fileSize": 860148
   },
   {
    "id": "news-from-nowhere",
@@ -559,17 +577,18 @@
    "addedAt": "2026-10-14",
    "synopsis": "Уильям Моррис — основатель движения «Искусства и ремёсла» и один из отцов современного дизайна — описывает Англию будущего, где труд стал творчеством, а вещи делают хорошо и для себя. Манифест о ремесле, качестве и среде. На английском.",
    "coverUrl": "/store/covers/news-from-nowhere.jpg",
+   "coverCredit": "Камиль Писсарро, «Жатва, Понтуаз», 1881",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/news-from-nowhere.epub",
      "name": "news-from-nowhere.epub",
-     "size": 907425
+     "size": 1075810
     }
    ],
    "chapterCount": 32,
    "pages": 233,
-   "fileSize": 907425
+   "fileSize": 1075810
   },
   {
    "id": "leisure-class",
@@ -588,17 +607,18 @@
    "addedAt": "2026-09-18",
    "synopsis": "Книга, давшая миру термин «демонстративное потребление». Веблен объясняет, почему вещи ценят не только за функцию, но и за то, что они сообщают о владельце, — обязательное чтение для всех, кто проектирует продукты. На английском.",
    "coverUrl": "/store/covers/leisure-class.jpg",
+   "coverCredit": "Элеанор Фортескью-Брикдейл, «Обманчивость богатства», 1901",
    "formatLabel": "EPUB",
    "files": [
     {
      "url": "/store/books/leisure-class.epub",
      "name": "leisure-class.epub",
-     "size": 813574
+     "size": 906795
     }
    ],
    "chapterCount": 15,
    "pages": 358,
-   "fileSize": 813574
+   "fileSize": 906795
   }
  ]
 }

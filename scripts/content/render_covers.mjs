@@ -1,117 +1,51 @@
-// Render typographic covers (warm earth palette) and PWA icons with headless Chromium.
-// Usage: node render_covers.mjs <catalog.source.json> <out-public-dir> <fonts-dir>
-// <fonts-dir> holds Old Standard TT + Martian Mono woff2 files and a local.css with their @font-face rules
-// (downloaded from Google Fonts). Requires a Chromium binary (CHROMIUM_PATH).
+// Render store covers (public-domain paintings with the title set in Golos Text) and the PWA icons.
+// Usage: node render_covers.mjs <catalog.source.json> <out-public-dir> <fonts-dir> <art-dir> [<icon-source.png>]
+// <fonts-dir> holds the Golos Text woff2 files and a local.css with their @font-face rules (Google Fonts, SIL OFL).
+// <icon-source.png> is the square app-icon artwork (a rounded tile on a dark ground); every icon size is cut from it.
+// <art-dir>/<repo>/images/cover.jpg is the cover painting of a Standard Ebooks source repository — the
+// paintings are in the public domain, Standard Ebooks' crops are CC0 (see README). Requires CHROMIUM_PATH.
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 
-const [catalogPath, publicDir, fontsDir] = process.argv.slice(2);
+const [catalogPath, publicDir, fontsDir, artDir, iconSource] = process.argv.slice(2);
 const fontFaces = readFileSync(join(fontsDir, 'local.css'), 'utf8');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
-const TINTS = {
-  wine: ['#7A2B30', '#36111A', 'dark'],
-  espresso: ['#3E2B22', '#140D0A', 'dark'],
-  sea: ['#3C6762', '#1A3230', 'dark'],
-  navy: ['#2F4166', '#131B33', 'dark'],
-  olive: ['#68673A', '#2C2B15', 'dark'],
-  terracotta: ['#A3532F', '#4A2010', 'dark'],
-  oat: ['#EEE4D2', '#CDBC9E', 'light'],
-  ivory: ['#F3ECDF', '#D8CAB2', 'light'],
-  ochre: ['#DCA55A', '#A8722C', 'light'],
-};
-
-const s = (d, extra = '') => `<path d="${d}" ${extra}/>`;
-const MOTIFS = {
-  spade: () => s('M200 70 C 150 140, 95 175, 95 225 C 95 265, 130 285, 160 280 C 178 277, 190 266, 196 255 C 192 290, 180 315, 160 330 L 240 330 C 220 315, 208 290, 204 255 C 210 266, 222 277, 240 280 C 270 285, 305 265, 305 225 C 305 175, 250 140, 200 70 Z') + '<line x1="60" y1="360" x2="340" y2="360"/>',
-  waves: () => [0, 1, 2, 3, 4].map((i) => s(`M40 ${150 + i * 34} C 90 ${125 + i * 34}, 130 ${175 + i * 34}, 200 ${150 + i * 34} S 310 ${125 + i * 34}, 360 ${150 + i * 34}`, `opacity="${1 - i * 0.16}"`)).join(''),
-  target: () => [150, 110, 70, 30].map((r) => `<circle cx="200" cy="200" r="${r}"/>`).join('') + '<line x1="200" y1="20" x2="200" y2="380"/><line x1="20" y1="200" x2="380" y2="200"/>',
-  eye: () => s('M40 200 Q 200 70 360 200 Q 200 330 40 200 Z') + '<circle cx="200" cy="200" r="58"/><circle cx="200" cy="200" r="18" fill="currentColor"/>',
-  monolith: () => '<rect x="150" y="70" width="100" height="270" rx="50"/><circle cx="200" cy="130" r="22"/><line x1="70" y1="340" x2="330" y2="340"/>',
-  bars: () => [120, 200, 160, 240, 90].map((h, i) => `<rect x="${78 + i * 52}" y="${330 - h}" width="28" height="${h}" rx="3"/>`).join(''),
-  snow: () => {
-    let out = '';
-    let seed = 7;
-    const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-    for (let i = 0; i < 70; i++) out += `<circle cx="${40 + rnd() * 320}" cy="${40 + rnd() * 320}" r="${1.5 + rnd() * 3}" fill="currentColor" stroke="none" opacity="${0.35 + rnd() * 0.6}"/>`;
-    return out + '<line x1="40" y1="330" x2="360" y2="300"/>';
-  },
-  rails: () => s('M110 380 L 196 60') + s('M290 380 L 204 60') + [0, 1, 2, 3, 4, 5, 6].map((i) => { const y = 370 - i * i * 6.4 - i * 8; const w = 95 - (370 - y) * 0.28; return `<line x1="${200 - w}" y1="${y}" x2="${200 + w}" y2="${y}"/>`; }).join(''),
-  slash: () => '<circle cx="200" cy="200" r="120"/><line x1="90" y1="340" x2="310" y2="60"/>',
-  pair: () => '<circle cx="160" cy="200" r="100"/><circle cx="240" cy="200" r="100"/>',
-  horizon: () => [0, 1, 2, 3, 4].map((i) => `<line x1="40" y1="${250 + i * 22}" x2="360" y2="${250 + i * 22}" opacity="${1 - i * 0.17}"/>`).join('') + s('M110 250 A 90 90 0 0 1 290 250'),
-  polygons: () => '<polygon points="80,250 125,172 170,250"/><rect x="190" y="180" width="70" height="70"/><polygon points="300,170 335,195 322,240 278,240 265,195"/><polygon points="120,320 150,302 180,320 180,350 150,368 120,350"/><line x1="40" y1="290" x2="360" y2="290" opacity="0.5"/>',
-  clock: () => '<circle cx="200" cy="200" r="140"/><circle cx="200" cy="200" r="104" opacity="0.6"/>' + Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2; return `<line x1="${200 + Math.cos(a) * 118}" y1="${200 + Math.sin(a) * 118}" x2="${200 + Math.cos(a) * 132}" y2="${200 + Math.sin(a) * 132}"/>`; }).join('') + '<line x1="200" y1="200" x2="200" y2="120"/><line x1="200" y1="200" x2="262" y2="232"/>',
-  tripod: () => s('M140 150 A 60 40 0 0 1 260 150 Z') + '<line x1="160" y1="150" x2="90" y2="350"/><line x1="200" y1="150" x2="200" y2="360"/><line x1="240" y1="150" x2="310" y2="350"/><circle cx="200" cy="128" r="8" fill="currentColor"/>',
-  lightning: () => '<polygon points="200,50 290,160 200,270 110,160"/>' + s('M200 270 L 185 300 L 215 310 L 195 370'),
-  circle: () => '<circle cx="200" cy="200" r="130"/><circle cx="200" cy="200" r="6" fill="currentColor"/>',
-  leaf: () => [0, 1, 2].map((i) => s(`M${110 + i * 90} 340 C ${60 + i * 90} 250, ${100 + i * 90} 140, ${150 + i * 90} 80 C ${170 + i * 90} 160, ${160 + i * 90} 260, ${110 + i * 90} 340 Z`) + s(`M${110 + i * 90} 340 C ${120 + i * 90} 250, ${130 + i * 90} 170, ${150 + i * 90} 80`, 'opacity="0.6"')).join(''),
-  stack: () => [260, 220, 180, 140, 100].map((w, i) => `<rect x="${200 - w / 2}" y="${100 + i * 46}" width="${w}" height="26" rx="4"/>`).join(''),
-};
-
-const FORMAT_LABEL = {
-  epub: 'EPUB', fb2: 'FB2', 'fb2.zip': 'FB2 · ZIP', 'fb2-cp1251': 'FB2', pdf: 'PDF', 'pdf-no-outline': 'PDF',
-  m4b: 'M4B', 'mp3-multi': 'MP3', 'mp3-chapters': 'MP3', 'mp3-single': 'MP3',
-};
+const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 function coverHtml(item, w, h) {
-  const [c1, c2, tone] = TINTS[item.cover.tint];
-  const fg = tone === 'dark' ? '#ECEFF4' : '#0F1115';
-  const fg2 = tone === 'dark' ? 'rgba(236,239,244,0.62)' : 'rgba(15,17,21,0.58)';
-  const line = tone === 'dark' ? 'rgba(255,255,255,0.16)' : 'rgba(15,17,21,0.14)';
   const audio = item.kind === 'audiobook';
-  const titleSize = item.title.length > 24 ? 50 : item.title.length > 14 ? 62 : 76;
-  const motifSize = audio ? 300 : 330;
+  const art = pathToFileURL(join(artDir, item.cover.art, 'images/cover.jpg')).href;
+  const scale = w / 600;
+  const len = item.title.length;
+  const titleSize = Math.round((len > 26 ? 44 : len > 16 ? 54 : len > 10 ? 66 : 78) * scale * (audio ? 0.82 : 1));
+  const pad = Math.round(46 * scale);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
   ${fontFaces}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{width:${w}px;height:${h}px;overflow:hidden;font-family:'Old Standard TT',serif;color:${fg};
-    background:
-      radial-gradient(120% 80% at 18% 0%, rgba(255,255,255,${tone === 'dark' ? 0.10 : 0.45}) 0%, transparent 55%),
-      repeating-linear-gradient(90deg, rgba(255,255,255,${tone === 'dark' ? 0.022 : 0.10}) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgba(0,0,0,${tone === 'dark' ? 0.05 : 0.025}) 0 1px, transparent 1px 7px),
-      linear-gradient(165deg, ${c1} 0%, ${c2} 100%);}
-  .frame{position:absolute;inset:26px;border:1px solid ${line};border-radius:6px}
-  .top{position:absolute;top:52px;left:56px;right:56px;display:flex;justify-content:space-between;align-items:baseline;
-    font-style:italic;font-size:25px;color:${fg2}}
-  .top .y{font-family:'Martian Mono';font-style:normal;font-size:14px;letter-spacing:0}
-  .motif{position:absolute;left:50%;top:${audio ? 44 : 41}%;width:${motifSize}px;height:${motifSize}px;transform:translate(-50%,-50%);color:${fg}}
-  .motif svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.78}
-  .bottom{position:absolute;left:56px;right:56px;bottom:56px}
-  .title{font-weight:400;font-size:${titleSize}px;line-height:1.0;letter-spacing:-0.005em}
-  .sub{margin-top:12px;font-style:italic;font-size:22px;color:${fg2}}
-  .meta{margin-top:26px;padding-top:14px;border-top:1px solid ${line};display:flex;justify-content:space-between;
-    font-family:'Martian Mono';font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:${fg2}}
+  body{width:${w}px;height:${h}px;overflow:hidden;background:#120e0b;font-family:'Golos Text',sans-serif;color:#FFF8EE}
+  .art{position:absolute;inset:0;background:url("${art}") 50% ${Math.round(item.cover.focus * 100)}% / cover no-repeat}
+  .scrim{position:absolute;inset:0;background:
+    linear-gradient(to top, rgba(14,10,8,.94) 0%, rgba(14,10,8,.72) ${audio ? 26 : 22}%, rgba(14,10,8,.18) ${audio ? 52 : 46}%, rgba(14,10,8,0) 62%),
+    linear-gradient(to bottom, rgba(14,10,8,.38) 0%, rgba(14,10,8,0) 18%)}
+  .label{position:absolute;top:${pad}px;left:${pad}px;font-weight:700;font-size:${Math.round(15 * scale)}px;letter-spacing:.08em;text-transform:uppercase;
+    padding:${Math.round(7 * scale)}px ${Math.round(12 * scale)}px;border-radius:999px;background:rgba(14,10,8,.45);backdrop-filter:blur(6px)}
+  .bottom{position:absolute;left:${pad}px;right:${pad}px;bottom:${pad}px}
+  .author{font-weight:500;font-size:${Math.round(24 * scale * (audio ? 0.85 : 1))}px;opacity:.84;margin-bottom:${Math.round(10 * scale)}px}
+  .title{font-weight:800;font-size:${titleSize}px;line-height:.98;letter-spacing:-.025em;text-wrap:balance}
+  .sub{margin-top:${Math.round(10 * scale)}px;font-weight:500;font-size:${Math.round(20 * scale)}px;opacity:.75}
+  .mark{margin-top:${Math.round(20 * scale)}px;width:${Math.round(44 * scale)}px;height:${Math.max(3, Math.round(4 * scale))}px;border-radius:2px;background:#FFF8EE;opacity:.9}
   </style></head><body>
-  <div class="frame"></div>
-  <div class="top"><span>${item.author}</span><span class="y">${item.year > 1000 ? item.year : ''}</span></div>
-  <div class="motif"><svg viewBox="0 0 400 400">${MOTIFS[item.cover.motif]()}</svg></div>
+  <div class="art"></div><div class="scrim"></div>
+  ${audio ? '<div class="label">Аудиокнига</div>' : ''}
   <div class="bottom">
-    <div class="title">${item.title}</div>
-    ${item.subtitle ? `<div class="sub">${item.subtitle}</div>` : ''}
-    <div class="meta"><span>${audio ? 'Аудиокнига' : item.language === 'en' ? 'English edition' : 'Книга'}</span><span>${FORMAT_LABEL[item.format]} · № ${String(item.rank).padStart(3, '0')}</span></div>
+    <div class="author">${esc(item.author)}</div>
+    <div class="title">${esc(item.title)}</div>
+    ${item.subtitle && !audio ? `<div class="sub">${esc(item.subtitle)}</div>` : ''}
+    <div class="mark"></div>
   </div></body></html>`;
-}
-
-function iconHtml(size, maskable) {
-  const pad = maskable ? size * 0.2 : size * 0.12;
-  const inner = size - pad * 2;
-  return `<!doctype html><html><head><style>
-  *{margin:0;padding:0}
-  body{width:${size}px;height:${size}px;overflow:hidden;background:${maskable ? '#7A3A20' : 'transparent'}}
-  .tile{position:absolute;inset:0;border-radius:${maskable ? 0 : size * 0.225}px;
-    background:
-      radial-gradient(110% 80% at 20% 0%, rgba(255,240,220,0.22) 0%, transparent 60%),
-      linear-gradient(165deg, #B35C34 0%, #5A2614 100%)}
-  svg{position:absolute;left:${pad}px;top:${pad}px;width:${inner}px;height:${inner}px}
-  </style></head><body><div class="tile"></div>
-  <svg viewBox="0 0 100 100">
-    <path d="M22 24 C 34 20, 44 22, 50 28 C 56 22, 66 20, 78 24 L 78 74 C 66 70, 56 72, 50 78 C 44 72, 34 70, 22 74 Z" fill="none" stroke="#FFF6EA" stroke-width="4.6" stroke-linejoin="round"/>
-    <line x1="50" y1="28" x2="50" y2="78" stroke="#FFF6EA" stroke-width="3.6"/>
-    ${[0, 1, 2, 3, 4].map((i) => `<line x1="${60 + i * 3.6}" y1="${50 - [4, 9, 13, 7, 3][i]}" x2="${60 + i * 3.6}" y2="${50 + [4, 9, 13, 7, 3][i]}" stroke="#FFF6EA" stroke-opacity="0.7" stroke-width="2.2" stroke-linecap="round"/>`).join('')}
-  </svg></body></html>`;
 }
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
@@ -120,24 +54,63 @@ mkdirSync(join(publicDir, 'store/covers'), { recursive: true });
 mkdirSync(join(publicDir, 'icons'), { recursive: true });
 
 for (const item of catalog.items) {
-  const [w, h] = item.kind === 'audiobook' ? [800, 800] : [600, 900];
+  const [w, h] = item.kind === 'audiobook' ? [900, 900] : [720, 1080];
   await page.setViewportSize({ width: w, height: h });
   // Load from a file next to the fonts so the relative @font-face URLs resolve.
   const tmp = join(fontsDir, '_cover.html');
   writeFileSync(tmp, coverHtml(item, w, h));
   await page.goto(pathToFileURL(tmp).href);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: join(publicDir, `store/covers/${item.id}.jpg`), type: 'jpeg', quality: 86 });
+  await page.screenshot({ path: join(publicDir, `store/covers/${item.id}.jpg`), type: 'jpeg', quality: 82 });
   console.log('cover', item.id);
 }
 
-for (const [name, size, maskable] of [
-  ['icon-192.png', 192, false], ['icon-512.png', 512, false], ['maskable-512.png', 512, true],
-  ['apple-touch-icon.png', 180, true], ['favicon-64.png', 64, false],
-]) {
-  await page.setViewportSize({ width: size, height: size });
-  await page.setContent(iconHtml(size, maskable));
-  await page.screenshot({ path: join(publicDir, 'icons', name), type: 'png', omitBackground: !maskable });
-  console.log('icon', name);
+// Icons, cut from the artwork: `tile` keeps the rounded tile with transparent corners (browsers, Android "any"),
+// `square` crops inside the rounded corners (Apple touch icon — iOS rounds it itself), `maskable` centres the tile
+// on a blurred copy of itself so Android's circle/squircle masks never cut the name.
+const TILE = { x: 0.047, y: 0.049, w: 0.906, h: 0.902 }; // the tile inside the artwork's dark margin
+if (iconSource) {
+  const src = `data:image/png;base64,${readFileSync(iconSource).toString('base64')}`;
+  for (const [name, size, mode] of [
+    ['icon-192.png', 192, 'tile'], ['icon-512.png', 512, 'tile'], ['maskable-512.png', 512, 'maskable'],
+    ['apple-touch-icon.png', 180, 'square'], ['favicon-64.png', 64, 'tile'],
+  ]) {
+    await page.setViewportSize({ width: size, height: size });
+    await page.setContent('<body style="margin:0;background:transparent"><canvas></canvas></body>');
+    const png = await page.evaluate(async ({ src, size, mode, TILE }) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const t = { x: TILE.x * W, y: TILE.y * H, w: TILE.w * W, h: TILE.h * H };
+      const c = document.querySelector('canvas');
+      c.width = c.height = size;
+      const g = c.getContext('2d');
+      g.imageSmoothingQuality = 'high';
+      if (mode === 'tile') {
+        g.beginPath();
+        g.roundRect(0, 0, size, size, size * 0.225);
+        g.clip();
+        g.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, size, size);
+      } else if (mode === 'square') {
+        const d = 0.07; // inside the rounded corners
+        g.drawImage(img, t.x + t.w * d, t.y + t.h * d, t.w * (1 - 2 * d), t.h * (1 - 2 * d), 0, 0, size, size);
+      } else {
+        g.filter = 'blur(18px) brightness(.85)';
+        g.drawImage(img, t.x, t.y, t.w, t.h, -size * 0.1, -size * 0.1, size * 1.2, size * 1.2);
+        g.filter = 'none';
+        const s = size * 0.84, o = (size - s) / 2;
+        g.save();
+        g.beginPath();
+        g.roundRect(o, o, s, s, s * 0.18);
+        g.clip();
+        g.drawImage(img, t.x, t.y, t.w, t.h, o, o, s, s);
+        g.restore();
+      }
+      return c.toDataURL('image/png').split(',')[1];
+    }, { src, size, mode, TILE });
+    writeFileSync(join(publicDir, 'icons', name), Buffer.from(png, 'base64'));
+    console.log('icon', name);
+  }
 }
 await browser.close();

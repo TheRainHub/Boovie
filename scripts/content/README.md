@@ -12,8 +12,12 @@ is exercised by real files.
 | [JoannaBy/RussianNovels](https://github.com/JoannaBy/RussianNovels) corpus | texts by 19th-century authors (public domain) | Pushkin, Gogol, Chekhov, Tolstoy, Dostoevsky, Turgenev |
 | [Standard Ebooks](https://standardebooks.org) source repositories | CC0 1.0 | Wells, Abbott, Franklin, Marcus Aurelius (tr. Long), Morris, Veblen |
 | [RHVoice](https://github.com/RHVoice/RHVoice) speech synthesizer (voices Aleksandr, Irina, Mikhail, Yuriy) | LGPL engine, voices under their own licenses | audiobook narration |
+| Cover paintings from [Standard Ebooks](https://standardebooks.org) source repositories (`images/cover.jpg`) | paintings in the public domain, crops CC0 | every store cover; each item's `cover.credit` names the painting |
+| [Golos Text](https://fonts.google.com/specimen/Golos+Text) | SIL OFL 1.1 | cover titles |
 
-Covers and icons are original typographic designs rendered by `render_covers.mjs`.
+Covers are public-domain paintings with the title set in Golos Text (`render_covers.mjs`); the painting for each
+item is chosen in `catalog.source.json` (`cover.art` = Standard Ebooks repository, `cover.focus` = vertical crop for
+square audiobook covers). The app icon is cut from a supplied artwork file.
 
 ## Rebuild
 
@@ -28,7 +32,11 @@ sudo apt-get install rhvoice rhvoice-russian ffmpeg
 export CHROMIUM_PATH=/path/to/chromium
 
 python3 -I scripts/content/extract_works.py "$SRC/rn/corpus" "$SRC/se" "$SRC/works.json"
-node scripts/content/render_covers.mjs scripts/content/catalog.source.json public
+# cover art: sparse clones of the Standard Ebooks repositories named in catalog.source.json (cover.art)
+for r in $(python3 -c "import json;print(' '.join(sorted({i['cover']['art'] for i in json.load(open('scripts/content/catalog.source.json'))['items']})))"); do
+  git clone -q --depth 1 --filter=blob:none --sparse "https://github.com/standardebooks/$r.git" "$SRC/art/$r" && git -C "$SRC/art/$r" sparse-checkout set images
+done
+node scripts/content/render_covers.mjs scripts/content/catalog.source.json public "$SRC/fonts" "$SRC/art" icon.png
 python3 -I scripts/content/build_books.py "$SRC/works.json" scripts/content/catalog.source.json public
 node scripts/content/render_pdfs.mjs "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/pdf"
 python3 -I scripts/content/build_audio.py "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/audio"

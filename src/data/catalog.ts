@@ -30,6 +30,8 @@ export interface StoreItem {
   companion?: string;
   synopsis: string;
   coverUrl: string;
+  /** Painting the cover is made from: «Painter, «Title», year». */
+  coverCredit?: string;
   files: StoreFile[];
   fileSize: number;
   duration?: number;

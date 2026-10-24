@@ -230,8 +230,8 @@ def build_fb2(work: dict, item: dict, cover: Path, encoding: str = "utf-8") -> b
 <lang>{item['language']}</lang>
 </title-info>
 <document-info>
-<author><nickname>Titan</nickname></author>
-<program-used>Titan store content pipeline</program-used>
+<author><nickname>Boowie</nickname></author>
+<program-used>Boowie store content pipeline</program-used>
 <date value="{TODAY}">{TODAY}</date>
 <id>{uuid.uuid5(NS_UUID, item['id'])}</id>
 <version>1.0</version>

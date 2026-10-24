@@ -75,7 +75,8 @@ export function dominantTone(data: Uint8ClampedArray): Tone {
 }
 
 /* ── extraction with a two-level cache (memory + localStorage, keyed by file id / URL) ──────── */
-const STORE_KEY = "titan-tones";
+// Bump when the bundled store covers change, so their colours are measured again.
+const STORE_KEY = "titan-tones-2";
 const memory = new Map<string, Promise<Tone | null>>();
 let persisted: Record<string, Tone> | null = null;
 

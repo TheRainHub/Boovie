@@ -35,6 +35,8 @@ def main() -> None:
     for it in src["items"]:
         item = {k: v for k, v in it.items() if k not in ("cover", "work", "voice")}
         item["coverUrl"] = f"/store/covers/{it['id']}.jpg"
+        if it["cover"].get("credit"):
+            item["coverCredit"] = it["cover"]["credit"]
         item["formatLabel"] = FORMAT[it["format"]]
         work = works[it["work"]]
         if it["kind"] == "audiobook":
