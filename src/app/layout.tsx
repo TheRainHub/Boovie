@@ -13,11 +13,11 @@ const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-
 const literata = Literata({ subsets: ["latin", "cyrillic"], variable: "--font-literata", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Titan — книги и аудиокниги", template: "%s · Titan" },
+  title: { default: "Boowie — книги и аудиокниги", template: "%s · Boowie" },
   description: "Офлайн-читалка PDF, FB2, EPUB и плеер аудиокниг MP3/M4B с магазином классики.",
-  applicationName: "Titan",
+  applicationName: "Boowie",
   manifest: withBase("/manifest.webmanifest"),
-  appleWebApp: { capable: true, title: "Titan", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Boowie", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
     icon: [{ url: withBase("/icons/favicon-64.png"), sizes: "64x64", type: "image/png" }],

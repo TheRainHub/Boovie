@@ -2,12 +2,12 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 // Native shells wrap the static export in /out. Add platforms with `npx cap add ios|android`.
 const config: CapacitorConfig = {
-  appId: "app.titan.reader",
-  appName: "Titan",
+  appId: "app.boowie.reader",
+  appName: "Boowie",
   webDir: "out",
-  backgroundColor: "#0A0B0D",
-  ios: { contentInset: "never", backgroundColor: "#0A0B0D" },
-  android: { backgroundColor: "#0A0B0D" },
+  backgroundColor: "#F6F1E9",
+  ios: { contentInset: "never", backgroundColor: "#F6F1E9" },
+  android: { backgroundColor: "#F6F1E9" },
 };
 
 export default config;
