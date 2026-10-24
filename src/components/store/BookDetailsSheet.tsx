@@ -1,22 +1,23 @@
 "use client";
 
-import { BookOpen, CircleCheck, Download, Headphones, Pause, Play } from "lucide-react";
+import { ArrowRight, BookOpen, Download, Headphones, Pause, Play } from "lucide-react";
 import { BookCover } from "@/components/ui/BookCover";
-import { cn, Eyebrow, MetallicButton, ProgressBar } from "@/components/ui/primitives";
+import { cn, MetallicButton, ProgressBar } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { CATEGORIES, storeItem, type StoreItem } from "@/data/catalog";
 import { stopPreview, togglePreview, usePreview } from "@/lib/audio/preview";
-import { formatBytes, formatDuration, plural } from "@/lib/format";
+import { formatBytes, formatDuration } from "@/lib/format";
 import { useStoreActions } from "./useStoreActions";
 
-function Stars({ value }: { value: number }) {
+/** Five graduated marks: the editorial score as a gauge, not stars. */
+function Gauge({ value }: { value: number }) {
   return (
-    <span className="inline-flex items-center gap-[3px]" aria-label={`Оценка ${value} из 5`}>
+    <span className="inline-flex items-end gap-[3px]" aria-label={`Оценка редакции ${value} из 5`}>
       {[0, 1, 2, 3, 4].map((i) => {
         const fill = Math.max(0, Math.min(1, value - i));
         return (
-          <span key={i} className="relative inline-block h-[9px] w-[9px] rotate-45 rounded-[1.5px] bg-track">
-            <span className="absolute inset-y-0 left-0 rounded-[1.5px] bg-steel" style={{ width: `${fill * 100}%` }} />
+          <span key={i} className="relative inline-block h-[10px] w-[5px] bg-track">
+            <span className="absolute inset-x-0 bottom-0 bg-ink" style={{ height: `${fill * 100}%` }} />
           </span>
         );
       })}
@@ -52,52 +53,59 @@ function Details({
 }) {
   const audio = item.kind === "audiobook";
   const companion = storeItem(item.companion);
-  // Audio sample: the item itself, or its narrated companion for e-books.
   const sampleSource = audio ? item : companion?.kind === "audiobook" ? companion : undefined;
   const sampling = preview.itemId === sampleSource?.id;
 
   const facts: [string, string][] = [
-    ["Год", item.year > 1000 ? String(item.year) : `ок. ${item.year} н. э.`],
+    ["Год", item.year > 1000 ? String(item.year) : `ок. ${item.year}`],
     ["Формат", item.formatLabel],
     ["Размер", formatBytes(item.fileSize)],
     audio && item.duration ? ["Длительность", formatDuration(item.duration)] : ["Объём", item.pages ? `${item.pages} стр.` : "—"],
     ["Главы", item.chapterCount ? String(item.chapterCount) : "по заголовкам"],
-    ["Язык", item.language === "ru" ? "Русский" : "English"],
+    ["Язык", item.language === "ru" ? "русский" : "английский"],
+    ...(item.narrator ? ([["Голос", item.narrator]] as [string, string][]) : []),
   ];
 
   return (
-    <div className="mx-auto max-w-[560px] px-6 pb-4">
-      <div className="mx-auto mt-3 w-[min(56vw,230px)] [perspective:1000px]">
-        <div className="transition-transform duration-500 [transform:rotateY(-14deg)_rotateX(4deg)] hover:[transform:rotateY(0)_rotateX(0)]">
+    <div className="mx-auto max-w-[560px] px-6 pb-6">
+      <div className="num flex items-center gap-2 pt-3 text-[10.5px] text-ink-3">
+        <span>{item.categories.map((c) => CATEGORIES[c].toUpperCase()).join(" / ")}</span>
+        <span className="h-px flex-1 bg-hairline" />
+        <span>№ {String(item.rank).padStart(3, "0")}</span>
+      </div>
+
+      <div className={cn("mx-auto mt-7 [perspective:1100px]", audio ? "w-[min(60vw,240px)]" : "w-[min(50vw,200px)]")}>
+        <div className="transition-transform duration-700 ease-[var(--ease-machined)] [transform:rotateY(-12deg)_rotateX(3deg)] hover:[transform:none]">
           <BookCover url={item.coverUrl} title={item.title} author={item.author} square={audio} sizes="lg" reflect />
         </div>
       </div>
 
-      <div className="mt-[76px] text-center">
-        <Eyebrow>{item.categories.map((c) => CATEGORIES[c]).join(" · ")}</Eyebrow>
-        <h2 className="mt-2 text-[26px] font-semibold leading-tight tracking-[-0.03em]">{item.title}</h2>
-        {item.subtitle && <p className="mt-1 text-[14px] text-ink-2">{item.subtitle}</p>}
-        <p className="mt-1 text-[15px] text-ink-2">{item.author}{item.translator ? ` · пер. ${item.translator}` : ""}</p>
-        {item.narrator && <p className="mt-1 text-[12.5px] text-ink-3">Читает: {item.narrator}</p>}
-        <div className="mt-3 flex items-center justify-center gap-2 text-[13px] text-ink-2 tabular">
-          <Stars value={item.rating} />
-          <span>{item.rating.toLocaleString("ru-RU")}</span>
-          <span className="text-ink-3">· оценка редакции</span>
+      <div className="mt-[64px] text-center">
+        <h2 className="font-display text-[34px] leading-[1.02]">{item.title}</h2>
+        {item.subtitle && <p className="mt-1.5 font-display text-[15px] italic text-ink-2">{item.subtitle}</p>}
+        <p className="mt-2 font-display text-[17px] italic text-ink-2">
+          {item.author}
+          {item.translator ? `, пер. ${item.translator}` : ""}
+        </p>
+        <div className="num mt-4 flex items-center justify-center gap-2.5 text-[11px] text-ink-2">
+          <Gauge value={item.rating} />
+          <span>{item.rating.toFixed(1).replace(".", ",")}</span>
+          <span className="text-ink-3">оценка редакции</span>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-2.5">
+      <div className="mt-7 grid gap-2">
         {owned ? (
-          <MetallicButton size="lg" className="w-full" icon={audio ? <Headphones size={18} /> : <BookOpen size={18} />} onClick={onOpen}>
+          <MetallicButton size="lg" className="w-full" icon={audio ? <Headphones size={18} strokeWidth={1.6} /> : <BookOpen size={18} strokeWidth={1.6} />} onClick={onOpen}>
             {audio ? "Слушать" : "Читать"}
           </MetallicButton>
         ) : job ? (
-          <div className="rounded-2xl px-4 py-3.5 metal-card">
-            <div className="flex justify-between text-[13px] tabular"><span>{job.stage}</span><span>{Math.round(job.progress * 100)}%</span></div>
+          <div className="rounded-[4px] border border-ink/20 px-4 py-3">
+            <div className="num flex justify-between text-[11px]"><span>{job.stage}</span><span>{Math.round(job.progress * 100)}%</span></div>
             <ProgressBar value={job.progress} className="mt-2" />
           </div>
         ) : (
-          <MetallicButton size="lg" className="w-full" icon={<Download size={18} />} onClick={onDownload}>
+          <MetallicButton size="lg" className="w-full" icon={<Download size={18} strokeWidth={1.6} />} onClick={onDownload}>
             Скачать в библиотеку
           </MetallicButton>
         )}
@@ -106,51 +114,51 @@ function Details({
             variant="secondary"
             size="lg"
             className="w-full"
-            icon={sampling && preview.playing ? <Pause size={17} /> : <Play size={17} />}
+            icon={sampling && preview.playing ? <Pause size={17} strokeWidth={1.6} /> : <Play size={17} strokeWidth={1.6} />}
             onClick={() => togglePreview(sampleSource.id, sampleSource.files[0].url)}
           >
             <span>{sampling && preview.playing ? "Пауза" : "Слушать фрагмент"}</span>
-            {sampling && (
-              <span className="ml-2 h-[3px] w-16 overflow-hidden rounded-full bg-track">
-                <span className="block h-full bg-steel" style={{ width: `${preview.progress * 100}%` }} />
-              </span>
-            )}
+            {sampling && <ProgressBar value={preview.progress} ticks={false} className="ml-2 w-16" />}
           </MetallicButton>
         )}
-        {owned && (
-          <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-ink-2">
-            <CircleCheck size={14} className="text-steel" /> Сохранено на устройстве · доступно офлайн
-          </p>
-        )}
+        {owned && <p className="num mt-1 text-center text-[10.5px] text-ink-3">сохранено на устройстве · доступно офлайн</p>}
       </div>
 
       {companion && (
-        <button type="button" onClick={() => onSelect(companion)} className="mt-6 flex w-full items-center gap-3 rounded-2xl p-3 text-left metal-card">
-          <div className="w-12 shrink-0">
+        <button type="button" onClick={() => onSelect(companion)} className="mt-7 flex w-full items-center gap-4 border-y border-hairline py-4 text-left">
+          <div className={companion.kind === "audiobook" ? "w-12 shrink-0" : "w-10 shrink-0"}>
             <BookCover url={companion.coverUrl} title={companion.title} square={companion.kind === "audiobook"} sizes="sm" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[13.5px] font-medium">{companion.kind === "audiobook" ? "Есть аудиоверсия" : "Есть электронная версия"}</div>
-            <div className="text-[12px] text-ink-2">Скачайте обе — и переключайтесь «Читать ↔ Слушать» с того же места.</div>
+            <div className="font-display text-[17px] italic">{companion.kind === "audiobook" ? "Есть аудиоверсия" : "Есть текст"}</div>
+            <div className="text-[12.5px] text-ink-2">Скачайте обе — и переключайтесь «Читать / Слушать» с той же главы.</div>
           </div>
+          <ArrowRight size={16} strokeWidth={1.6} className="shrink-0 text-ink-3" />
         </button>
       )}
 
-      <p className="mt-6 whitespace-pre-line text-[15px] leading-relaxed text-ink">{item.synopsis}</p>
+      <p
+        className={cn(
+          "mt-7 font-serif text-[17px] leading-[1.6] [text-wrap:pretty]",
+          // Drop cap only when the text opens with a letter (not a «quotation»).
+          /^\p{L}/u.test(item.synopsis) && "first-letter:float-left first-letter:mr-1.5 first-letter:font-display first-letter:text-[52px] first-letter:leading-[0.85]",
+        )}
+      >
+        {item.synopsis}
+      </p>
 
-      <dl className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-hairline">
+      <dl className="mt-8 border-t border-rule">
         {facts.map(([k, v]) => (
-          <div key={k} className="bg-surface px-3 py-3">
-            <dt className="text-[11px] uppercase tracking-[0.1em] text-ink-3">{k}</dt>
-            <dd className={cn("mt-1 text-[13.5px] font-medium tabular")}>{v}</dd>
+          <div key={k} className="flex items-baseline justify-between gap-4 border-b border-hairline py-2.5">
+            <dt className="text-[12.5px] text-ink-3">{k}</dt>
+            <dd className="num truncate text-right text-[11.5px]">{v}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-center text-[11.5px] text-ink-3">
-        Общественное достояние · {item.language === "en" ? "текст Standard Ebooks (CC0)" : "текст из открытого корпуса русской прозы"}
-        {audio ? " · озвучено синтезатором речи" : ""}
+      <p className="mt-4 text-[11.5px] leading-relaxed text-ink-3">
+        Общественное достояние. {item.language === "en" ? "Текст — Standard Ebooks (CC0)." : "Текст — открытый корпус русской прозы."}
+        {audio ? " Озвучено синтезатором речи RHVoice." : ""}
       </p>
-      {item.chapterCount ? <p className="sr-only">{item.chapterCount} {plural(item.chapterCount, "глава", "главы", "глав")}</p> : null}
     </div>
   );
 }

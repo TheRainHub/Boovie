@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className={immersive ? "" : "pb-[calc(var(--dock-h)+var(--sab)+88px)]"}>{children}</div>
+      <div className={immersive ? "" : "pb-[calc(var(--dock-h)+var(--mini-h)+var(--sab)+32px)]"}>{children}</div>
       {!immersive && <MiniPlayer />}
       {!immersive && <BottomDock />}
       <FullPlayer />

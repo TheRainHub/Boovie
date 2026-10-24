@@ -1,72 +1,77 @@
 "use client";
 
-import { FilePlus2 } from "lucide-react";
+import { FilePlus, FolderPlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { cn } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { importLocalFiles } from "@/lib/library/importer";
 
-export const ACCEPT =
-  ".pdf,.fb2,.epub,.zip,.mp3,.m4a,.m4b,.aac,.ogg,.oga,.opus,.wav,.flac,application/pdf,application/epub+zip,audio/*";
-
-/** Prominent import target: tap to pick from Files (iOS) / storage (Android), or drag & drop on desktop. */
+/**
+ * Two import keys: files (any mix of PDF/FB2/EPUB/audio/ZIP) and a whole folder (one audiobook per folder,
+ * one file per chapter). Also a drop target on desktop.
+ *
+ * No `accept` filter on purpose: iOS greys out types it cannot map (.fb2 has no system type, .m4b is typed as
+ * "protected audio"), so every file stays selectable and unsupported ones get a clear error instead.
+ */
 export function UploadDropzone({ compact }: { compact?: boolean }) {
-  const input = useRef<HTMLInputElement>(null);
+  const files = useRef<HTMLInputElement>(null);
+  const folder = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
   const handle = async (list: FileList | null) => {
-    const files = list ? Array.from(list) : [];
-    if (!files.length) return;
-    const ids = await importLocalFiles(files);
-    if (ids.length) toast(ids.length === 1 ? "Книга добавлена на полку" : `Добавлено книг: ${ids.length}`, "success");
+    const picked = list ? Array.from(list) : [];
+    if (!picked.length) return;
+    const ids = await importLocalFiles(picked);
+    if (ids.length) toast(ids.length === 1 ? "Книга на полке" : `Добавлено книг: ${ids.length}`, "success");
   };
 
+  const key = "group flex h-[52px] flex-1 items-center gap-3 rounded-[4px] border border-ink/20 px-3.5 text-left transition-colors hover:border-ink/45 active:translate-y-px";
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => input.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setOver(false);
-          void handle(e.dataTransfer.files);
-        }}
-        className={cn(
-          "group relative flex w-full items-center gap-4 overflow-hidden rounded-[22px] border border-dashed text-left transition-[border-color,background] duration-200",
-          over ? "border-steel bg-steel/10" : "border-ink-3/40 hover:border-ink-2/60",
-          compact ? "px-4 py-3.5" : "px-5 py-5",
-          "metal-card",
-        )}
-      >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-on-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] bg-[linear-gradient(180deg,#2B3038_0%,#1E2229_55%,#181B21_100%)] dark:bg-[linear-gradient(180deg,#F7F8FA_0%,#E2E6ED_50%,#C9CFD8_100%)]">
-          <FilePlus2 size={22} strokeWidth={1.8} />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[16px] font-semibold tracking-[-0.01em]">+ Загрузить файл</span>
-          <span className="mt-0.5 block text-[13px] text-ink-2">PDF, FB2, EPUB, MP3 / M4B</span>
-          {!compact && (
-            <span className="mt-1 block text-[12px] leading-snug text-ink-3">
-              Выберите сразу несколько MP3 — они соберутся в одну аудиокнигу по порядку треков. Файлы хранятся только на устройстве.
-            </span>
-          )}
-        </span>
-      </button>
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        void handle(e.dataTransfer.files);
+      }}
+      className={cn("rounded-[6px] transition-colors", over && "bg-steel/10 outline outline-1 outline-dashed outline-steel")}
+    >
+      <div className="flex gap-2">
+        <button type="button" className={key} onClick={() => files.current?.click()}>
+          <FilePlus size={18} strokeWidth={1.5} className="shrink-0 text-ink-2" />
+          <span className="min-w-0">
+            <span className="block text-[14px] font-medium leading-tight">Файлы</span>
+            <span className="num block truncate text-[10px] text-ink-3">PDF FB2 EPUB MP3 M4B ZIP</span>
+          </span>
+        </button>
+        <button type="button" className={key} onClick={() => folder.current?.click()}>
+          <FolderPlus size={18} strokeWidth={1.5} className="shrink-0 text-ink-2" />
+          <span className="min-w-0">
+            <span className="block text-[14px] font-medium leading-tight">Папка</span>
+            <span className="block truncate text-[11px] text-ink-3">файл = глава</span>
+          </span>
+        </button>
+      </div>
+      {!compact && (
+        <p className="mt-2.5 text-[12px] leading-relaxed text-ink-3">
+          Папка с аудиофайлами станет одной книгой: главы — по порядку треков, обложка — <span className="num text-[10.5px]">cover.jpg</span> из папки или найдётся по названию.
+          На iPhone: в «Файлах» удерживайте папку → «Сжать» и выберите получившийся <span className="num text-[10.5px]">.zip</span>.
+        </p>
+      )}
+      <input ref={files} type="file" multiple className="hidden" onChange={(e) => { void handle(e.target.files); e.target.value = ""; }} />
       <input
-        ref={input}
+        ref={folder}
         type="file"
         multiple
-        accept={ACCEPT}
         className="hidden"
-        onChange={(e) => {
-          void handle(e.target.files);
-          e.target.value = "";
-        }}
+        // Non-standard but supported by Chromium, Firefox and Safari; React passes unknown lowercase attributes through.
+        {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+        onChange={(e) => { void handle(e.target.files); e.target.value = ""; }}
       />
-    </>
+    </div>
   );
 }

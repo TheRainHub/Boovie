@@ -10,7 +10,7 @@ function Row({ label, value, children }: { label: string; value?: string; childr
     <div className="py-3">
       <div className="mb-1 flex items-baseline justify-between">
         <Eyebrow>{label}</Eyebrow>
-        {value && <span className="text-[12px] text-ink-2 tabular">{value}</span>}
+        {value && <span className="num text-[11px] text-ink-2">{value}</span>}
       </div>
       {children}
     </div>
@@ -29,7 +29,7 @@ export function TypographyDrawer({ open, onClose }: { open: boolean; onClose: ()
                 key={f}
                 type="button"
                 onClick={() => p.set({ font: f })}
-                className={cn("flex h-16 flex-col items-center justify-center rounded-2xl text-[12px]", p.font === f ? "bg-accent text-on-accent" : "metal-card text-ink-2")}
+                className={cn("flex h-16 flex-col items-center justify-center rounded-[4px] border text-[12px]", p.font === f ? "border-accent bg-accent text-on-accent" : "border-ink/15 text-ink-2")}
               >
                 <span className="text-[22px] leading-none" style={{ fontFamily: FONT_STACKS[f] }}>Аа</span>
                 <span className="mt-1">{FONT_LABELS[f]}</span>
@@ -57,7 +57,7 @@ export function TypographyDrawer({ open, onClose }: { open: boolean; onClose: ()
               return (
                 <button key={k} type="button" onClick={() => p.set({ paper: k })} className="flex flex-col items-center gap-1.5">
                   <span
-                    className={cn("flex h-12 w-full items-center justify-center rounded-2xl border text-[15px] font-medium", p.paper === k ? "ring-2 ring-steel ring-offset-2 ring-offset-surface" : "")}
+                    className={cn("flex h-12 w-full items-center justify-center rounded-[3px] border font-display text-[18px]", p.paper === k ? "outline outline-2 outline-offset-2 outline-ink" : "")}
                     style={{ background: t.bg, color: t.ink, borderColor: t.rule }}
                   >
                     Аа

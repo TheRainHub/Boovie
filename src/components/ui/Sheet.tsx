@@ -63,7 +63,7 @@ export function Sheet({
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 40, mass: 0.9 }}
             className={cn(
-              "absolute inset-x-0 bottom-0 mx-auto flex max-w-[640px] flex-col overflow-hidden rounded-t-[28px]",
+              "absolute inset-x-0 bottom-0 mx-auto flex max-w-[640px] flex-col overflow-hidden rounded-t-[14px] border-b-0",
               glassClasses,
               "bg-[#F4F6F9]/92 dark:bg-[#14161B]/92",
               full ? "top-[calc(var(--sat)+10px)]" : "max-h-[86dvh]",
@@ -74,8 +74,8 @@ export function Sheet({
               className="flex shrink-0 cursor-grab touch-none flex-col items-center pt-2.5 pb-1 active:cursor-grabbing"
               onPointerDown={(e) => drag.start(e)}
             >
-              <div className="h-[5px] w-10 rounded-full bg-ink-3/40" />
-              {title && <div className="mt-3 w-full px-5 text-[17px] font-semibold tracking-[-0.01em]">{title}</div>}
+              <div className="h-[3px] w-9 rounded-[1px] bg-ink-3/50" />
+              {title && <div className={cn("mt-3 w-full border-b border-hairline px-5 pb-3", typeof title === "string" && "font-display text-[22px]")}>{title}</div>}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(var(--sab)+16px)]">{children}</div>
           </motion.div>

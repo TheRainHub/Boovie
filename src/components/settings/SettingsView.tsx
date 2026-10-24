@@ -1,28 +1,47 @@
 "use client";
 
-import { HardDrive, Monitor, Moon, Share, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cn, Eyebrow, MetallicButton, ProgressBar, Segmented } from "@/components/ui/primitives";
+import { cn, MetallicButton, ProgressBar, SectionHead, Segmented } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { closePlayer } from "@/lib/audio/player";
+import { useCoverPrefs } from "@/lib/covers/auto";
 import { formatBytes } from "@/lib/format";
 import { useBooks } from "@/lib/library/hooks";
 import { deleteBook } from "@/lib/library/repository";
 import { requestPersistentStorage, storageEstimate } from "@/lib/storage/blobStore";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 
-function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+function Row({ label, hint, children, className }: { label: string; hint?: React.ReactNode; children?: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("mt-7", className)}>
-      <Eyebrow className="px-1">{title}</Eyebrow>
-      <div className="mt-2 rounded-[22px] p-4 metal-card">{children}</div>
-    </section>
+    <div className={cn("flex items-center justify-between gap-4 border-b border-hairline py-3.5", className)}>
+      <div className="min-w-0">
+        <div className="text-[14.5px]">{label}</div>
+        {hint && <div className="mt-0.5 text-[12px] leading-snug text-ink-3">{hint}</div>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={() => onChange(!on)}
+      className={cn("relative h-7 w-12 rounded-[3px] border transition-colors", on ? "border-accent bg-accent" : "border-ink/25 bg-transparent")}
+    >
+      <span className={cn("absolute top-[3px] h-5 w-5 rounded-[2px] transition-all duration-200", on ? "left-[24px] bg-on-accent" : "left-[3px] bg-ink/40")} />
+    </button>
   );
 }
 
 export function SettingsView() {
   const theme = useTheme();
   const books = useBooks();
+  const covers = useCoverPrefs();
   const [estimate, setEstimate] = useState<Awaited<ReturnType<typeof storageEstimate>>>(null);
   const [confirm, setConfirm] = useState(false);
 
@@ -37,44 +56,49 @@ export function SettingsView() {
   const libraryBytes = (books ?? []).reduce((s, b) => s + b.fileSize, 0);
 
   return (
-    <main className="mx-auto max-w-[640px] px-5 pt-[calc(var(--sat)+28px)]">
-      <Eyebrow>Titan</Eyebrow>
-      <h1 className="mt-1 text-[34px] font-semibold leading-none tracking-[-0.035em]">Настройки</h1>
+    <main className="mx-auto max-w-[640px] px-5 pt-[calc(var(--sat)+22px)]">
+      <header className="border-b border-rule pb-3">
+        <h1 className="font-display text-[46px] leading-[0.9]">Настройки</h1>
+      </header>
 
-      <Section title="Оформление">
-        <Segmented<ThemePreference>
-          layoutKey="theme"
-          className="w-full"
-          value={theme.preference}
-          onChange={(p) => theme.setPreference(p)}
-          options={[
-            { value: "system", label: "Система", icon: <Monitor size={14} /> },
-            { value: "light", label: "Серебро", icon: <Sun size={14} /> },
-            { value: "dark", label: "Графит", icon: <Moon size={14} /> },
-          ]}
-        />
-        <p className="mt-3 text-[12.5px] leading-snug text-ink-3">
-          «Brushed Silver» — холодная светлая тема, «Obsidian Graphite» — тёмная. Цвет бумаги в читалке настраивается отдельно (Aa).
-        </p>
-      </Section>
+      <section className="mt-8">
+        <SectionHead title="Оформление" />
+        <Row label="Тема" hint="Серебро — светлая, Графит — тёмная">
+          <Segmented<ThemePreference>
+            size="sm"
+            layoutKey="theme"
+            value={theme.preference}
+            onChange={(p) => theme.setPreference(p)}
+            options={[
+              { value: "system", label: "Авто" },
+              { value: "light", label: "Серебро" },
+              { value: "dark", label: "Графит" },
+            ]}
+          />
+        </Row>
+        <Row label="Искать обложки в интернете" hint="Для книг без обложки — по названию: Apple Books, Google Books, Open Library">
+          <Switch on={covers.online} onChange={covers.set} label="Искать обложки в интернете" />
+        </Row>
+      </section>
 
-      <Section title="Хранилище">
-        <div className="flex items-center gap-3">
-          <HardDrive size={18} className="text-steel" />
-          <div className="flex-1">
-            <div className="text-[14.5px] font-medium tabular">Книги: {formatBytes(libraryBytes)}</div>
-            {estimate && estimate.quota > 0 && (
-              <div className="text-[12px] text-ink-2 tabular">Использовано {formatBytes(estimate.usage)} из {formatBytes(estimate.quota)}</div>
-            )}
+      <section className="mt-9">
+        <SectionHead title="Хранилище" meta={formatBytes(libraryBytes)} />
+        {estimate && estimate.quota > 0 && (
+          <div className="border-b border-hairline py-3.5">
+            <div className="num flex justify-between text-[10.5px] text-ink-2">
+              <span>занято {formatBytes(estimate.usage)}</span>
+              <span>доступно {formatBytes(estimate.quota)}</span>
+            </div>
+            <ProgressBar value={estimate.usage / estimate.quota} className="mt-2" />
           </div>
-        </div>
-        {estimate && estimate.quota > 0 && <ProgressBar value={estimate.usage / estimate.quota} className="mt-3" />}
-        <div className="mt-4 flex items-center gap-3">
-          <ShieldCheck size={18} className={estimate?.persisted ? "text-steel" : "text-ink-3"} />
-          <div className="flex-1 text-[13px] text-ink-2">
-            {estimate?.persisted ? "Постоянное хранилище включено — система не удалит книги." : "Браузер может очистить данные при нехватке места."}
-          </div>
-          {!estimate?.persisted && (
+        )}
+        <Row
+          label="Постоянное хранилище"
+          hint={estimate?.persisted ? "Включено — система не удалит книги." : "Без него браузер может очистить данные при нехватке места."}
+        >
+          {estimate?.persisted ? (
+            <span className="num text-[11px] text-steel">ВКЛ.</span>
+          ) : (
             <MetallicButton
               size="sm"
               variant="secondary"
@@ -87,18 +111,14 @@ export function SettingsView() {
               Закрепить
             </MetallicButton>
           )}
-        </div>
-        <p className="mt-3 text-[12px] leading-snug text-ink-3">Файлы хранятся в Origin Private File System или IndexedDB — только на этом устройстве.</p>
+        </Row>
         {(books?.length ?? 0) > 0 && (
-          <div className="mt-4">
+          <Row label="Очистить библиотеку" hint="Удалит все книги и прогресс с этого устройства">
             {!confirm ? (
-              <MetallicButton variant="ghost" size="sm" className="text-ink-2" icon={<Trash2 size={14} />} onClick={() => setConfirm(true)}>
-                Очистить библиотеку
-              </MetallicButton>
+              <MetallicButton variant="secondary" size="sm" onClick={() => setConfirm(true)}>Удалить…</MetallicButton>
             ) : (
               <MetallicButton
                 size="sm"
-                icon={<Trash2 size={14} />}
                 onClick={async () => {
                   closePlayer();
                   for (const b of books ?? []) await deleteBook(b.id);
@@ -106,29 +126,39 @@ export function SettingsView() {
                   toast("Библиотека очищена");
                 }}
               >
-                Удалить все книги ({books?.length})
+                Удалить {books?.length}
               </MetallicButton>
             )}
-          </div>
+          </Row>
         )}
-      </Section>
+      </section>
 
-      <Section title="Установка на iPhone и Android">
-        <ol className="space-y-2.5 text-[13.5px] leading-snug text-ink-2">
-          <li className="flex gap-2.5"><span className="font-semibold text-ink tabular">1</span><span>iPhone: откройте сайт в Safari и нажмите <Share size={13} className="inline -translate-y-px" /> «Поделиться».</span></li>
-          <li className="flex gap-2.5"><span className="font-semibold text-ink tabular">2</span><span>Выберите «На экран „Домой“» — Titan запустится как приложение, без панели браузера.</span></li>
-          <li className="flex gap-2.5"><span className="font-semibold text-ink tabular">3</span><span>Android: меню Chrome → «Установить приложение».</span></li>
+      <section className="mt-9">
+        <SectionHead title="Установка" />
+        <ol className="mt-1">
+          {[
+            ["iPhone", "Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера."],
+            ["Android", "Chrome → меню → «Установить приложение»."],
+            ["Папки", "На iPhone папку с аудиокнигой можно «Сжать» в «Файлах» и загрузить получившийся ZIP."],
+          ].map(([k, v], i) => (
+            <li key={k} className="flex gap-4 border-b border-hairline py-3.5">
+              <span className="num w-5 shrink-0 pt-0.5 text-[10.5px] text-ink-3">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <div className="text-[14.5px]">{k}</div>
+                <div className="mt-0.5 text-[12.5px] leading-snug text-ink-2">{v}</div>
+              </div>
+            </li>
+          ))}
         </ol>
-        <p className="mt-3 text-[12px] text-ink-3">Управление воспроизведением доступно на экране блокировки, в Пункте управления и на AirPods.</p>
-      </Section>
+      </section>
 
-      <Section title="О контенте магазина" className="mb-4">
-        <p className="text-[13px] leading-relaxed text-ink-2">
-          Все книги каталога — общественное достояние. Русская классика взята из открытого корпуса RussianNovels,
-          англоязычные издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.
-          Обложки — оригинальные типографические работы Titan.
+      <section className="mb-6 mt-9">
+        <SectionHead title="О каталоге" />
+        <p className="mt-3 font-display text-[16px] leading-[1.55] text-ink-2">
+          Все книги магазина — общественное достояние. Русская классика взята из открытого корпуса RussianNovels,
+          английские издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.
         </p>
-      </Section>
+      </section>
     </main>
   );
 }

@@ -5,9 +5,10 @@ import { useShallow } from "zustand/react/shallow";
 import { BookCover } from "@/components/ui/BookCover";
 import { GlassPanel, IconButton, Spinner } from "@/components/ui/primitives";
 import { skipForward, toggle, usePlayer } from "@/lib/audio/player";
+import { formatClock } from "@/lib/format";
 import { PauseGlyph, PlayGlyph, SkipGlyph } from "./icons";
 
-/** Floating glass mini player above the dock; tap to expand into the full player sheet. */
+/** Glass strip docked on top of the navigation bar; its top edge is the chapter's progress line. */
 export function MiniPlayer() {
   const s = usePlayer(
     useShallow((p) => ({
@@ -22,12 +23,12 @@ export function MiniPlayer() {
     <AnimatePresence>
       {s.bookId && (
         <motion.div
-          initial={{ y: 30, opacity: 0 }}
+          initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 30, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 420, damping: 36 }}
-          className="fixed inset-x-0 z-40 flex justify-center px-4"
-          style={{ bottom: "calc(var(--dock-h) + var(--sab) + 18px)" }}
+          exit={{ y: 24, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 420, damping: 38 }}
+          className="fixed inset-x-0 z-40"
+          style={{ bottom: "calc(var(--dock-h) + var(--sab))" }}
         >
           <GlassPanel
             role="button"
@@ -35,38 +36,43 @@ export function MiniPlayer() {
             aria-label="Открыть плеер"
             onClick={() => s.setExpanded(true)}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && s.setExpanded(true)}
-            className="relative flex h-[60px] w-full max-w-[420px] cursor-pointer items-center gap-3 overflow-hidden rounded-[20px] pl-2.5 pr-1.5"
+            className="relative cursor-pointer rounded-none border-x-0 border-b-0"
           >
-            <div className="w-[42px] shrink-0">
-              <BookCover url={s.cover} title={s.title} author={s.author} square sizes="sm" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-medium tracking-[-0.01em]">{ch?.title ?? s.title}</div>
-              <div className="truncate text-[12px] text-ink-2">{s.title} · {s.author}</div>
-            </div>
-            <IconButton
-              label={s.isPlaying ? "Пауза" : "Воспроизвести"}
-              size={42}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggle();
-              }}
-            >
-              {s.isLoading ? <Spinner size={20} /> : s.isPlaying ? <PauseGlyph size={24} /> : <PlayGlyph size={24} />}
-            </IconButton>
-            <IconButton
-              label="Вперёд на 30 секунд"
-              size={40}
-              className="text-ink-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                void skipForward();
-              }}
-            >
-              <SkipGlyph seconds={30} direction="forward" size={26} />
-            </IconButton>
-            <div className="absolute inset-x-4 bottom-[3px] h-[2px] overflow-hidden rounded-full bg-track/70">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-transparent">
               <div className="h-full bg-steel" style={{ width: `${Math.max(0, Math.min(1, frac)) * 100}%` }} />
+            </div>
+            <div className="mx-auto flex h-[var(--mini-h)] max-w-[640px] items-center gap-3 pl-4 pr-2">
+              <div className="w-[38px] shrink-0">
+                <BookCover url={s.cover} title={s.title} author={s.author} square sizes="sm" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-medium">{ch?.title ?? s.title}</div>
+                <div className="flex items-baseline gap-2 text-[12px] text-ink-2">
+                  <span className="truncate">{s.title}</span>
+                  {ch && <span className="num shrink-0 text-[10.5px] text-ink-3">−{formatClock(ch.duration - (s.position - ch.startTime))}</span>}
+                </div>
+              </div>
+              <IconButton
+                label={s.isPlaying ? "Пауза" : "Воспроизвести"}
+                size={42}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle();
+                }}
+              >
+                {s.isLoading ? <Spinner size={20} /> : s.isPlaying ? <PauseGlyph size={22} /> : <PlayGlyph size={22} />}
+              </IconButton>
+              <IconButton
+                label="Вперёд на 30 секунд"
+                size={40}
+                className="text-ink-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void skipForward();
+                }}
+              >
+                <SkipGlyph seconds={30} direction="forward" size={25} />
+              </IconButton>
             </div>
           </GlassPanel>
         </motion.div>

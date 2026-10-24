@@ -27,13 +27,13 @@ export function ImportTray() {
             initial={{ opacity: 0, y: -14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={cn(glassClasses, "pointer-events-auto w-full max-w-[440px] rounded-2xl px-4 py-3")}
+            className={cn(glassClasses, "pointer-events-auto w-full max-w-[440px] rounded-[4px] px-3.5 py-2.5")}
           >
             <div className="flex items-center gap-3">
               {j.status === "running" ? <Spinner size={16} /> : j.status === "done" ? <CircleCheck size={17} className="text-steel" /> : <CircleAlert size={17} />}
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14px] font-medium">{j.label}</div>
-                <div className="truncate text-[12px] text-ink-2 tabular">
+                <div className="num truncate text-[11px] text-ink-2">
                   {j.status === "error" ? j.error : `${j.stage}${j.status === "running" ? ` · ${Math.round(j.progress * 100)}%` : ""}`}
                 </div>
               </div>

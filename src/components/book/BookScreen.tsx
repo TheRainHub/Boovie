@@ -136,7 +136,7 @@ export function BookScreen() {
     <div className="min-h-dvh bg-bg">
       <TopBar toggle={toggle} />
       {audioBook ? (
-        <div className="pt-[calc(var(--sat)+78px)] pb-[calc(var(--sab)+12px)]">
+        <div className="pt-[calc(var(--sat)+72px)] pb-[calc(var(--sab)+12px)]">
           <ListenPanel audioBook={audioBook} />
         </div>
       ) : (
@@ -155,15 +155,15 @@ function ListenPanel({ audioBook }: { audioBook: BookRecord }) {
 function TopBar({ toggle }: { toggle: React.ReactNode }) {
   const router = useRouter();
   return (
-    <div className="fixed inset-x-0 top-0 z-30 px-3 pt-[calc(var(--sat)+8px)]">
-      <GlassPanel as="header" className="mx-auto flex h-14 max-w-[760px] items-center gap-1 rounded-[22px] px-1.5">
+    <GlassPanel as="header" className="fixed inset-x-0 top-0 z-30 rounded-none border-x-0 border-t-0 pt-[var(--sat)]">
+      <div className="mx-auto flex h-[52px] max-w-[760px] items-center gap-1 px-1.5">
         <IconButton label="Назад" onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
-          <ChevronLeft size={22} />
+          <ChevronLeft size={22} strokeWidth={1.5} />
         </IconButton>
         <div className="flex flex-1 justify-center">{toggle}</div>
         <div className="w-10" />
-      </GlassPanel>
-    </div>
+      </div>
+    </GlassPanel>
   );
 }
 
@@ -181,7 +181,7 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
         <div className="w-36">
           <BookCover fileId={book.coverFileId} url={companion?.coverUrl ?? book.coverUrl} title={book.title} author={book.author} square={want === "audio"} />
         </div>
-        <h2 className="mt-8 text-[20px] font-semibold tracking-[-0.02em]">
+        <h2 className="mt-9 font-display text-[26px] leading-tight">
           {want === "audio" ? "Аудиоверсия" : "Электронная версия"} {companion ? "есть в магазине" : "недоступна"}
         </h2>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-2">

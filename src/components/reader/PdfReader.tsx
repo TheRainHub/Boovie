@@ -283,13 +283,13 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
                 <Contrast size={17} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
-                <div className="truncate text-[13px] font-medium">{chapters[chapterIndex]?.title}</div>
-                <div className="text-[11.5px] text-ink-2 tabular">Стр. {page} из {numPages} · {Math.round((page / numPages) * 100)}%</div>
+                <div className="truncate font-display text-[16px] leading-tight">{chapters[chapterIndex]?.title}</div>
+                <div className="num mt-0.5 text-[10.5px] text-ink-2">С. {page}/{numPages} · {Math.round((page / numPages) * 100)}%</div>
               </div>
               <IconButton label="Уменьшить" size={34} disabled={zoom <= ZOOMS[0]} onClick={() => setZoom(ZOOMS[Math.max(0, ZOOMS.indexOf(zoom) - 1)])}>
                 <ZoomOut size={17} />
               </IconButton>
-              <span className="w-10 text-center text-[11.5px] text-ink-2 tabular">{Math.round(zoom * 100)}%</span>
+              <span className="num w-10 text-center text-[10.5px] text-ink-2">{Math.round(zoom * 100)}%</span>
               <IconButton label="Увеличить" size={34} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}>
                 <ZoomIn size={17} />
               </IconButton>

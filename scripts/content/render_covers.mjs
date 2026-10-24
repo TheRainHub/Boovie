@@ -1,11 +1,14 @@
 // Render typographic "cold titanium" covers and PWA icons with headless Chromium.
-// Usage: node render_covers.mjs <catalog.source.json> <out-public-dir>
-// Requires playwright-core (resolved via NODE_PATH) and a Chromium binary (CHROMIUM_PATH).
-import { readFileSync, mkdirSync } from 'node:fs';
+// Usage: node render_covers.mjs <catalog.source.json> <out-public-dir> <fonts-dir>
+// <fonts-dir> holds Old Standard TT + Martian Mono woff2 files and a local.css with their @font-face rules
+// (downloaded from Google Fonts). Requires a Chromium binary (CHROMIUM_PATH).
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 
-const [catalogPath, publicDir] = process.argv.slice(2);
+const [catalogPath, publicDir, fontsDir] = process.argv.slice(2);
+const fontFaces = readFileSync(join(fontsDir, 'local.css'), 'utf8');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
 const TINTS = {
@@ -59,34 +62,36 @@ function coverHtml(item, w, h) {
   const fg2 = tone === 'dark' ? 'rgba(236,239,244,0.62)' : 'rgba(15,17,21,0.58)';
   const line = tone === 'dark' ? 'rgba(255,255,255,0.16)' : 'rgba(15,17,21,0.14)';
   const audio = item.kind === 'audiobook';
-  const titleSize = item.title.length > 24 ? 46 : item.title.length > 14 ? 58 : 72;
+  const titleSize = item.title.length > 24 ? 50 : item.title.length > 14 ? 62 : 76;
   const motifSize = audio ? 300 : 330;
   return `<!doctype html><html><head><meta charset="utf-8"><style>
+  ${fontFaces}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{width:${w}px;height:${h}px;overflow:hidden;font-family:'Inter Display','Inter',sans-serif;color:${fg};
+  body{width:${w}px;height:${h}px;overflow:hidden;font-family:'Old Standard TT',serif;color:${fg};
     background:
       radial-gradient(120% 80% at 18% 0%, rgba(255,255,255,${tone === 'dark' ? 0.10 : 0.45}) 0%, transparent 55%),
       repeating-linear-gradient(90deg, rgba(255,255,255,${tone === 'dark' ? 0.022 : 0.10}) 0 1px, transparent 1px 3px),
       repeating-linear-gradient(90deg, rgba(0,0,0,${tone === 'dark' ? 0.05 : 0.025}) 0 1px, transparent 1px 7px),
       linear-gradient(165deg, ${c1} 0%, ${c2} 100%);}
   .frame{position:absolute;inset:26px;border:1px solid ${line};border-radius:6px}
-  .top{position:absolute;top:56px;left:56px;right:56px;display:flex;justify-content:space-between;align-items:baseline;
-    font-family:'Inter';font-weight:500;font-size:17px;letter-spacing:.2em;text-transform:uppercase;color:${fg2}}
+  .top{position:absolute;top:52px;left:56px;right:56px;display:flex;justify-content:space-between;align-items:baseline;
+    font-style:italic;font-size:25px;color:${fg2}}
+  .top .y{font-family:'Martian Mono';font-style:normal;font-size:14px;letter-spacing:0}
   .motif{position:absolute;left:50%;top:${audio ? 44 : 41}%;width:${motifSize}px;height:${motifSize}px;transform:translate(-50%,-50%);color:${fg}}
   .motif svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;opacity:.78}
   .bottom{position:absolute;left:56px;right:56px;bottom:56px}
-  .title{font-weight:600;font-size:${titleSize}px;line-height:1.02;letter-spacing:-0.025em}
-  .sub{margin-top:14px;font-family:'Inter';font-size:19px;color:${fg2};letter-spacing:.01em}
-  .meta{margin-top:26px;padding-top:16px;border-top:1px solid ${line};display:flex;justify-content:space-between;
-    font-family:'JetBrains Mono';font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:${fg2}}
+  .title{font-weight:400;font-size:${titleSize}px;line-height:1.0;letter-spacing:-0.005em}
+  .sub{margin-top:12px;font-style:italic;font-size:22px;color:${fg2}}
+  .meta{margin-top:26px;padding-top:14px;border-top:1px solid ${line};display:flex;justify-content:space-between;
+    font-family:'Martian Mono';font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:${fg2}}
   </style></head><body>
   <div class="frame"></div>
-  <div class="top"><span>${item.author}</span><span>${item.year > 1000 ? item.year : ''}</span></div>
+  <div class="top"><span>${item.author}</span><span class="y">${item.year > 1000 ? item.year : ''}</span></div>
   <div class="motif"><svg viewBox="0 0 400 400">${MOTIFS[item.cover.motif]()}</svg></div>
   <div class="bottom">
     <div class="title">${item.title}</div>
     ${item.subtitle ? `<div class="sub">${item.subtitle}</div>` : ''}
-    <div class="meta"><span>${audio ? 'Аудиокнига' : item.language === 'en' ? 'English edition' : 'Электронная книга'}</span><span>${FORMAT_LABEL[item.format]}</span></div>
+    <div class="meta"><span>${audio ? 'Аудиокнига' : item.language === 'en' ? 'English edition' : 'Книга'}</span><span>${FORMAT_LABEL[item.format]} · № ${String(item.rank).padStart(3, '0')}</span></div>
   </div></body></html>`;
 }
 
@@ -120,7 +125,10 @@ mkdirSync(join(publicDir, 'icons'), { recursive: true });
 for (const item of catalog.items) {
   const [w, h] = item.kind === 'audiobook' ? [800, 800] : [600, 900];
   await page.setViewportSize({ width: w, height: h });
-  await page.setContent(coverHtml(item, w, h));
+  // Load from a file next to the fonts so the relative @font-face URLs resolve.
+  const tmp = join(fontsDir, '_cover.html');
+  writeFileSync(tmp, coverHtml(item, w, h));
+  await page.goto(pathToFileURL(tmp).href);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: join(publicDir, `store/covers/${item.id}.jpg`), type: 'jpeg', quality: 86 });
   console.log('cover', item.id);

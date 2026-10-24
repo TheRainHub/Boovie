@@ -1,10 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Literata } from "next/font/google";
+import { Geologica, Inter, JetBrains_Mono, Literata, Martian_Mono, Old_Standard_TT } from "next/font/google";
 import { AppShell } from "@/components/shell/AppShell";
 import { withBase } from "@/lib/basePath";
 import { THEME_STORAGE_KEY } from "@/lib/themeKey";
 import "./globals.css";
 
+// Chrome: Old Standard TT (classic Russian book face) for titles, Geologica for UI, Martian Mono for readouts.
+const display = Old_Standard_TT({ subsets: ["latin", "cyrillic"], weight: ["400", "700"], style: ["normal", "italic"], variable: "--nf-display", display: "swap" });
+const ui = Geologica({ subsets: ["latin", "cyrillic"], axes: ["SHRP"], variable: "--nf-ui", display: "swap" });
+const numerals = Martian_Mono({ subsets: ["latin", "cyrillic"], axes: ["wdth"], variable: "--nf-num", display: "swap" });
+// Reader typefaces offered in the typography drawer.
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-jetbrains", display: "swap" });
 const literata = Literata({ subsets: ["latin", "cyrillic"], variable: "--font-literata", display: "swap" });
@@ -45,7 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="ru"
       data-theme="light"
       suppressHydrationWarning
-      className={`${inter.variable} ${mono.variable} ${literata.variable}`}
+      className={`${display.variable} ${ui.variable} ${numerals.variable} ${inter.variable} ${mono.variable} ${literata.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

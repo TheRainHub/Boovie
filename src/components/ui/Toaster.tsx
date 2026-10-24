@@ -43,7 +43,7 @@ export function Toaster() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 480, damping: 36 }}
-            className={cn(glassClasses, "pointer-events-auto flex max-w-[440px] items-center gap-2.5 rounded-2xl px-4 py-3 text-[14px] text-ink")}
+            className={cn(glassClasses, "pointer-events-auto flex max-w-[440px] items-center gap-2.5 rounded-[4px] border-l-2 border-l-steel px-3.5 py-2.5 text-[13.5px] text-ink")}
             onClick={() => useToasts.getState().dismiss(t.id)}
           >
             {t.kind === "success" ? <CircleCheck size={18} className="shrink-0 text-steel" /> : t.kind === "error" ? <CircleAlert size={18} className="shrink-0 text-ink" /> : <Info size={18} className="shrink-0 text-ink-2" />}

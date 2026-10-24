@@ -27,14 +27,16 @@ export function ReaderChrome({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-x-0 top-0 z-30 px-3 pt-[calc(var(--sat)+8px)]"
+            className="fixed inset-x-0 top-0 z-30"
           >
-            <GlassPanel as="header" className="mx-auto flex h-14 max-w-[760px] items-center gap-1 rounded-[22px] px-1.5">
+            <GlassPanel as="header" className="rounded-none border-x-0 border-t-0 pt-[var(--sat)]">
+              <div className="mx-auto flex h-[52px] max-w-[760px] items-center gap-1 px-1.5">
               <IconButton label="Назад" onClick={back}>
-                <ChevronLeft size={22} />
+                <ChevronLeft size={22} strokeWidth={1.5} />
               </IconButton>
               <div className="flex min-w-0 flex-1 justify-center">{center}</div>
               <div className="flex items-center">{actions}</div>
+              </div>
             </GlassPanel>
           </motion.div>
           {bottom && (
@@ -44,9 +46,11 @@ export function ReaderChrome({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(var(--sab)+8px)]"
+              className="fixed inset-x-0 bottom-0 z-30"
             >
-              <GlassPanel as="footer" className="mx-auto max-w-[760px] rounded-[22px] px-4 py-2.5">{bottom}</GlassPanel>
+              <GlassPanel as="footer" className="rounded-none border-x-0 border-b-0 pb-[var(--sab)]">
+                <div className="mx-auto max-w-[760px] px-4 pb-2 pt-2.5">{bottom}</div>
+              </GlassPanel>
             </motion.div>
           )}
         </>

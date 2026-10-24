@@ -317,7 +317,7 @@ export function TextReader({
           <div style={{ padding: `${size.top}px ${prefs.margin}px ${size.bottom + 24}px` }} className="mx-auto max-w-[760px]">
             <div ref={content} className="book-content" dangerouslySetInnerHTML={{ __html: html }} />
             {chapterIndex < chapters.length - 1 && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); goChapter(chapterIndex + 1, 0); }} className="mx-auto mt-10 flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[14px] font-medium" style={{ color: paper.heading, border: `1px solid ${paper.rule}` }}>
+              <button type="button" onClick={(e) => { e.stopPropagation(); goChapter(chapterIndex + 1, 0); }} className="mx-auto mt-10 flex items-center gap-1.5 rounded-[4px] px-5 py-2.5 font-display text-[16px] italic" style={{ color: paper.heading, border: `1px solid ${paper.rule}` }}>
                 Следующая глава <ChevronRight size={16} />
               </button>
             )}
@@ -326,10 +326,10 @@ export function TextReader({
       </div>
 
       {/* Running header & footer (always visible, like a printed page) */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 text-[12px] tracking-[0.02em]" style={{ height: size.top - 8, color: paper.muted }}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 font-display text-[13px] italic" style={{ height: size.top - 8, color: paper.muted }}>
         <span className="truncate">{chapter?.title}</span>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between tabular text-[11.5px]" style={{ height: size.bottom, paddingLeft: prefs.margin, paddingRight: prefs.margin, paddingTop: 10, color: paper.muted }}>
+      <div className="num pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between text-[10.5px]" style={{ height: size.bottom, paddingLeft: prefs.margin, paddingRight: prefs.margin, paddingTop: 10, color: paper.muted }}>
         <span>{paged ? `${page + 1} / ${pages}` : `${Math.round(scrollFrac * 100)}%`}</span>
         <span>{Math.round(percent)}%</span>
       </div>
@@ -350,16 +350,16 @@ export function TextReader({
           <div>
             <div className="flex items-center gap-2">
               <IconButton label="Предыдущая глава" size={32} disabled={chapterIndex === 0} onClick={() => goChapter(chapterIndex - 1, 0)}>
-                <ChevronLeft size={18} />
+                <ChevronLeft size={18} strokeWidth={1.5} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
-                <div className="truncate text-[13px] font-medium">{chapter?.group ? `${chapter.group} · ` : ""}{chapter?.title}</div>
-                <div className="text-[11.5px] text-ink-2 tabular">
-                  Глава {chapterIndex + 1} из {chapters.length} · {paged ? `стр. ${page + 1} из ${pages}` : `${Math.round(scrollFrac * 100)}% главы`} · {Math.round(percent)}% книги
+                <div className="truncate font-display text-[16px] leading-tight">{chapter?.group ? `${chapter.group} · ` : ""}{chapter?.title}</div>
+                <div className="num mt-0.5 text-[10.5px] text-ink-2">
+                  ГЛ. {String(chapterIndex + 1).padStart(2, "0")}/{String(chapters.length).padStart(2, "0")} · {paged ? `С. ${page + 1}/${pages}` : `${Math.round(scrollFrac * 100)}%`} · КНИГА {Math.round(percent)}%
                 </div>
               </div>
               <IconButton label="Следующая глава" size={32} disabled={chapterIndex >= chapters.length - 1} onClick={() => goChapter(chapterIndex + 1, 0)}>
-                <ChevronRight size={18} />
+                <ChevronRight size={18} strokeWidth={1.5} />
               </IconButton>
             </div>
             {paged ? (
