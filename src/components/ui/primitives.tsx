@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
-import { forwardRef, useId, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
+import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 
 export const cn = clsx;
 
@@ -99,8 +99,22 @@ export function Slider({
   disabled?: boolean;
 }) {
   const pct = max > min ? ((Math.min(max, Math.max(min, value)) - min) / (max - min)) * 100 : 0;
+  const ref = useRef<HTMLInputElement>(null);
+  const commit = useRef(onCommit);
+  useEffect(() => {
+    commit.current = onCommit;
+  });
+  useEffect(() => {
+    const input = ref.current;
+    if (!input) return;
+    // The native `change` fires once the thumb is let go (touch, mouse or keys); pointerup doesn't always come on iOS.
+    const onNativeChange = () => commit.current?.(Number(input.value));
+    input.addEventListener("change", onNativeChange);
+    return () => input.removeEventListener("change", onNativeChange);
+  }, []);
   return (
     <input
+      ref={ref}
       type="range"
       aria-label={label}
       className={cn("range", className)}
@@ -111,8 +125,6 @@ export function Slider({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(Number(e.target.value))}
-      onPointerUp={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
-      onKeyUp={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
     />
   );
 }

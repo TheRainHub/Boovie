@@ -5,10 +5,14 @@
  * survives route changes. The book is modelled as one continuous timeline: chapters carry their global start,
  * the file that holds them and the offset inside that file — this covers single M4B files with embedded
  * chapters and multi-file MP3 books alike.
+ *
+ * A file is loaded only when playback starts. iOS Safari doesn't load media before a user-initiated play and
+ * ignores `currentTime` set before it, so the saved position is kept as a pending target and applied (and
+ * checked) once the file actually plays; the sound stays muted until the jump has landed.
  */
 import { create } from "zustand";
 import { getChapters, getProgress, markChaptersComplete, updateProgress } from "../library/repository";
-import { getFileUrl } from "../storage/blobStore";
+import { getFileUrl, revokeFileUrls } from "../storage/blobStore";
 import { getDB } from "../storage/db";
 import { installMediaHandlers, setMediaMetadata, setPlaybackState, setPositionState, SKIP_BACK, SKIP_FORWARD } from "./mediaSession";
 
@@ -80,7 +84,11 @@ const get = () => usePlayer.getState();
 const set = (patch: Partial<PlayerState>) => usePlayer.setState(patch);
 
 let audio: HTMLAudioElement | null = null;
+/** The file whose URL is in the element's src. */
 let currentFileId: string | null = null;
+/** File time the element still has to reach (see the header comment); null once it is there. */
+let pendingTime: number | null = null;
+let pendingTries = 0;
 let loadToken = 0;
 let lastPersist = 0;
 let lastPositionState = 0;
@@ -93,22 +101,41 @@ function el(): HTMLAudioElement {
   a.preload = "auto";
   a.setAttribute("playsinline", "");
   a.setAttribute("webkit-playsinline", "");
+  const unlocking = () => a.src === SILENT;
   a.addEventListener("timeupdate", onTime);
   a.addEventListener("play", () => {
+    if (unlocking()) return;
     set({ isPlaying: true });
     setPlaybackState("playing");
   });
   a.addEventListener("pause", () => {
+    if (unlocking()) return;
     set({ isPlaying: false });
     setPlaybackState("paused");
     void persist(true);
   });
   a.addEventListener("waiting", () => set({ isLoading: true }));
-  a.addEventListener("playing", () => set({ isLoading: false }));
-  a.addEventListener("canplay", () => set({ isLoading: false }));
+  a.addEventListener("playing", () => {
+    set({ isLoading: false });
+    applyPending(a);
+  });
+  a.addEventListener("canplay", () => {
+    set({ isLoading: false });
+    applyPending(a);
+  });
+  a.addEventListener("loadedmetadata", () => applyPending(a));
+  a.addEventListener("seeked", () => {
+    if (pendingTime !== null && Math.abs(a.currentTime - pendingTime) < 1) landed(a);
+  });
   a.addEventListener("ended", onEnded);
   a.addEventListener("error", () => {
-    if (a.src && a.src !== SILENT) set({ error: "Не удалось воспроизвести файл", isLoading: false, isPlaying: false });
+    if (!a.src || unlocking()) return;
+    // The element can't recover from a media error: drop the file (and its URL) so the next play loads it afresh.
+    if (currentFileId) revokeFileUrls([currentFileId]);
+    currentFileId = null;
+    pendingTime = null;
+    a.muted = false;
+    set({ error: "Не удалось воспроизвести файл, нажмите ещё раз", isLoading: false, isPlaying: false });
   });
   audio = a;
   installMediaHandlers({
@@ -132,6 +159,34 @@ export function unlockAudio(): void {
   if (a.src) return;
   a.src = SILENT;
   a.play().then(() => a.pause()).catch(() => undefined);
+}
+
+/** Ask the element to be at `fileTime`; it is re-applied on the next media events until it sticks. */
+function aim(a: HTMLAudioElement, fileTime: number, opts: { mute?: boolean } = {}): void {
+  pendingTime = fileTime;
+  pendingTries = 0;
+  if (opts.mute) a.muted = true;
+  applyPending(a);
+}
+
+function applyPending(a: HTMLAudioElement): void {
+  if (pendingTime === null || a.readyState < 1) return;
+  if (isFinite(a.duration) && a.duration > 0) pendingTime = Math.min(pendingTime, Math.max(0, a.duration - 0.25));
+  if (Math.abs(a.currentTime - pendingTime) < 1) {
+    landed(a);
+    return;
+  }
+  if (a.seeking) return;
+  try {
+    a.currentTime = pendingTime;
+  } catch {
+    /* not seekable yet: the next event retries */
+  }
+}
+
+function landed(a: HTMLAudioElement): void {
+  pendingTime = null;
+  a.muted = false;
 }
 
 function chapterAtGlobal(t: number): PlayerChapter | undefined {
@@ -169,6 +224,20 @@ function onTime(): void {
   const a = el();
   const s = get();
   if (!currentFileId || !s.bookId) return;
+  // Only playback moves the position. A paused element reports seeks we already know about and resets
+  // (iOS drops a paused file's media while the app is away) that must not overwrite the saved spot.
+  if (a.paused || a.readyState === 0) return;
+  if (pendingTime !== null) {
+    // Still on the way to the saved spot: keep showing (and saving) the target, not where the element starts.
+    if (Math.abs(a.currentTime - pendingTime) < 1) landed(a);
+    else {
+      if (!a.seeking && a.readyState >= 1) {
+        if (++pendingTries > 6) landed(a); // the file can't seek there; play from where it is
+        else applyPending(a);
+      }
+      if (pendingTime !== null) return;
+    }
+  }
   const ch = chapterAtFileTime(currentFileId, a.currentTime);
   if (!ch) return;
   const position = ch.startTime + (a.currentTime - ch.fileStart);
@@ -221,6 +290,7 @@ async function persist(force = false): Promise<void> {
 }
 
 async function onEnded(): Promise<void> {
+  landed(el());
   const s = get();
   const cur = s.chapters[s.chapterIndex];
   if (!cur || !s.bookId) return;
@@ -237,20 +307,6 @@ async function onEnded(): Promise<void> {
   }
 }
 
-function waitForMetadata(a: HTMLAudioElement): Promise<void> {
-  if (a.readyState >= 1) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const ok = () => { cleanup(); resolve(); };
-    const fail = () => { cleanup(); reject(new Error("load")); };
-    const cleanup = () => {
-      a.removeEventListener("loadedmetadata", ok);
-      a.removeEventListener("error", fail);
-    };
-    a.addEventListener("loadedmetadata", ok);
-    a.addEventListener("error", fail);
-  });
-}
-
 export async function seek(global: number, opts: { autoplay?: boolean } = {}): Promise<void> {
   const s = get();
   if (!s.chapters.length) return;
@@ -258,36 +314,51 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
   const ch = chapterAtGlobal(t);
   if (!ch) return;
   const a = el();
-  const wasPlaying = !a.paused;
+  const wasPlaying = !a.paused && !a.ended && a.src !== SILENT;
+  const autoplay = opts.autoplay ?? wasPlaying;
   const fileTime = ch.fileStart + (t - ch.startTime);
   set({ position: t, chapterIndex: ch.index, error: undefined });
-  if (currentFileId !== ch.fileId) {
-    const token = ++loadToken;
-    set({ isLoading: true });
-    const url = await getFileUrl(ch.fileId);
-    if (token !== loadToken) return;
-    if (!url) {
-      set({ error: "Файл аудиокниги не найден на устройстве", isLoading: false });
-      return;
-    }
-    currentFileId = ch.fileId;
-    a.src = url;
-    a.playbackRate = s.rate;
-    a.defaultPlaybackRate = s.rate;
-    try {
-      await waitForMetadata(a);
-    } catch {
-      set({ error: "Не удалось открыть аудиофайл", isLoading: false });
-      return;
-    }
-    if (token !== loadToken) return;
-    set({ isLoading: false });
-  }
-  a.currentTime = fileTime;
   updateMediaMetadata();
-  setPositionState(ch.duration, t - ch.startTime, a.playbackRate);
-  if (opts.autoplay ?? wasPlaying) await a.play().catch(() => set({ isPlaying: false }));
+  setPositionState(ch.duration, t - ch.startTime, s.rate);
+
+  if (currentFileId === ch.fileId && a.src && !a.error) {
+    // A paused element that has to travel (e.g. reset by iOS while the app was away) stays quiet until it gets there.
+    aim(a, fileTime, { mute: a.paused && Math.abs(a.currentTime - fileTime) > 1.5 });
+    if (autoplay) await startPlayback(a);
+    void persist(true);
+    return;
+  }
+
+  if (!autoplay) {
+    // Paused: just remember the spot; the file is loaded when playback starts.
+    void getFileUrl(ch.fileId);
+    void persist(true);
+    return;
+  }
+  const token = ++loadToken;
+  set({ isLoading: true });
+  const url = await getFileUrl(ch.fileId);
+  if (token !== loadToken) return;
+  if (!url) {
+    set({ error: "Файл аудиокниги не найден на устройстве", isLoading: false });
+    return;
+  }
+  currentFileId = ch.fileId;
+  a.src = url;
+  a.playbackRate = s.rate;
+  a.defaultPlaybackRate = s.rate;
+  aim(a, fileTime, { mute: fileTime > 0.5 });
+  await startPlayback(a);
   void persist(true);
+}
+
+async function startPlayback(a: HTMLAudioElement): Promise<void> {
+  try {
+    await a.play();
+  } catch {
+    a.muted = false;
+    set({ isPlaying: false, isLoading: false });
+  }
 }
 
 export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; chapterIndex?: number; time?: number; touch?: boolean } = {}): Promise<void> {
@@ -308,6 +379,8 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
     }));
     const cover = book.coverFileId ? (await getFileUrl(book.coverFileId)) ?? book.coverUrl : book.coverUrl;
     currentFileId = null;
+    pendingTime = null;
+    a.muted = false;
     set({
       bookId,
       title: book.title,
@@ -355,12 +428,16 @@ export async function restoreLastSession(): Promise<void> {
 export async function play(): Promise<void> {
   const a = el();
   const s = get();
-  if (!s.bookId) return;
-  if (!currentFileId || a.src === SILENT || !a.src) {
-    await seek(s.position >= s.duration - 1 ? 0 : s.position, { autoplay: true });
+  if (!s.bookId || !s.chapters.length) return;
+  const start = s.position >= s.duration - 1 ? 0 : s.position;
+  const ch = chapterAtGlobal(start);
+  const expected = ch ? ch.fileStart + (start - ch.startTime) : 0;
+  // Not loaded yet, another file, or the element lost its place (iOS resets media while the app is away).
+  if (!ch || currentFileId !== ch.fileId || !a.src || a.src === SILENT || a.error || (pendingTime === null && Math.abs(a.currentTime - expected) > 1.5)) {
+    await seek(start, { autoplay: true });
     return;
   }
-  await a.play().catch(() => set({ isPlaying: false }));
+  await startPlayback(a);
 }
 
 export function pause(): void {
@@ -428,6 +505,8 @@ export function closePlayer(): void {
   a.removeAttribute("src");
   a.load();
   currentFileId = null;
+  pendingTime = null;
+  a.muted = false;
   set({ bookId: null, chapters: [], expanded: false, isPlaying: false, position: 0 });
   try {
     localStorage.removeItem(LAST_KEY);
