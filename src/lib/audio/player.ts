@@ -212,11 +212,12 @@ async function persist(force = false): Promise<void> {
   const s = get();
   if (!s.bookId || (!force && Date.now() - lastPersist < 5000)) return;
   lastPersist = Date.now();
-  await updateProgress(s.bookId, {
-    audioTimestamp: s.position,
-    currentChapterIndex: s.chapterIndex,
-    percentage: s.duration ? (s.position / s.duration) * 100 : 0,
-  }).catch(() => undefined);
+  await updateProgress(
+    s.bookId,
+    { audioTimestamp: s.position, currentChapterIndex: s.chapterIndex, percentage: s.duration ? (s.position / s.duration) * 100 : 0 },
+    // Saving a paused book (e.g. when the app is hidden) must not make it «the book you are on» again.
+    { touch: s.isPlaying },
+  ).catch(() => undefined);
 }
 
 async function onEnded(): Promise<void> {
@@ -289,7 +290,7 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
   void persist(true);
 }
 
-export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; chapterIndex?: number; time?: number } = {}): Promise<void> {
+export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; chapterIndex?: number; time?: number; touch?: boolean } = {}): Promise<void> {
   const a = el();
   const s = get();
   if (s.bookId !== bookId) {
@@ -326,7 +327,8 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
     } catch {
       /* ignore */
     }
-    await getDB().books.update(bookId, { lastOpenedAt: Date.now() });
+    // Restoring the session or preloading for the home screen is not «opening» the book.
+    if (opts.touch !== false) await getDB().books.update(bookId, { lastOpenedAt: Date.now() });
   }
   const st = get();
   const at = opts.time ?? (opts.chapterIndex !== undefined ? st.chapters[opts.chapterIndex]?.startTime : undefined);
@@ -347,7 +349,7 @@ export async function restoreLastSession(): Promise<void> {
   if (!id) return;
   const book = await getDB().books.get(id);
   if (!book) return;
-  await openAudioBook(id, { autoplay: false });
+  await openAudioBook(id, { autoplay: false, touch: false });
 }
 
 export async function play(): Promise<void> {

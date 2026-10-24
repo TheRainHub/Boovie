@@ -152,14 +152,17 @@ export async function getProgress(bookId: string): Promise<ProgressRecord> {
   return (await getDB().progress.get(bookId)) ?? emptyProgress(bookId);
 }
 
-/** Merge a partial progress update. Writes are cheap (single small record) and safe to call on every page turn. */
-export async function updateProgress(bookId: string, patch: Partial<Omit<ProgressRecord, "bookId">>): Promise<void> {
+/**
+ * Merge a partial progress update. Writes are cheap (single small record) and safe to call on every page turn.
+ * `touch` marks the book as the one in use (home screen); background saves of a paused player pass `false`.
+ */
+export async function updateProgress(bookId: string, patch: Partial<Omit<ProgressRecord, "bookId">>, opts: { touch?: boolean } = {}): Promise<void> {
   const db = getDB();
   await db.transaction("rw", db.progress, db.books, async () => {
     const cur = (await db.progress.get(bookId)) ?? emptyProgress(bookId);
     const completed = patch.completedChapters ?? cur.completedChapters ?? [];
     await db.progress.put({ ...cur, ...patch, completedChapters: completed, bookId, updatedAt: Date.now() });
-    await db.books.update(bookId, { lastOpenedAt: Date.now() });
+    if (opts.touch !== false) await db.books.update(bookId, { lastOpenedAt: Date.now() });
   });
 }
 
