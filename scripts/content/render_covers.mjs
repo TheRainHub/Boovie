@@ -65,10 +65,11 @@ for (const item of catalog.items) {
   console.log('cover', item.id);
 }
 
-// Icons, cut from the artwork: `tile` keeps the rounded tile with transparent corners (browsers, Android "any"),
-// `square` crops inside the rounded corners (Apple touch icon — iOS rounds it itself), `maskable` centres the tile
-// on a blurred copy of itself so Android's circle/squircle masks never cut the name.
-const TILE = { x: 0.047, y: 0.049, w: 0.906, h: 0.902 }; // the tile inside the artwork's dark margin
+// Icons, cut from the artwork: `tile` re-rounds the tile a little tighter than the painted corners, with transparent
+// corners (browsers, Android "any"); `square` is the tile edge to edge (Apple touch icon — iOS's own, larger corner
+// radius hides the painted corners); `maskable` centres the tile on a blurred copy of itself so Android's circle or
+// squircle masks never cut the name.
+const TILE = { x: 48 / 1024, y: 53 / 1024, w: 922 / 1024, h: 914 / 1024 }; // the tile inside the artwork's dark margin
 if (iconSource) {
   const src = `data:image/png;base64,${readFileSync(iconSource).toString('base64')}`;
   for (const [name, size, mode] of [
@@ -89,17 +90,16 @@ if (iconSource) {
       g.imageSmoothingQuality = 'high';
       if (mode === 'tile') {
         g.beginPath();
-        g.roundRect(0, 0, size, size, size * 0.225);
+        g.roundRect(0, 0, size, size, size * 0.2);
         g.clip();
         g.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, size, size);
       } else if (mode === 'square') {
-        const d = 0.07; // inside the rounded corners
-        g.drawImage(img, t.x + t.w * d, t.y + t.h * d, t.w * (1 - 2 * d), t.h * (1 - 2 * d), 0, 0, size, size);
+        g.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, size, size);
       } else {
         g.filter = 'blur(18px) brightness(.85)';
         g.drawImage(img, t.x, t.y, t.w, t.h, -size * 0.1, -size * 0.1, size * 1.2, size * 1.2);
         g.filter = 'none';
-        const s = size * 0.84, o = (size - s) / 2;
+        const s = size * 0.88, o = (size - s) / 2;
         g.save();
         g.beginPath();
         g.roundRect(o, o, s, s, s * 0.18);
@@ -112,5 +112,43 @@ if (iconSource) {
     writeFileSync(join(publicDir, 'icons', name), Buffer.from(png, 'base64'));
     console.log('icon', name);
   }
+}
+// Link preview (Open Graph, 1200 × 630): the icon tile, the name and a strip of store covers.
+if (iconSource) {
+  const tile = await page.evaluate(async ({ src, TILE }) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = c.height = 900;
+    const g = c.getContext('2d');
+    g.beginPath();
+    g.roundRect(0, 0, 900, 900, 180);
+    g.clip();
+    g.drawImage(img, TILE.x * img.naturalWidth, TILE.y * img.naturalHeight, TILE.w * img.naturalWidth, TILE.h * img.naturalHeight, 0, 0, 900, 900);
+    return c.toDataURL('image/png');
+  }, { src: `data:image/png;base64,${readFileSync(iconSource).toString('base64')}`, TILE });
+  const covers = ['pikovaya-dama', 'anna-karenina', 'chernyi-monah', 'otcy-i-deti', 'prestuplenie-i-nakazanie']
+    .map((id) => pathToFileURL(join(publicDir, `store/covers/${id}.jpg`)).href);
+  await page.setViewportSize({ width: 1200, height: 630 });
+  const tmp = join(fontsDir, '_og.html');
+  writeFileSync(tmp, `<!doctype html><html><head><meta charset="utf-8"><style>${fontFaces}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1200px;height:630px;overflow:hidden;font-family:'Golos Text';color:#FFF6EA;
+    background:radial-gradient(90% 120% at 18% 30%, #3A2A1E 0%, #1A1310 55%, #100C0A 100%)}
+  .icon{position:absolute;left:70px;top:95px;width:440px;height:440px;border-radius:88px;box-shadow:0 30px 60px -20px rgba(0,0,0,.8)}
+  .txt{position:absolute;left:570px;top:118px;right:60px}
+  h1{font-weight:800;font-size:112px;line-height:1;letter-spacing:-.03em}
+  p{margin-top:18px;font-weight:500;font-size:34px;line-height:1.25;opacity:.86}
+  .fmt{margin-top:12px;font-weight:600;font-size:24px;letter-spacing:.06em;opacity:.55}
+  .row{position:absolute;left:570px;bottom:70px;display:flex;gap:14px}
+  .row img{width:92px;height:138px;object-fit:cover;border-radius:8px;box-shadow:0 12px 24px -10px rgba(0,0,0,.8)}
+  </style></head><body><img class="icon" src="${tile}"><div class="txt"><h1>Boowie</h1><p>Книги и аудиокниги —<br>в телефоне, без интернета</p><div class="fmt">PDF · FB2 · EPUB · MP3 · M4B</div></div>
+  <div class="row">${covers.map((u) => `<img src="${u}">`).join('')}</div></body></html>`);
+  await page.goto(pathToFileURL(tmp).href);
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => [...document.images].every((i) => i.complete));
+  await page.screenshot({ path: join(publicDir, 'og.jpg'), type: 'jpeg', quality: 86 });
+  console.log('og image');
 }
 await browser.close();

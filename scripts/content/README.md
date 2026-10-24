@@ -17,7 +17,8 @@ is exercised by real files.
 
 Covers are public-domain paintings with the title set in Golos Text (`render_covers.mjs`); the painting for each
 item is chosen in `catalog.source.json` (`cover.art` = Standard Ebooks repository, `cover.focus` = vertical crop for
-square audiobook covers). The app icon is cut from a supplied artwork file.
+square audiobook covers). The app icons (every size, maskable and Apple variants) and the link-preview image
+`public/og.jpg` are cut from the icon artwork `icon-artwork.png`.
 
 ## Rebuild
 
@@ -36,7 +37,7 @@ python3 -I scripts/content/extract_works.py "$SRC/rn/corpus" "$SRC/se" "$SRC/wor
 for r in $(python3 -c "import json;print(' '.join(sorted({i['cover']['art'] for i in json.load(open('scripts/content/catalog.source.json'))['items']})))"); do
   git clone -q --depth 1 --filter=blob:none --sparse "https://github.com/standardebooks/$r.git" "$SRC/art/$r" && git -C "$SRC/art/$r" sparse-checkout set images
 done
-node scripts/content/render_covers.mjs scripts/content/catalog.source.json public "$SRC/fonts" "$SRC/art" icon.png
+node scripts/content/render_covers.mjs scripts/content/catalog.source.json public "$SRC/fonts" "$SRC/art" scripts/content/icon-artwork.png
 python3 -I scripts/content/build_books.py "$SRC/works.json" scripts/content/catalog.source.json public
 node scripts/content/render_pdfs.mjs "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/pdf"
 python3 -I scripts/content/build_audio.py "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/audio"
