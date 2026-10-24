@@ -2,7 +2,7 @@
 
 import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, List, Type } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { cn, IconButton, MetalSlider, Spinner } from "@/components/ui/primitives";
+import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, getChapter, getChapters, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
@@ -55,9 +55,11 @@ export function TextReader({
   const pageW = Math.max(100, size.w - prefs.margin * 2);
   const pageH = Math.max(100, size.h - size.top - size.bottom);
 
-  // Show the HUD briefly on open so the controls are discoverable, then get out of the way.
+  // Show the HUD briefly on open so the controls are discoverable, then get out of the way —
+  // unless it is already being used.
+  const hudTouched = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => setHud(false), 3200);
+    const t = setTimeout(() => !hudTouched.current && setHud(false), 3200);
     return () => clearTimeout(t);
   }, []);
 
@@ -317,7 +319,7 @@ export function TextReader({
           <div style={{ padding: `${size.top}px ${prefs.margin}px ${size.bottom + 24}px` }} className="mx-auto max-w-[760px]">
             <div ref={content} className="book-content" dangerouslySetInnerHTML={{ __html: html }} />
             {chapterIndex < chapters.length - 1 && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); goChapter(chapterIndex + 1, 0); }} className="mx-auto mt-10 flex items-center gap-1.5 rounded-[4px] px-5 py-2.5 font-display text-[16px] italic" style={{ color: paper.heading, border: `1px solid ${paper.rule}` }}>
+              <button type="button" onClick={(e) => { e.stopPropagation(); goChapter(chapterIndex + 1, 0); }} className="mx-auto mt-10 flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[15px] font-semibold" style={{ color: paper.heading, border: `1px solid ${paper.rule}` }}>
                 Следующая глава <ChevronRight size={16} />
               </button>
             )}
@@ -326,20 +328,21 @@ export function TextReader({
       </div>
 
       {/* Running header & footer (always visible, like a printed page) */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 font-display text-[13px] italic" style={{ height: size.top - 8, color: paper.muted }}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 text-[13px] font-medium" style={{ height: size.top - 8, color: paper.muted }}>
         <span className="truncate">{chapter?.title}</span>
       </div>
-      <div className="num pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between text-[10.5px]" style={{ height: size.bottom, paddingLeft: prefs.margin, paddingRight: prefs.margin, paddingTop: 10, color: paper.muted }}>
+      <div className="tabular pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between text-[12px] font-medium" style={{ height: size.bottom, paddingLeft: prefs.margin, paddingRight: prefs.margin, paddingTop: 10, color: paper.muted }}>
         <span>{paged ? `${page + 1} / ${pages}` : `${Math.round(scrollFrac * 100)}%`}</span>
         <span>{Math.round(percent)}%</span>
       </div>
 
       <ReaderChrome
+        onTouch={() => (hudTouched.current = true)}
         visible={hud}
         center={toggle ?? <span className="truncate px-2 text-[14px] font-medium">{book.title}</span>}
         actions={
           <>
-            <IconButton label={currentMark ? "Убрать закладку" : "Добавить закладку"} onClick={() => void toggleBookmark()} active={!!currentMark}>
+            <IconButton label={currentMark ? "Убрать закладку" : "Добавить закладку"} onClick={() => void toggleBookmark()} className={currentMark ? "text-accent" : undefined}>
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
             <IconButton label="Оглавление" onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
@@ -353,9 +356,9 @@ export function TextReader({
                 <ChevronLeft size={18} strokeWidth={1.5} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
-                <div className="truncate font-display text-[16px] leading-tight">{chapter?.group ? `${chapter.group} · ` : ""}{chapter?.title}</div>
-                <div className="num mt-0.5 text-[10.5px] text-ink-2">
-                  ГЛ. {String(chapterIndex + 1).padStart(2, "0")}/{String(chapters.length).padStart(2, "0")} · {paged ? `С. ${page + 1}/${pages}` : `${Math.round(scrollFrac * 100)}%`} · КНИГА {Math.round(percent)}%
+                <div className="truncate text-[15px] font-bold leading-tight">{chapter?.group ? `${chapter.group} · ` : ""}{chapter?.title}</div>
+                <div className="tabular mt-0.5 text-[13px] text-ink-2">
+                  Глава {chapterIndex + 1} из {chapters.length} · {paged ? `стр. ${page + 1} из ${pages}` : `${Math.round(scrollFrac * 100)}%`} · книга {Math.round(percent)}%
                 </div>
               </div>
               <IconButton label="Следующая глава" size={32} disabled={chapterIndex >= chapters.length - 1} onClick={() => goChapter(chapterIndex + 1, 0)}>
@@ -363,9 +366,9 @@ export function TextReader({
               </IconButton>
             </div>
             {paged ? (
-              pages > 1 && <MetalSlider label="Страница главы" small min={0} max={pages - 1} step={1} value={page} onChange={(v) => setPage(Math.round(v))} />
+              pages > 1 && <Slider label="Страница главы" min={0} max={pages - 1} step={1} value={page} onChange={(v) => setPage(Math.round(v))} />
             ) : (
-              <MetalSlider label="Позиция в главе" small value={scrollFrac} onChange={(v) => {
+              <Slider label="Позиция в главе" value={scrollFrac} onChange={(v) => {
                 const sc = viewport.current;
                 if (sc) sc.scrollTop = v * (sc.scrollHeight - sc.clientHeight);
               }} />

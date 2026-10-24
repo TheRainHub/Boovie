@@ -1,16 +1,16 @@
 "use client";
 
 import { AlignJustify, AlignLeft, BookOpen, ScrollText } from "lucide-react";
-import { cn, Eyebrow, MetalSlider, Segmented } from "@/components/ui/primitives";
+import { cn, Segmented, Slider } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { FONT_LABELS, FONT_STACKS, PAPERS, useReaderPrefs, type Paper, type ReaderFont } from "@/lib/reader/prefs";
 
 function Row({ label, value, children }: { label: string; value?: string; children: React.ReactNode }) {
   return (
     <div className="py-3">
-      <div className="mb-1 flex items-baseline justify-between">
-        <Eyebrow>{label}</Eyebrow>
-        {value && <span className="num text-[11px] text-ink-2">{value}</span>}
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <span className="text-[14px] font-semibold text-ink-2">{label}</span>
+        {value && <span className="tabular text-[14px] font-semibold">{value}</span>}
       </div>
       {children}
     </div>
@@ -29,7 +29,7 @@ export function TypographyDrawer({ open, onClose }: { open: boolean; onClose: ()
                 key={f}
                 type="button"
                 onClick={() => p.set({ font: f })}
-                className={cn("flex h-16 flex-col items-center justify-center rounded-[4px] border text-[12px]", p.font === f ? "border-accent bg-accent text-on-accent" : "border-ink/15 text-ink-2")}
+                className={cn("flex h-[68px] flex-col items-center justify-center rounded-[16px] text-[13px] font-semibold", p.font === f ? "bg-ink text-bg" : "bg-surface-2 text-ink")}
               >
                 <span className="text-[22px] leading-none" style={{ fontFamily: FONT_STACKS[f] }}>Аа</span>
                 <span className="mt-1">{FONT_LABELS[f]}</span>
@@ -39,30 +39,30 @@ export function TypographyDrawer({ open, onClose }: { open: boolean; onClose: ()
         </Row>
         <Row label="Размер" value={`${p.fontSize} pt`}>
           <div className="flex items-center gap-3">
-            <span className="text-[13px] text-ink-2">А</span>
-            <MetalSlider label="Размер шрифта" min={14} max={32} step={1} value={p.fontSize} onChange={(v) => p.set({ fontSize: v })} />
-            <span className="text-[20px] text-ink-2">А</span>
+            <span className="text-[14px] font-semibold text-ink-2">А</span>
+            <Slider label="Размер шрифта" min={14} max={32} step={1} value={p.fontSize} onChange={(v) => p.set({ fontSize: v })} />
+            <span className="text-[22px] font-semibold text-ink-2">А</span>
           </div>
         </Row>
         <Row label="Межстрочный интервал" value={p.lineHeight.toFixed(2)}>
-          <MetalSlider label="Межстрочный интервал" min={1.2} max={2.1} step={0.05} value={p.lineHeight} onChange={(v) => p.set({ lineHeight: Math.round(v * 100) / 100 })} />
+          <Slider label="Межстрочный интервал" min={1.2} max={2.1} step={0.05} value={p.lineHeight} onChange={(v) => p.set({ lineHeight: Math.round(v * 100) / 100 })} />
         </Row>
         <Row label="Поля" value={`${p.margin} px`}>
-          <MetalSlider label="Поля страницы" min={8} max={56} step={2} value={p.margin} onChange={(v) => p.set({ margin: v })} />
+          <Slider label="Поля страницы" min={8} max={56} step={2} value={p.margin} onChange={(v) => p.set({ margin: v })} />
         </Row>
-        <Row label="Бумага">
+        <Row label="Фон страницы">
           <div className="mt-1 grid grid-cols-4 gap-2">
             {(Object.keys(PAPERS) as Paper[]).map((k) => {
               const t = PAPERS[k];
               return (
                 <button key={k} type="button" onClick={() => p.set({ paper: k })} className="flex flex-col items-center gap-1.5">
                   <span
-                    className={cn("flex h-12 w-full items-center justify-center rounded-[3px] border font-display text-[18px]", p.paper === k ? "outline outline-2 outline-offset-2 outline-ink" : "")}
+                    className={cn("flex h-12 w-full items-center justify-center rounded-[14px] border text-[18px] font-semibold", p.paper === k ? "outline outline-2 outline-offset-2 outline-ink" : "")}
                     style={{ background: t.bg, color: t.ink, borderColor: t.rule }}
                   >
                     Аа
                   </span>
-                  <span className="text-[11.5px] text-ink-2">{t.label}</span>
+                  <span className="text-[13px] font-medium text-ink-2">{t.label}</span>
                 </button>
               );
             })}

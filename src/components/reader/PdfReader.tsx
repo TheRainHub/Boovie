@@ -3,7 +3,7 @@
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { Bookmark, BookmarkCheck, Contrast, List, ScrollText, BookOpen, ZoomIn, ZoomOut } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { cn, IconButton, MetalSlider, Spinner } from "@/components/ui/primitives";
+import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, markChaptersComplete, removeBookmark, updateProgress } from "@/lib/library/repository";
@@ -83,9 +83,11 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
   const restored = useRef(false);
   const pointer = useRef<{ x: number; y: number } | null>(null);
 
-  // Show the HUD briefly on open so the controls are discoverable, then get out of the way.
+  // Show the HUD briefly on open so the controls are discoverable, then get out of the way —
+  // unless it is already being used.
+  const hudTouched = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => setHud(false), 3200);
+    const t = setTimeout(() => !hudTouched.current && setHud(false), 3200);
     return () => clearTimeout(t);
   }, []);
 
@@ -263,11 +265,12 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
       </div>
 
       <ReaderChrome
+        onTouch={() => (hudTouched.current = true)}
         visible={hud}
         center={toggle ?? <span className="truncate px-2 text-[14px] font-medium">{book.title}</span>}
         actions={
           <>
-            <IconButton label={currentMark ? "Убрать закладку" : "Закладка на странице"} active={!!currentMark} onClick={() => void toggleMark()}>
+            <IconButton label={currentMark ? "Убрать закладку" : "Закладка на странице"} className={currentMark ? "text-accent" : undefined} onClick={() => void toggleMark()}>
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
             <IconButton label="Оглавление" onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
@@ -279,22 +282,22 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
               <IconButton label={paged ? "Режим ленты" : "Постраничный режим"} size={34} onClick={() => prefs.set({ pdfMode: paged ? "scroll" : "paged" })}>
                 {paged ? <ScrollText size={17} /> : <BookOpen size={17} />}
               </IconButton>
-              <IconButton label="Тёмный режим страницы" size={34} active={invert} onClick={() => prefs.set({ pdfInvert: !invert })}>
+              <IconButton label="Тёмный режим страницы" size={34} className={invert ? "text-accent" : undefined} onClick={() => prefs.set({ pdfInvert: !invert })}>
                 <Contrast size={17} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
-                <div className="truncate font-display text-[16px] leading-tight">{chapters[chapterIndex]?.title}</div>
-                <div className="num mt-0.5 text-[10.5px] text-ink-2">С. {page}/{numPages} · {Math.round((page / numPages) * 100)}%</div>
+                <div className="truncate text-[15px] font-bold leading-tight">{chapters[chapterIndex]?.title}</div>
+                <div className="tabular mt-0.5 text-[13px] text-ink-2">Стр. {page} из {numPages} · {Math.round((page / numPages) * 100)}%</div>
               </div>
               <IconButton label="Уменьшить" size={34} disabled={zoom <= ZOOMS[0]} onClick={() => setZoom(ZOOMS[Math.max(0, ZOOMS.indexOf(zoom) - 1)])}>
                 <ZoomOut size={17} />
               </IconButton>
-              <span className="num w-10 text-center text-[10.5px] text-ink-2">{Math.round(zoom * 100)}%</span>
+              <span className="tabular w-12 text-center text-[13px] font-semibold text-ink-2">{Math.round(zoom * 100)}%</span>
               <IconButton label="Увеличить" size={34} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}>
                 <ZoomIn size={17} />
               </IconButton>
             </div>
-            <MetalSlider label="Страница" small min={1} max={numPages} step={1} value={page} onChange={(v) => setPage(Math.round(v))} onCommit={(v) => goTo(Math.round(v))} />
+            <Slider label="Страница" min={1} max={numPages} step={1} value={page} onChange={(v) => setPage(Math.round(v))} onCommit={(v) => goTo(Math.round(v))} />
           </div>
         }
       />

@@ -7,10 +7,11 @@ import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { PdfReader } from "@/components/reader/PdfReader";
 import { TextReader } from "@/components/reader/TextReader";
 import { BookCover } from "@/components/ui/BookCover";
-import { GlassPanel, IconButton, MetallicButton, ProgressBar, Segmented, Spinner } from "@/components/ui/primitives";
+import { Button, IconButton, ProgressBar, Segmented, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { storeItem } from "@/data/catalog";
 import { openAudioBook, usePlayer } from "@/lib/audio/player";
+import { useToned } from "@/lib/covers/tone";
 import { formatClock } from "@/lib/format";
 import { useBook, useChapterList, useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { downloadStoreItem, useImports } from "@/lib/library/importer";
@@ -39,7 +40,7 @@ export function BookScreen() {
   const textProgress = useProgress(textBook?.id);
   const [readerKey, setReaderKey] = useState(0);
 
-  // Reader chrome follows the paper tint (dark paper → graphite chrome); restore the app theme on exit.
+  // Reader chrome follows the paper tint (dark paper → dark chrome); restore the app theme on exit.
   const paperDark = PAPERS[useReaderPrefs((s) => s.paper)].dark;
   useEffect(() => {
     if (mode !== "read") return;
@@ -92,27 +93,30 @@ export function BookScreen() {
     }
   }, [audioBook, mode]);
 
-  if (book === undefined) return <Center><Spinner /></Center>;
+  if (book === undefined) return <Center><Spinner className="text-ink-2" /></Center>;
   if (book === null) {
     return (
       <Center>
-        <p className="text-[15px] text-ink-2">Книга не найдена на устройстве.</p>
-        <MetallicButton className="mt-4" onClick={() => router.push("/")}>На полку</MetallicButton>
+        <p className="text-[16px] text-ink-2">Книга не найдена на устройстве.</p>
+        <Button className="mt-4" onClick={() => router.push("/library/")}>К книгам</Button>
       </Center>
     );
   }
 
-  const toggle = (
+  const makeToggle = (toned: boolean) => (
     <Segmented
-      layoutKey="read-listen"
+      layoutKey={toned ? "read-listen-toned" : "read-listen"}
+      toned={toned}
+      size="sm"
       value={mode}
       onChange={(m) => void setMode(m)}
       options={[
-        { value: "read", label: "Читать", icon: <BookOpen size={14} /> },
-        { value: "listen", label: "Слушать", icon: <Headphones size={14} /> },
+        { value: "read", label: "Читать", icon: <BookOpen size={15} strokeWidth={2.1} /> },
+        { value: "listen", label: "Слушать", icon: <Headphones size={15} strokeWidth={2.1} /> },
       ]}
     />
   );
+  const toggle = makeToggle(false);
 
   if (mode === "read") {
     if (!textBook) return <MissingEdition book={book} want="text" toggle={toggle} />;
@@ -132,38 +136,36 @@ export function BookScreen() {
     );
   }
 
+  if (!audioBook) return <MissingEdition book={book} want="audio" toggle={toggle} />;
+  return <ListenScreen audioBook={audioBook} toggle={makeToggle(true)} />;
+}
+
+/** «Слушать»: the whole screen in the colour of the audiobook's cover, with the player on it. */
+function ListenScreen({ audioBook, toggle }: { audioBook: BookRecord; toggle: React.ReactNode }) {
+  const loaded = usePlayer((s) => s.bookId === audioBook.id && s.chapters.length > 0);
+  const { style } = useToned(audioBook.coverFileId, audioBook.coverUrl);
   return (
-    <div className="min-h-dvh bg-bg">
-      <TopBar toggle={toggle} />
-      {audioBook ? (
-        <div className="pt-[calc(var(--sat)+72px)] pb-[calc(var(--sab)+12px)]">
-          <ListenPanel audioBook={audioBook} />
-        </div>
-      ) : (
-        <MissingEdition book={book} want="audio" />
-      )}
+    <div className="min-h-dvh text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
+      <TopBar toggle={toggle} toned />
+      <div className="pt-[calc(var(--sat)+60px)] pb-[calc(var(--sab)+12px)]">
+        {loaded ? <PlayerPanel variant="inline" /> : <div className="flex justify-center pt-40"><Spinner size={26} /></div>}
+      </div>
     </div>
   );
 }
 
-function ListenPanel({ audioBook }: { audioBook: BookRecord }) {
-  const loaded = usePlayer((s) => s.bookId === audioBook.id && s.chapters.length > 0);
-  if (!loaded) return <Center><Spinner /></Center>;
-  return <PlayerPanel variant="inline" />;
-}
-
-function TopBar({ toggle }: { toggle: React.ReactNode }) {
+function TopBar({ toggle, toned }: { toggle: React.ReactNode; toned?: boolean }) {
   const router = useRouter();
   return (
-    <GlassPanel as="header" className="fixed inset-x-0 top-0 z-30 rounded-none border-x-0 border-t-0 pt-[var(--sat)]">
-      <div className="mx-auto flex h-[52px] max-w-[760px] items-center gap-1 px-1.5">
-        <IconButton label="Назад" onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
-          <ChevronLeft size={22} strokeWidth={1.5} />
+    <header className="fixed inset-x-0 top-0 z-30 pt-[var(--sat)]">
+      <div className="mx-auto flex h-[56px] max-w-[760px] items-center gap-1 px-2">
+        <IconButton label="Назад" variant={toned ? "tonedGhost" : "ghost"} onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
+          <ChevronLeft size={26} strokeWidth={2} />
         </IconButton>
         <div className="flex flex-1 justify-center">{toggle}</div>
         <div className="w-10" />
       </div>
-    </GlassPanel>
+    </header>
   );
 }
 
@@ -177,14 +179,14 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
   return (
     <div className="min-h-dvh bg-bg">
       {toggle && <TopBar toggle={toggle} />}
-      <div className="mx-auto flex max-w-[420px] flex-col items-center px-6 pt-[calc(var(--sat)+120px)] text-center">
-        <div className="w-36">
+      <div className="mx-auto flex max-w-[420px] flex-col items-center px-6 pt-[calc(var(--sat)+110px)] text-center">
+        <div className="w-40">
           <BookCover fileId={book.coverFileId} url={companion?.coverUrl ?? book.coverUrl} title={book.title} author={book.author} square={want === "audio"} />
         </div>
-        <h2 className="mt-9 font-display text-[26px] leading-tight">
+        <h2 className="display mt-8 text-[26px]">
           {want === "audio" ? "Аудиоверсия" : "Электронная версия"} {companion ? "есть в магазине" : "недоступна"}
         </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+        <p className="mt-2 text-[16px] leading-relaxed text-ink-2">
           {companion
             ? "Скачайте её — и переключайтесь между чтением и прослушиванием с синхронизацией по главам."
             : want === "audio"
@@ -195,12 +197,13 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
           job ? (
             <div className="mt-6 w-full">
               <ProgressBar value={job.progress} />
-              <div className="mt-2 text-[12px] text-ink-2 tabular">{job.stage} · {Math.round(job.progress * 100)}%</div>
+              <div className="mt-2 text-[14px] text-ink-2 tabular">{job.stage} · {Math.round(job.progress * 100)}%</div>
             </div>
           ) : (
-            <MetallicButton
+            <Button
+              size="lg"
               className="mt-6"
-              icon={<Download size={16} />}
+              icon={<Download size={18} strokeWidth={2} />}
               onClick={async () => {
                 try {
                   await downloadStoreItem(companion);
@@ -211,11 +214,11 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
               }}
             >
               Скачать {want === "audio" ? "аудиоверсию" : "текст"}
-            </MetallicButton>
+            </Button>
           )
         )}
         {!toggle && !companion && (
-          <MetallicButton variant="secondary" className="mt-6" onClick={() => router.push("/")}>На полку</MetallicButton>
+          <Button variant="secondary" className="mt-6" onClick={() => router.push("/library/")}>К книгам</Button>
         )}
       </div>
     </div>

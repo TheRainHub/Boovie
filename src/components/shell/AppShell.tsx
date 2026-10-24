@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/Toaster";
 import { persistNow, restoreLastSession, unlockAudio } from "@/lib/audio/player";
 import { withBase } from "@/lib/basePath";
 import { useTheme } from "@/lib/theme";
-import { BottomDock } from "./BottomDock";
 import { ImportTray } from "./ImportTray";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -52,9 +51,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className={immersive ? "" : "pb-[calc(var(--dock-h)+var(--mini-h)+var(--sab)+32px)]"}>{children}</div>
+      <div className={immersive ? "" : "pb-[calc(var(--mini-h)+var(--sab)+28px)]"}>{children}</div>
       {!immersive && <MiniPlayer />}
-      {!immersive && <BottomDock />}
       <FullPlayer />
       <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--sat)+10px)] z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         <ImportTray />

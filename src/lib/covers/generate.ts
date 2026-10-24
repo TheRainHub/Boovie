@@ -1,19 +1,20 @@
 /**
  * Offline cover for books without one: a typeset plate in the app's visual language
- * (tinted anodised ground, hairline frame, serif title, mono imprint line, a geometric mark).
+ * (warm earth ground, hairline frame, bold Golos title, an imprint line, a geometric mark).
  * Deterministic per title, so the same book always gets the same cover.
  */
 
+/** The store covers' palette: wine, espresso, sea, navy, olive, terracotta, oat, ivory, ochre. */
 const TINTS: [string, string, boolean][] = [
-  ["#3A3F47", "#1B1E23", true],
-  ["#2A2E35", "#0E1013", true],
-  ["#6F8496", "#2F3C48", true],
-  ["#3A4D62", "#121922", true],
-  ["#66766F", "#28302D", true],
-  ["#7A5B54", "#33231F", true],
-  ["#E1E4E8", "#A7AEB7", false],
-  ["#EFEDE7", "#C6C2B9", false],
-  ["#DDD5C7", "#A69B89", false],
+  ["#7A2B30", "#36111A", true],
+  ["#3E2B22", "#140D0A", true],
+  ["#3C6762", "#1A3230", true],
+  ["#2F4166", "#131B33", true],
+  ["#68673A", "#2C2B15", true],
+  ["#A3532F", "#4A2010", true],
+  ["#EEE4D2", "#CDBC9E", false],
+  ["#F3ECDF", "#D8CAB2", false],
+  ["#DCA55A", "#A8722C", false],
 ];
 
 function hash(s: string): number {
@@ -73,13 +74,12 @@ export async function generateCover(opts: { title: string; author?: string; squa
   const H = opts.square ? 800 : 900;
   const h = hash(`${opts.title}|${opts.author ?? ""}`);
   const [c1, c2, dark] = TINTS[h % TINTS.length];
-  const fg = dark ? "#ECEFF4" : "#0F1115";
-  const fg2 = dark ? "rgba(236,239,244,0.62)" : "rgba(15,17,21,0.6)";
-  const rule = dark ? "rgba(255,255,255,0.18)" : "rgba(15,17,21,0.16)";
+  const fg = dark ? "#FFF6EA" : "#1D1814";
+  const fg2 = dark ? "rgba(255,246,234,0.64)" : "rgba(29,24,20,0.6)";
+  const rule = dark ? "rgba(255,246,234,0.18)" : "rgba(29,24,20,0.16)";
 
   await document.fonts?.ready;
-  const serif = cssFont("--nf-display", "Georgia, serif");
-  const mono = cssFont("--nf-num", "ui-monospace, monospace");
+  const sans = cssFont("--nf-ui", "-apple-system, system-ui, sans-serif");
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -91,11 +91,6 @@ export async function generateCover(opts: { title: string; author?: string; squa
   g.addColorStop(1, c2);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  // Brushed anodising: faint vertical grain.
-  for (let x = 0; x < W; x += 3) {
-    ctx.fillStyle = `rgba(255,255,255,${(((h >> (x % 17)) & 7) / 7) * (dark ? 0.03 : 0.08)})`;
-    ctx.fillRect(x, 0, 1, H);
-  }
   const shine = ctx.createRadialGradient(W * 0.15, 0, 0, W * 0.15, 0, H * 0.8);
   shine.addColorStop(0, dark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.45)");
   shine.addColorStop(1, "rgba(255,255,255,0)");
@@ -107,9 +102,9 @@ export async function generateCover(opts: { title: string; author?: string; squa
   ctx.lineWidth = 1;
   ctx.strokeRect(m - 14.5, m - 14.5, W - 2 * (m - 14) + 1, H - 2 * (m - 14) + 1);
 
-  // Author, set in serif italic at the head of the plate.
+  // Author at the head of the plate.
   ctx.fillStyle = fg2;
-  ctx.font = `italic 400 26px ${serif}`;
+  ctx.font = `500 26px ${sans}`;
   ctx.textBaseline = "top";
   if (opts.author) ctx.fillText(opts.author.slice(0, 40), m, m + 6);
 
@@ -125,19 +120,19 @@ export async function generateCover(opts: { title: string; author?: string; squa
   let size = opts.square ? 74 : 70;
   let lines: string[] = [];
   for (; size >= 34; size -= 4) {
-    ctx.font = `400 ${size}px ${serif}`;
+    ctx.font = `700 ${size}px ${sans}`;
     lines = wrap(ctx, opts.title, W - 2 * m);
     if (lines.length <= 4) break;
   }
   lines = lines.slice(0, 4);
-  const lead = size * 1.06;
+  const lead = size * 1.04;
   const bottom = H - m - 58;
   lines.forEach((l, i) => ctx.fillText(l, m, bottom - (lines.length - 1 - i) * lead));
 
   ctx.fillStyle = rule;
   ctx.fillRect(m, H - m - 34, W - 2 * m, 1);
   ctx.fillStyle = fg2;
-  ctx.font = `400 15px ${mono}`;
+  ctx.font = `600 15px ${sans}`;
   ctx.textBaseline = "top";
   ctx.fillText((opts.label ?? (opts.square ? "АУДИОКНИГА" : "КНИГА")).toUpperCase(), m, H - m - 22);
   const id = `№ ${String(h % 10000).padStart(4, "0")}`;

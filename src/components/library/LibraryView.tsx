@@ -1,37 +1,40 @@
 "use client";
 
-import { ArrowRight, BookOpen, Headphones, ImageIcon, Trash2 } from "lucide-react";
+import { BookOpen, FilePlus2, FolderPlus, Headphones, ImageIcon, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { PauseGlyph, PlayGlyph } from "@/components/player/icons";
+import { TopNav } from "@/components/shell/TopNav";
 import { BookCover } from "@/components/ui/BookCover";
-import { CatNo, cn, MetallicButton, ProgressBar, SectionHead, Tabs } from "@/components/ui/primitives";
+import { Button, ChipTabs, cn, ProgressBar } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { toast } from "@/components/ui/Toaster";
-import { openAudioBook, unloadIfCurrent, usePlayer } from "@/lib/audio/player";
-import { FORMAT_LABELS, formatBytes, formatDuration, plural } from "@/lib/format";
+import { openAudioBook, toggle, unloadIfCurrent, usePlayer } from "@/lib/audio/player";
+import { useToned } from "@/lib/covers/tone";
+import { FORMAT_LABELS, formatBytes, formatDuration } from "@/lib/format";
+import { useCurrentBook, type CurrentBook } from "@/lib/library/current";
 import { useAllProgress, useBooks, useChapterList } from "@/lib/library/hooks";
 import { deleteBook } from "@/lib/library/repository";
 import type { BookRecord, ProgressRecord } from "@/lib/storage/types";
 import { CoverPicker } from "./CoverPicker";
-import { UploadDropzone } from "./UploadDropzone";
+import { DropTarget, ImportSheet, useImportPicker } from "./ImportPicker";
 
 type Filter = "all" | "reading" | "listening" | "uploaded";
 
+/** «Книги»: filters, the book you are on, then every book as a cover with its progress underneath. */
 export function LibraryView() {
   const books = useBooks();
   const progress = useAllProgress();
+  const current = useCurrentBook();
   const [filter, setFilter] = useState<Filter>("all");
   const [menuFor, setMenuFor] = useState<BookRecord | null>(null);
   const [coverFor, setCoverFor] = useState<BookRecord | null>(null);
+  const [adding, setAdding] = useState(false);
+  const { inputs, openFiles, openFolder } = useImportPicker();
 
   const list = useMemo(() => books ?? [], [books]);
-  const counts = {
-    all: list.length,
-    reading: list.filter((b) => b.format !== "audio").length,
-    listening: list.filter((b) => b.format === "audio").length,
-    uploaded: list.filter((b) => !b.isStoreBook).length,
-  };
   const filtered = useMemo(() => {
     switch (filter) {
       case "reading": return list.filter((b) => b.format !== "audio");
@@ -41,142 +44,126 @@ export function LibraryView() {
     }
   }, [list, filter]);
 
-  const recent = useMemo(() => {
-    const started = list.filter((b) => b.lastOpenedAt && (progress?.get(b.id)?.percentage ?? 0) < 99.5);
-    return started.sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))[0];
-  }, [list, progress]);
-
   const loading = books === undefined;
   const empty = !loading && list.length === 0;
-  const hours = list.reduce((s, b) => s + (b.duration ?? 0), 0) / 3600;
 
   return (
-    <main className="mx-auto max-w-[760px] px-5 pt-[calc(var(--sat)+22px)]">
-      <header className="flex items-end justify-between border-b border-rule pb-3">
-        <h1 className="font-display text-[46px] leading-[0.9]">Полка</h1>
-        {!loading && (
-          <dl className="num grid grid-cols-[auto_auto] gap-x-3 text-right text-[10.5px] leading-[1.6] text-ink-2">
-            <dt className="text-ink-3">книг</dt>
-            <dd>{String(list.length).padStart(3, "0")}</dd>
-            <dt className="text-ink-3">часов аудио</dt>
-            <dd>{hours.toFixed(1).padStart(5, "0")}</dd>
-          </dl>
+    <DropTarget>
+      <main className="mx-auto max-w-[760px] pt-[calc(var(--sat)+14px)]">
+        <TopNav />
+
+        {empty ? (
+          <EmptyState onFiles={openFiles} onFolder={openFolder} />
+        ) : (
+          <>
+            <div className="mt-4 flex items-center gap-2 pl-5 pr-3">
+              <ChipTabs
+                className="min-w-0 flex-1"
+                label="Фильтр книг"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: "Все", count: list.length },
+                  { value: "reading", label: "Читаю" },
+                  { value: "listening", label: "Слушаю" },
+                  { value: "uploaded", label: "Файлы" },
+                ]}
+              />
+              <Link href="/settings/" aria-label="Настройки" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5">
+                <Settings size={21} strokeWidth={1.9} />
+              </Link>
+            </div>
+
+            {filter === "all" && current && <ContinueCard current={current} />}
+
+            <div className="grid grid-cols-3 items-end gap-x-3 gap-y-5 px-5 pt-5 sm:grid-cols-4">
+              <AddTile onClick={() => setAdding(true)} />
+              {filtered.map((b, i) => (
+                <GridItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} onMenu={() => setMenuFor(b)} />
+              ))}
+            </div>
+            {filtered.length === 0 && !loading && <p className="px-5 py-10 text-center text-[16px] text-ink-2">Здесь пока пусто.</p>}
+          </>
         )}
-      </header>
 
-      {recent && <NowReading book={recent} progress={progress?.get(recent.id)} />}
-
-      <div className="mt-6">
-        <UploadDropzone compact={!empty} />
-      </div>
-
-      {empty ? (
-        <EmptyState />
-      ) : (
-        <>
-          <Tabs
-            className="mt-8"
-            layoutKey="library"
-            value={filter}
-            onChange={setFilter}
-            options={[
-              { value: "all", label: "Все", count: counts.all },
-              { value: "reading", label: "Читаю", count: counts.reading },
-              { value: "listening", label: "Слушаю", count: counts.listening },
-              { value: "uploaded", label: "Мои файлы", count: counts.uploaded },
-            ]}
-          />
-          <Shelf books={filtered} progress={progress} onMenu={setMenuFor} />
-          {filtered.length === 0 && !loading && <p className="py-12 text-center font-display text-[17px] italic text-ink-3">На этой полке пока пусто.</p>}
-        </>
-      )}
-
-      <BookMenu book={menuFor} onClose={() => setMenuFor(null)} onCover={(b) => { setMenuFor(null); setCoverFor(b); }} />
-      <CoverPicker book={coverFor} onClose={() => setCoverFor(null)} />
-    </main>
+        <ImportSheet open={adding} onClose={() => setAdding(false)} onFiles={openFiles} onFolder={openFolder} />
+        <BookMenu book={menuFor} onClose={() => setMenuFor(null)} onCover={(b) => { setMenuFor(null); setCoverFor(b); }} />
+        <CoverPicker book={coverFor} onClose={() => setCoverFor(null)} />
+        {inputs}
+      </main>
+    </DropTarget>
   );
 }
 
-/** Books stand on shelf rails, three to a shelf, bottom-aligned whatever their proportions. */
-function Shelf({ books, progress, onMenu }: { books: BookRecord[]; progress?: Map<string, ProgressRecord>; onMenu: (b: BookRecord) => void }) {
-  const rows: BookRecord[][] = [];
-  for (let i = 0; i < books.length; i += 3) rows.push(books.slice(i, i + 3));
+/** The book you are on, in its own colour, with one big control. */
+function ContinueCard({ current }: { current: CurrentBook }) {
+  const { book, progress } = current;
+  const router = useRouter();
+  const { style } = useToned(book.coverFileId, book.coverUrl, "card");
+  const chapters = useChapterList(book.id);
+  const player = usePlayer(useShallow((s) => ({ bookId: s.bookId, isPlaying: s.isPlaying, chapterIndex: s.chapterIndex, position: s.position })));
+  const audio = book.format === "audio";
+  const loaded = audio && player.bookId === book.id;
+  const pct = loaded && book.duration ? player.position / book.duration : (progress?.percentage ?? 0) / 100;
+  const ci = loaded ? player.chapterIndex : progress?.currentChapterIndex ?? 0;
+  const line = audio
+    ? [chapters?.[ci]?.title, book.duration ? `ещё ${formatDuration(book.duration * (1 - pct))}` : null]
+    : [book.totalChapters > 1 ? `глава ${ci + 1} из ${book.totalChapters}` : null, `${Math.round(pct * 100)}%`];
+
+  const act = () => {
+    if (!audio) return router.push(`/book/?id=${book.id}`);
+    if (loaded) toggle();
+    else void openAudioBook(book.id, { autoplay: true });
+  };
+
   return (
-    <div className="mt-2">
-      {rows.map((row, r) => (
-        <div key={r} className="pt-7">
-          <div className="shelf grid grid-cols-3 items-end gap-x-5 px-1">
-            {row.map((b, i) => (
-              <Link key={b.id} href={`/book/?id=${b.id}`} data-format={b.format} aria-label={b.title} className="settle block" style={{ "--i": r * 3 + i } as React.CSSProperties}>
-                <BookCover fileId={b.coverFileId} url={b.coverUrl} title={b.title} author={b.author} square={b.format === "audio"} sizes="sm" />
-              </Link>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-x-5 px-1 pt-2.5">
-            {row.map((b, i) => {
-              const pct = (progress?.get(b.id)?.percentage ?? 0) / 100;
-              return (
-                <div key={b.id} className="min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <CatNo n={r * 3 + i + 1} />
-                    <button type="button" aria-label={`Действия: ${b.title}`} onClick={() => onMenu(b)} className="num -mr-1 px-1 text-[13px] leading-none text-ink-3 hover:text-ink">
-                      ···
-                    </button>
-                  </div>
-                  <Link href={`/book/?id=${b.id}`} data-format={b.format} className="block">
-                    <div className="mt-1 line-clamp-2 text-[13px] leading-[1.25]">{b.title}</div>
-                    <div className="mt-0.5 truncate text-[11.5px] text-ink-3">{b.author}</div>
-                  </Link>
-                  <div className="num mt-1.5 flex items-center gap-1.5 text-[10px] text-ink-3">
-                    <span>{b.format === "audio" ? "АУДИО" : FORMAT_LABELS[b.format]}</span>
-                    <span className="h-px flex-1 bg-hairline" />
-                    <span className={pct >= 0.995 ? "text-steel" : undefined}>{pct >= 0.995 ? "✓" : `${Math.round(pct * 100)}%`}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <div className="mx-5 mt-4 flex items-center gap-4 rounded-[22px] p-4 text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
+      <Link prefetch={false} href={`/book/?id=${book.id}`} aria-label={book.title} className={cn("shrink-0", audio ? "w-[84px]" : "w-[58px]")}>
+        <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={audio} sizes="sm" className="shadow-[0_10px_20px_-8px_var(--t-shadow)]" shadow={false} />
+      </Link>
+      <Link prefetch={false} href={`/book/?id=${book.id}`} className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold text-t-ink-2">{pct > 0 ? (audio ? "Продолжить слушать" : "Продолжить чтение") : audio ? "Начать слушать" : "Начать читать"}</div>
+        <div className="mt-0.5 truncate text-[21px] font-extrabold tracking-[-0.02em]">{book.title}</div>
+        <div className="truncate text-[14px] font-medium text-t-ink-2">{line.filter(Boolean).join(" · ")}</div>
+      </Link>
+      <button
+        type="button"
+        onClick={act}
+        aria-label={audio ? (loaded && player.isPlaying ? "Пауза" : "Слушать") : "Читать"}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-t-btn text-t-btn-ink transition-transform active:scale-95"
+      >
+        {!audio ? <BookOpen size={21} strokeWidth={2.1} /> : loaded && player.isPlaying ? <PauseGlyph size={22} /> : <PlayGlyph size={22} />}
+      </button>
     </div>
   );
 }
 
-function NowReading({ book, progress }: { book: BookRecord; progress?: ProgressRecord }) {
-  const router = useRouter();
-  const chapters = useChapterList(book.id);
-  const pct = (progress?.percentage ?? 0) / 100;
-  const isAudio = book.format === "audio";
-  const chapter = chapters?.[progress?.currentChapterIndex ?? 0];
-  const open = () => {
-    if (isAudio) {
-      void openAudioBook(book.id, { autoplay: true });
-      usePlayer.getState().setExpanded(true);
-    } else router.push(`/book/?id=${book.id}`);
-  };
+function AddTile({ onClick }: { onClick: () => void }) {
   return (
-    <section className="mt-6">
-      <SectionHead title={isAudio ? "Сейчас звучит" : "Сейчас читаю"} meta={`${Math.round(pct * 100)}%`} />
-      <div className="mt-4 flex gap-5">
-        <Link href={`/book/?id=${book.id}`} className={cn("shrink-0", isAudio ? "w-[104px]" : "w-[86px]")}>
-          <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={isAudio} sizes="sm" />
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="font-display text-[25px] leading-[1.05]">{book.title}</div>
-          <div className="mt-1 truncate text-[13px] text-ink-2">{book.author}</div>
-          <div className="mt-auto pt-3">
-            <div className="num flex justify-between text-[10.5px] text-ink-3">
-              <span className="truncate pr-2">{chapter?.title ?? "—"}</span>
-              <span>{isAudio && book.duration ? `−${formatDuration(book.duration * (1 - pct))}` : `${(progress?.currentChapterIndex ?? 0) + 1}/${book.totalChapters}`}</span>
-            </div>
-            <ProgressBar value={pct} className="mt-1.5" />
-            <button type="button" onClick={open} className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-ink hover:text-steel">
-              {isAudio ? "Продолжить слушать" : "Продолжить чтение"} <ArrowRight size={15} strokeWidth={1.6} />
-            </button>
-          </div>
-        </div>
+    <button type="button" onClick={onClick} className="flex aspect-[2/3] flex-col items-center justify-center gap-2 self-start rounded-[8px] border-2 border-dashed border-ink/15 text-ink-2 transition-colors active:bg-ink/5">
+      <Plus size={28} strokeWidth={2} />
+      <span className="px-2 text-center text-[13px] font-semibold leading-tight">Добавить<br />файлы</span>
+    </button>
+  );
+}
+
+function GridItem({ book, progress, index, onMenu }: { book: BookRecord; progress?: ProgressRecord; index: number; onMenu: () => void }) {
+  const pct = (progress?.percentage ?? 0) / 100;
+  const done = pct >= 0.995;
+  const opened = !!book.lastOpenedAt || pct > 0;
+  return (
+    <div className="rise min-w-0" style={{ "--i": index } as CSSProperties}>
+      <Link prefetch={false} href={`/book/?id=${book.id}`} data-format={book.format} aria-label={book.title} className="flex aspect-[2/3] items-end">
+        <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={book.format === "audio"} sizes="sm" className="w-full" />
+      </Link>
+      <ProgressBar value={pct} className="mt-2" color={done ? "var(--ink)" : undefined} />
+      <div className="mt-1 flex items-center justify-between">
+        <span className="tabular text-[12.5px] font-semibold text-ink-2">{done ? "Прочитано" : opened ? `${Math.round(pct * 100)}%` : "Новая"}</span>
+        <button type="button" aria-label={`Действия: ${book.title}`} onClick={onMenu} className="-mr-1.5 flex h-7 w-8 items-center justify-center rounded-full text-ink-3 active:bg-ink/5">
+          <MoreHorizontal size={18} />
+        </button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -195,41 +182,42 @@ function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose
               <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} square={book.format === "audio"} sizes="sm" />
             </div>
             <div className="min-w-0 pb-0.5">
-              <div className="font-display text-[21px] leading-tight">{book.title}</div>
-              <div className="truncate text-[13px] text-ink-2">{book.author}</div>
+              <div className="text-[20px] font-extrabold leading-tight tracking-[-0.015em]">{book.title}</div>
+              <div className="truncate text-[14px] text-ink-2">{book.author}</div>
             </div>
           </div>
-          <dl className="num mt-5 grid grid-cols-2 border-t border-hairline text-[11px]">
+          <dl className="mt-5 grid grid-cols-2 gap-2">
             {[
-              ["формат", FORMAT_LABELS[book.format]],
-              ["размер", formatBytes(book.fileSize)],
-              ["главы", String(book.totalChapters)],
-              [book.duration ? "длительность" : "страницы", book.duration ? formatDuration(book.duration) : book.pageCount ? String(book.pageCount) : "—"],
+              ["Формат", FORMAT_LABELS[book.format]],
+              ["Размер", formatBytes(book.fileSize)],
+              ["Главы", String(book.totalChapters)],
+              [book.duration ? "Длительность" : "Страницы", book.duration ? formatDuration(book.duration) : book.pageCount ? String(book.pageCount) : "—"],
             ].map(([k, v]) => (
-              <div key={k} className="flex justify-between border-b border-hairline py-2 pr-3 odd:border-r odd:pr-3 even:pl-3">
-                <dt className="text-ink-3">{k}</dt>
-                <dd>{v}</dd>
+              <div key={k} className="rounded-[14px] bg-surface-2 px-3.5 py-2.5">
+                <dt className="text-[12px] font-medium text-ink-2">{k}</dt>
+                <dd className="tabular text-[15px] font-semibold">{v}</dd>
               </div>
             ))}
           </dl>
-          <div className="mt-5 grid gap-2">
-            <Link href={`/book/?id=${book.id}`} onClick={close}>
-              <MetallicButton className="w-full" icon={book.format === "audio" ? <Headphones size={16} /> : <BookOpen size={16} />}>
-                Открыть
-              </MetallicButton>
+          <div className="mt-4 grid gap-2">
+            <Link prefetch={false} href={`/book/?id=${book.id}`} onClick={close}>
+              <Button size="lg" className="w-full" icon={book.format === "audio" ? <Headphones size={18} /> : <BookOpen size={18} />}>
+                {book.format === "audio" ? "Слушать" : "Читать"}
+              </Button>
             </Link>
-            <MetallicButton variant="secondary" className="w-full" icon={<ImageIcon size={16} strokeWidth={1.6} />} onClick={() => onCover(book)}>
+            <Button variant="secondary" size="lg" className="w-full" icon={<ImageIcon size={18} strokeWidth={1.9} />} onClick={() => onCover(book)}>
               Обложка
-            </MetallicButton>
+            </Button>
             {!confirm ? (
-              <MetallicButton variant="ghost" className="w-full text-ink-2" icon={<Trash2 size={16} strokeWidth={1.6} />} onClick={() => setConfirm(true)}>
+              <Button variant="ghost" size="lg" className="w-full text-ink-2" icon={<Trash2 size={18} strokeWidth={1.9} />} onClick={() => setConfirm(true)}>
                 Удалить с устройства
-              </MetallicButton>
+              </Button>
             ) : (
-              <MetallicButton
+              <Button
                 variant="secondary"
-                className="w-full border-ink/60"
-                icon={<Trash2 size={16} />}
+                size="lg"
+                className="w-full text-[#B3261E] dark:text-[#F2B8B5]"
+                icon={<Trash2 size={18} />}
                 onClick={async () => {
                   unloadIfCurrent(book.id);
                   await deleteBook(book.id);
@@ -238,7 +226,7 @@ function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose
                 }}
               >
                 Точно удалить
-              </MetallicButton>
+              </Button>
             )}
           </div>
         </div>
@@ -247,19 +235,18 @@ function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose
   );
 }
 
-function EmptyState() {
+function EmptyState({ onFiles, onFolder }: { onFiles: () => void; onFolder: () => void }) {
   return (
-    <section className="mt-12 border-y border-hairline py-12 text-center">
-      <p className="font-display text-[28px] leading-tight">Полка пока пуста</p>
-      <p className="mx-auto mt-3 max-w-[320px] text-[14px] leading-relaxed text-ink-2">
-        Загрузите файлы или папку с аудиокнигой — или возьмите классику в магазине. Всё работает без интернета.
+    <section className="px-5 pt-10">
+      <p className="display text-[30px]">Книг пока нет</p>
+      <p className="mt-3 max-w-[420px] text-[16px] leading-[1.5] text-ink-2">
+        Добавьте файлы или папку с аудиокнигой — или возьмите классику в магазине. Всё работает без интернета.
       </p>
-      <Link href="/store/" className="mt-7 inline-block">
-        <MetallicButton icon={<ArrowRight size={16} />}>В магазин</MetallicButton>
-      </Link>
-      <p className="num mt-6 text-[10.5px] text-ink-3">
-        020 {plural(20, "издание", "издания", "изданий")} · общественное достояние
-      </p>
+      <div className="mt-7 grid max-w-[420px] gap-2.5">
+        <Button size="lg" icon={<FilePlus2 size={19} strokeWidth={2} />} onClick={onFiles}>Добавить файлы</Button>
+        <Button size="lg" variant="secondary" icon={<FolderPlus size={19} strokeWidth={2} />} onClick={onFolder}>Папку с аудиокнигой</Button>
+        <Link href="/store/" className="mt-1"><Button size="lg" variant="ghost" className="w-full">Открыть магазин</Button></Link>
+      </div>
     </section>
   );
 }

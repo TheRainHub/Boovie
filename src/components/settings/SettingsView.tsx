@@ -1,7 +1,9 @@
 "use client";
 
+import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { cn, MetallicButton, ProgressBar, SectionHead, Segmented } from "@/components/ui/primitives";
+import { Button, cn, IconButton, ProgressBar, Segmented } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { closePlayer } from "@/lib/audio/player";
 import { useCoverPrefs } from "@/lib/covers/auto";
@@ -11,14 +13,23 @@ import { deleteBook } from "@/lib/library/repository";
 import { requestPersistentStorage, storageEstimate } from "@/lib/storage/blobStore";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-7">
+      <h2 className="px-1 text-[14px] font-semibold text-ink-2">{title}</h2>
+      <div className="mt-2 overflow-hidden rounded-[20px] bg-surface ring-1 ring-line">{children}</div>
+    </section>
+  );
+}
+
 function Row({ label, hint, children, className }: { label: string; hint?: React.ReactNode; children?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-center justify-between gap-4 border-b border-hairline py-3.5", className)}>
+    <div className={cn("flex items-center justify-between gap-4 border-b border-line px-4 py-3.5 last:border-b-0", className)}>
       <div className="min-w-0">
-        <div className="text-[14.5px]">{label}</div>
-        {hint && <div className="mt-0.5 text-[12px] leading-snug text-ink-3">{hint}</div>}
+        <div className="text-[16px] font-semibold">{label}</div>
+        {hint && <div className="mt-0.5 text-[13.5px] leading-snug text-ink-2">{hint}</div>}
       </div>
-      <div className="shrink-0">{children}</div>
+      {children !== undefined && <div className="shrink-0">{children}</div>}
     </div>
   );
 }
@@ -31,14 +42,15 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       aria-checked={on}
       aria-label={label}
       onClick={() => onChange(!on)}
-      className={cn("relative h-7 w-12 rounded-[3px] border transition-colors", on ? "border-accent bg-accent" : "border-ink/25 bg-transparent")}
+      className={cn("relative h-[31px] w-[51px] rounded-full transition-colors duration-200", on ? "bg-accent" : "bg-surface-2")}
     >
-      <span className={cn("absolute top-[3px] h-5 w-5 rounded-[2px] transition-all duration-200", on ? "left-[24px] bg-on-accent" : "left-[3px] bg-ink/40")} />
+      <span className={cn("absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-[0_2px_4px_rgb(0_0_0/0.25)] transition-all duration-200", on ? "left-[22px]" : "left-[2px]")} />
     </button>
   );
 }
 
 export function SettingsView() {
+  const router = useRouter();
   const theme = useTheme();
   const books = useBooks();
   const covers = useCoverPrefs();
@@ -56,50 +68,52 @@ export function SettingsView() {
   const libraryBytes = (books ?? []).reduce((s, b) => s + b.fileSize, 0);
 
   return (
-    <main className="mx-auto max-w-[640px] px-5 pt-[calc(var(--sat)+22px)]">
-      <header className="border-b border-rule pb-3">
-        <h1 className="font-display text-[46px] leading-[0.9]">Настройки</h1>
+    <main className="mx-auto max-w-[640px] px-5 pb-8 pt-[calc(var(--sat)+10px)]">
+      <header className="flex items-center gap-1">
+        <IconButton label="Назад" className="-ml-2" onClick={() => (window.history.length > 1 ? router.back() : router.push("/library/"))}>
+          <ChevronLeft size={26} strokeWidth={2} />
+        </IconButton>
+        <h1 className="display text-[30px]">Настройки</h1>
       </header>
 
-      <section className="mt-8">
-        <SectionHead title="Оформление" />
-        <Row label="Тема" hint="Серебро — светлая, Графит — тёмная">
+      <Group title="Оформление">
+        <div className="border-b border-line px-4 py-3.5">
+          <div className="text-[16px] font-semibold">Тема</div>
           <Segmented<ThemePreference>
-            size="sm"
+            className="mt-2.5 w-full"
             layoutKey="theme"
             value={theme.preference}
             onChange={(p) => theme.setPreference(p)}
             options={[
-              { value: "system", label: "Авто" },
-              { value: "light", label: "Серебро" },
-              { value: "dark", label: "Графит" },
+              { value: "system", label: "Как в системе" },
+              { value: "light", label: "Светлая" },
+              { value: "dark", label: "Тёмная" },
             ]}
           />
-        </Row>
-        <Row label="Искать обложки в интернете" hint="Для книг без обложки — по названию: Apple Books, Google Books, Open Library">
+        </div>
+        <Row label="Обложки из интернета" hint="Для книг без обложки — поиск по названию в Apple Books, Google Books и Open Library">
           <Switch on={covers.online} onChange={covers.set} label="Искать обложки в интернете" />
         </Row>
-      </section>
+      </Group>
 
-      <section className="mt-9">
-        <SectionHead title="Хранилище" meta={formatBytes(libraryBytes)} />
+      <Group title={`Хранилище · ${formatBytes(libraryBytes)}`}>
         {estimate && estimate.quota > 0 && (
-          <div className="border-b border-hairline py-3.5">
-            <div className="num flex justify-between text-[10.5px] text-ink-2">
-              <span>занято {formatBytes(estimate.usage)}</span>
-              <span>доступно {formatBytes(estimate.quota)}</span>
+          <div className="border-b border-line px-4 py-3.5">
+            <div className="tabular flex justify-between text-[14px] text-ink-2">
+              <span>Занято {formatBytes(estimate.usage)}</span>
+              <span>из {formatBytes(estimate.quota)}</span>
             </div>
             <ProgressBar value={estimate.usage / estimate.quota} className="mt-2" />
           </div>
         )}
         <Row
-          label="Постоянное хранилище"
-          hint={estimate?.persisted ? "Включено — система не удалит книги." : "Без него браузер может очистить данные при нехватке места."}
+          label="Не удалять книги"
+          hint={estimate?.persisted ? "Включено — система не удалит книги." : "Без этого браузер может очистить данные при нехватке места."}
         >
           {estimate?.persisted ? (
-            <span className="num text-[11px] text-steel">ВКЛ.</span>
+            <span className="text-[14px] font-semibold text-ink-2">Включено</span>
           ) : (
-            <MetallicButton
+            <Button
               size="sm"
               variant="secondary"
               onClick={async () => {
@@ -108,17 +122,18 @@ export function SettingsView() {
                 toast(ok ? "Хранилище закреплено" : "Браузер отклонил запрос — установите приложение на экран «Домой»", ok ? "success" : "info");
               }}
             >
-              Закрепить
-            </MetallicButton>
+              Включить
+            </Button>
           )}
         </Row>
         {(books?.length ?? 0) > 0 && (
           <Row label="Очистить библиотеку" hint="Удалит все книги и прогресс с этого устройства">
             {!confirm ? (
-              <MetallicButton variant="secondary" size="sm" onClick={() => setConfirm(true)}>Удалить…</MetallicButton>
+              <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}>Удалить…</Button>
             ) : (
-              <MetallicButton
+              <Button
                 size="sm"
+                className="bg-[#B3261E] text-white"
                 onClick={async () => {
                   closePlayer();
                   for (const b of books ?? []) await deleteBook(b.id);
@@ -127,38 +142,26 @@ export function SettingsView() {
                 }}
               >
                 Удалить {books?.length}
-              </MetallicButton>
+              </Button>
             )}
           </Row>
         )}
-      </section>
+      </Group>
 
-      <section className="mt-9">
-        <SectionHead title="Установка" />
-        <ol className="mt-1">
-          {[
-            ["iPhone", "Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера."],
-            ["Android", "Chrome → меню → «Установить приложение»."],
-            ["Папки", "На iPhone папку с аудиокнигой можно «Сжать» в «Файлах» и загрузить получившийся ZIP."],
-          ].map(([k, v], i) => (
-            <li key={k} className="flex gap-4 border-b border-hairline py-3.5">
-              <span className="num w-5 shrink-0 pt-0.5 text-[10.5px] text-ink-3">{String(i + 1).padStart(2, "0")}</span>
-              <div>
-                <div className="text-[14.5px]">{k}</div>
-                <div className="mt-0.5 text-[12.5px] leading-snug text-ink-2">{v}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <Group title="Установка на телефон">
+        {[
+          ["iPhone", "Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера."],
+          ["Android", "Chrome → меню → «Установить приложение»."],
+          ["Папки на iPhone", "В «Файлах» удерживайте папку с аудиокнигой → «Сжать» и добавьте получившийся ZIP."],
+        ].map(([k, v]) => (
+          <Row key={k} label={k} hint={v} />
+        ))}
+      </Group>
 
-      <section className="mb-6 mt-9">
-        <SectionHead title="О каталоге" />
-        <p className="mt-3 font-display text-[16px] leading-[1.55] text-ink-2">
-          Все книги магазина — общественное достояние. Русская классика взята из открытого корпуса RussianNovels,
-          английские издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.
-        </p>
-      </section>
+      <p className="mt-7 px-1 text-[13.5px] leading-[1.55] text-ink-2">
+        Все книги магазина — общественное достояние. Русская классика взята из открытого корпуса RussianNovels,
+        английские издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.
+      </p>
     </main>
   );
 }

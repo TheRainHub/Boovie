@@ -20,7 +20,7 @@ export function useStoreActions() {
   const download = useCallback(async (item: StoreItem) => {
     try {
       await downloadStoreItem(item);
-      toast(`«${item.title}» на полке`, "success");
+      toast(`«${item.title}» в ваших книгах`, "success");
     } catch {
       toast("Не удалось скачать книгу. Проверьте подключение.", "error");
     }

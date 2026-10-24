@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { CircleAlert, CircleCheck, X } from "lucide-react";
 import { useEffect } from "react";
-import { cn, glassClasses, ProgressBar, Spinner } from "@/components/ui/primitives";
+import { ProgressBar, Spinner } from "@/components/ui/primitives";
 import { useImports } from "@/lib/library/importer";
 
 /** Floating progress cards for file imports and store downloads. */
@@ -27,13 +27,13 @@ export function ImportTray() {
             initial={{ opacity: 0, y: -14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={cn(glassClasses, "pointer-events-auto w-full max-w-[440px] rounded-[4px] px-3.5 py-2.5")}
+            className="pointer-events-auto w-full max-w-[440px] rounded-[18px] bg-surface px-4 py-3 shadow-[0_12px_36px_-12px_rgb(0_0_0/0.35)] ring-1 ring-line"
           >
             <div className="flex items-center gap-3">
-              {j.status === "running" ? <Spinner size={16} /> : j.status === "done" ? <CircleCheck size={17} className="text-steel" /> : <CircleAlert size={17} />}
+              {j.status === "running" ? <Spinner size={18} className="text-ink-2" /> : j.status === "done" ? <CircleCheck size={18} /> : <CircleAlert size={18} />}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[14px] font-medium">{j.label}</div>
-                <div className="num truncate text-[11px] text-ink-2">
+                <div className="truncate text-[15px] font-semibold">{j.label}</div>
+                <div className="tabular truncate text-[13px] text-ink-2">
                   {j.status === "error" ? j.error : `${j.stage}${j.status === "running" ? ` · ${Math.round(j.progress * 100)}%` : ""}`}
                 </div>
               </div>

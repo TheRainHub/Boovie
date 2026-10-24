@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookmarkPlus, ChevronFirst, ChevronLast, Gauge, Moon, Trash2 } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ListMusic, Moon, SkipBack, SkipForward, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { BookCover } from "@/components/ui/BookCover";
-import { cn, IconButton, MetalSlider, ProgressBar, Spinner, Tabs } from "@/components/ui/primitives";
+import { cn, IconButton, ProgressBar, Segmented, Slider, Spinner } from "@/components/ui/primitives";
+import { Sheet } from "@/components/ui/Sheet";
 import { toast } from "@/components/ui/Toaster";
 import {
   nextChapter, playChapter, prevChapter, RATES, seek, setRate, setSleepTimer, skipBack, skipForward, SLEEP_PRESETS, toggle, usePlayer,
@@ -30,12 +31,14 @@ function useNow(active: boolean): number {
   return now;
 }
 
+const rateLabel = (r: number) => `${r.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}×`;
+
 /**
- * Audible/Tesla-style player: cover, machined scrubber, precision transport, speed, sleep timer,
- * audio bookmarks with notes, and the chapter list with per-chapter progress.
- * Used inside the full-screen sheet and inline on the book screen («Слушать»).
+ * The player: a big cover on a screen in its colour, chapter title, scrubber, transport and three pills
+ * (speed, sleep timer, chapters); the bookmark key sits in the top row. Must sit inside an element carrying the cover's tone vars.
+ * Used in the full-screen sheet and inline on the book screen («Слушать»).
  */
-export function PlayerPanel({ variant }: { variant: "sheet" | "inline" }) {
+export function PlayerPanel({ variant, onClose }: { variant: "sheet" | "inline"; onClose?: () => void }) {
   const p = usePlayer(
     useShallow((s) => ({
       bookId: s.bookId, title: s.title, author: s.author, narrator: s.narrator, cover: s.cover, chapters: s.chapters,
@@ -43,10 +46,9 @@ export function PlayerPanel({ variant }: { variant: "sheet" | "inline" }) {
       rate: s.rate, sleep: s.sleep, error: s.error,
     })),
   );
-  const progress = useProgress(p.bookId);
   const [scrub, setScrub] = useState<number | null>(null);
   const [panel, setPanel] = useState<"none" | "speed" | "sleep">("none");
-  const [tab, setTab] = useState<"chapters" | "bookmarks">("chapters");
+  const [list, setList] = useState<"none" | "chapters" | "bookmarks">("none");
   const now = useNow(p.sleep.kind === "minutes");
 
   const ch = p.chapters[p.chapterIndex];
@@ -54,45 +56,50 @@ export function PlayerPanel({ variant }: { variant: "sheet" | "inline" }) {
 
   const inChapter = scrub ?? Math.max(0, p.position - ch.startTime);
   const remainingBook = Math.max(0, p.duration - p.position) / p.rate;
-  const completed = new Set(progress?.completedChapters ?? []);
-  const bookmarks = (progress?.bookmarks ?? []).filter((b) => b.kind === "audio").sort((a, b) => a.position - b.position);
   const sleepLabel = p.sleep.kind === "minutes"
     ? now ? formatClock(Math.max(0, (p.sleep.endsAt - now) / 1000)) : `${p.sleep.minutes} мин`
     : p.sleep.kind === "chapter" ? "Конец гл." : "Сон";
 
   const onBookmark = async () => {
     await addBookmark(p.bookId!, { kind: "audio", chapterIndex: p.chapterIndex, position: p.position, snippet: ch.title });
-    setTab("bookmarks");
     toast(`Закладка · ${formatClock(p.position)}`, "success");
   };
 
-  const key = "flex h-10 items-center justify-center gap-1.5 rounded-[4px] border text-[13px] transition-colors";
+  const pill = "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-4 text-[14.5px] font-semibold transition-colors";
   return (
-    <div className={cn("mx-auto flex w-full max-w-[520px] flex-col px-6", variant === "sheet" ? "pt-2" : "pt-4")}>
-      <div className="num flex items-center gap-2 text-[10.5px] text-ink-3">
-        <span>ГЛ. {String(p.chapterIndex + 1).padStart(2, "0")} / {String(p.chapters.length).padStart(2, "0")}</span>
-        <span className="h-px flex-1 bg-hairline" />
-        <span>{p.rate === 1 ? "1,0×" : `${p.rate.toLocaleString("ru-RU")}×`}</span>
+    <div className="mx-auto flex w-full max-w-[480px] flex-col px-6 text-t-ink">
+      <div className="flex h-11 items-center justify-between">
+        {variant === "sheet" ? (
+          <IconButton label="Свернуть" variant="tonedGhost" size={40} className="-ml-2" onClick={onClose}>
+            <ChevronDown size={28} strokeWidth={2.2} />
+          </IconButton>
+        ) : <span className="w-10" />}
+        <span className="tabular text-[13px] font-semibold uppercase tracking-[0.04em] text-t-ink-2">
+          Глава {p.chapterIndex + 1} из {p.chapters.length}
+        </span>
+        <IconButton label="Закладка" variant="tonedGhost" size={40} className="-mr-2" onClick={() => void onBookmark()}>
+          <Bookmark size={22} strokeWidth={2.1} />
+        </IconButton>
       </div>
 
       {/* Artwork */}
-      <div className="mx-auto mt-5 w-[min(70vw,290px)]">
-        <motion.div animate={{ scale: p.isPlaying ? 1 : 0.95 }} transition={{ type: "spring", stiffness: 220, damping: 26 }}>
-          <BookCover url={p.cover} title={p.title} author={p.author} square sizes="lg" reflect />
+      <div className="mx-auto mt-5 w-[min(84vw,340px)]">
+        <motion.div animate={{ scale: p.isPlaying ? 1 : 0.94 }} transition={{ type: "spring", stiffness: 220, damping: 26 }}>
+          <BookCover url={p.cover} title={p.title} author={p.author} square sizes="lg" shadow={false} className="shadow-[0_26px_50px_-18px_var(--t-shadow)]" />
         </motion.div>
       </div>
 
       {/* Titles */}
-      <div className="mt-[58px]">
-        {ch.group && <div className="text-[12px] text-ink-3">{ch.group}</div>}
-        <h2 className="font-display text-[28px] leading-[1.05]">{ch.title}</h2>
-        <p className="mt-1 text-[13.5px] text-ink-2">{p.title} · {p.author}</p>
-        {p.narrator && <p className="mt-0.5 text-[12px] text-ink-3">Читает {p.narrator}</p>}
+      <div className="mt-8">
+        {ch.group && <div className="truncate text-[13px] font-semibold text-t-ink-2">{ch.group}</div>}
+        <h2 className="display line-clamp-2 text-[28px]">{ch.title}</h2>
+        <p className="mt-0.5 truncate text-[16px] font-medium text-t-ink-2">{p.title} · {p.author}</p>
+        {p.narrator && <p className="truncate text-[13px] text-t-ink-2">Читает {p.narrator}</p>}
       </div>
 
       {/* Scrubber */}
-      <div className="mt-5">
-        <MetalSlider
+      <div className="mt-4">
+        <Slider
           label="Позиция в главе"
           value={inChapter}
           max={Math.max(1, ch.duration)}
@@ -102,73 +109,73 @@ export function PlayerPanel({ variant }: { variant: "sheet" | "inline" }) {
             void seek(ch.startTime + v);
           }}
         />
-        <div className="num -mt-0.5 flex justify-between text-[11px] text-ink-2">
+        <div className="tabular -mt-0.5 flex justify-between text-[13px] font-medium text-t-ink-2">
           <span>{formatClock(inChapter)}</span>
-          <span className="text-ink-3">книга −{formatDuration(remainingBook)}</span>
+          <span>ещё {formatDuration(remainingBook)}</span>
           <span>−{formatClock(ch.duration - inChapter)}</span>
         </div>
       </div>
 
       {/* Transport */}
       <div className="mt-5 flex items-center justify-between">
-        <IconButton label="Предыдущая глава" size={44} onClick={() => void prevChapter()} className="text-ink-2">
-          <ChevronFirst size={22} strokeWidth={1.5} />
+        <IconButton label="Предыдущая глава" variant="tonedGhost" size={44} onClick={() => void prevChapter()}>
+          <SkipBack size={24} fill="currentColor" strokeWidth={1.5} />
         </IconButton>
-        <IconButton label="Назад на 15 секунд" size={54} onClick={() => void skipBack()}>
-          <SkipGlyph seconds={15} direction="back" size={33} />
+        <IconButton label="Назад на 15 секунд" variant="tonedGhost" size={56} onClick={() => void skipBack()}>
+          <SkipGlyph seconds={15} direction="back" size={40} />
         </IconButton>
         <button
           type="button"
           aria-label={p.isPlaying ? "Пауза" : "Воспроизвести"}
           onClick={() => toggle()}
-          className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-accent text-on-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_8px_18px_-10px_rgba(15,17,21,0.8)] transition-transform active:scale-[0.96] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_8px_18px_-10px_rgba(0,0,0,0.9)]"
+          className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-t-btn text-t-btn-ink shadow-[0_12px_28px_-12px_var(--t-shadow)] transition-transform active:scale-95"
         >
-          {p.isLoading ? <Spinner size={24} className="text-on-accent" /> : p.isPlaying ? <PauseGlyph size={30} /> : <PlayGlyph size={30} />}
+          {p.isLoading ? <Spinner size={28} /> : p.isPlaying ? <PauseGlyph size={34} /> : <PlayGlyph size={34} />}
         </button>
-        <IconButton label="Вперёд на 30 секунд" size={54} onClick={() => void skipForward()}>
-          <SkipGlyph seconds={30} direction="forward" size={33} />
+        <IconButton label="Вперёд на 30 секунд" variant="tonedGhost" size={56} onClick={() => void skipForward()}>
+          <SkipGlyph seconds={30} direction="forward" size={40} />
         </IconButton>
-        <IconButton label="Следующая глава" size={44} onClick={() => void nextChapter()} disabled={p.chapterIndex >= p.chapters.length - 1} className="text-ink-2">
-          <ChevronLast size={22} strokeWidth={1.5} />
+        <IconButton label="Следующая глава" variant="tonedGhost" size={44} onClick={() => void nextChapter()} disabled={p.chapterIndex >= p.chapters.length - 1}>
+          <SkipForward size={24} fill="currentColor" strokeWidth={1.5} />
         </IconButton>
       </div>
-      {p.error && <p className="mt-3 text-center text-[13px] text-ink-2">{p.error}</p>}
+      {p.error && <p className="mt-3 text-center text-[14px] text-t-ink-2">{p.error}</p>}
 
-      {/* Option keys */}
-      <div className="mt-6 grid grid-cols-3 gap-2">
-        <button type="button" className={cn(key, panel === "speed" ? "border-ink text-ink" : "border-ink/20 text-ink-2")} onClick={() => setPanel(panel === "speed" ? "none" : "speed")} aria-expanded={panel === "speed"}>
-          <Gauge size={14} strokeWidth={1.6} /> <span className="num text-[11.5px]">{p.rate.toLocaleString("ru-RU", { minimumFractionDigits: 1 })}×</span>
+      {/* Pills */}
+      <div className="mt-7 flex justify-center gap-2">
+        <button type="button" aria-label="Скорость" aria-expanded={panel === "speed"} className={cn(pill, panel === "speed" ? "bg-t-btn text-t-btn-ink" : "bg-t-chip")} onClick={() => setPanel(panel === "speed" ? "none" : "speed")}>
+          <span className="tabular">{rateLabel(p.rate)}</span>
         </button>
-        <button type="button" className={cn(key, p.sleep.kind !== "off" || panel === "sleep" ? "border-ink text-ink" : "border-ink/20 text-ink-2")} onClick={() => setPanel(panel === "sleep" ? "none" : "sleep")} aria-expanded={panel === "sleep"}>
-          <Moon size={14} strokeWidth={1.6} /> <span className={p.sleep.kind === "minutes" ? "num text-[11.5px]" : undefined}>{sleepLabel}</span>
+        <button type="button" aria-expanded={panel === "sleep"} className={cn(pill, panel === "sleep" ? "bg-t-btn text-t-btn-ink" : "bg-t-chip")} onClick={() => setPanel(panel === "sleep" ? "none" : "sleep")}>
+          <Moon size={16} strokeWidth={2.2} /> <span className={p.sleep.kind === "minutes" ? "tabular" : undefined}>{sleepLabel}</span>
         </button>
-        <button type="button" className={cn(key, "border-ink/20 text-ink-2")} onClick={() => void onBookmark()}>
-          <BookmarkPlus size={14} strokeWidth={1.6} /> Закладка
+        <button type="button" className={cn(pill, "bg-t-chip")} onClick={() => setList("chapters")}>
+          <ListMusic size={16} strokeWidth={2.2} /> Главы
         </button>
       </div>
       <AnimatePresence initial={false}>
         {panel !== "none" && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="mt-2 grid grid-cols-3 gap-px overflow-hidden rounded-[4px] border border-hairline bg-hairline">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               {panel === "speed" &&
                 RATES.map((r) => (
-                  <button key={r} type="button" onClick={() => { setRate(r); setPanel("none"); }} className={cn("num h-10 text-[12px]", r === p.rate ? "bg-accent text-on-accent" : "bg-surface text-ink-2")}>
-                    {r.toLocaleString("ru-RU", { minimumFractionDigits: r % 1 ? 2 : 1 })}×
+                  <button key={r} type="button" onClick={() => { setRate(r); setPanel("none"); }} className={cn("tabular h-11 rounded-full text-[14.5px] font-semibold", r === p.rate ? "bg-t-btn text-t-btn-ink" : "bg-t-chip")}>
+                    {rateLabel(r)}
                   </button>
                 ))}
               {panel === "sleep" && (
                 <>
                   {SLEEP_PRESETS.map((m) => (
                     <button key={m} type="button" onClick={() => { setSleepTimer({ kind: "minutes", minutes: m }); setPanel("none"); toast(`Сон через ${m} мин`); }}
-                      className={cn("num h-10 text-[12px]", p.sleep.kind === "minutes" && p.sleep.minutes === m ? "bg-accent text-on-accent" : "bg-surface text-ink-2")}>
+                      className={cn("h-11 rounded-full text-[14.5px] font-semibold", p.sleep.kind === "minutes" && p.sleep.minutes === m ? "bg-t-btn text-t-btn-ink" : "bg-t-chip")}>
                       {m} мин
                     </button>
                   ))}
                   <button type="button" onClick={() => { setSleepTimer({ kind: "chapter" }); setPanel("none"); toast("Пауза в конце главы"); }}
-                    className={cn("h-10 text-[12.5px]", p.sleep.kind === "chapter" ? "bg-accent text-on-accent" : "bg-surface text-ink-2")}>
+                    className={cn("h-11 rounded-full text-[14.5px] font-semibold", p.sleep.kind === "chapter" ? "bg-t-btn text-t-btn-ink" : "bg-t-chip")}>
                     Конец главы
                   </button>
-                  <button type="button" disabled={p.sleep.kind === "off"} onClick={() => { setSleepTimer({ kind: "off" }); setPanel("none"); }} className="h-10 bg-surface text-[12.5px] text-ink-2 disabled:text-ink-3/60">
+                  <button type="button" disabled={p.sleep.kind === "off"} onClick={() => { setSleepTimer({ kind: "off" }); setPanel("none"); }} className="h-11 rounded-full bg-t-chip text-[14.5px] font-semibold disabled:opacity-40">
                     Выкл.
                   </button>
                 </>
@@ -177,69 +184,88 @@ export function PlayerPanel({ variant }: { variant: "sheet" | "inline" }) {
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="h-8" />
 
-      {/* Chapters / bookmarks */}
-      <Tabs
-        className="mt-9"
-        layoutKey={`player-tabs-${variant}`}
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "chapters", label: "Главы", count: p.chapters.length },
-          { value: "bookmarks", label: "Закладки", count: bookmarks.length },
-        ]}
-      />
+      <ChaptersSheet tab={list} onTab={setList} />
+    </div>
+  );
+}
 
-      {tab === "chapters" ? (
-        <ol>
+/** Chapters with per-chapter progress, and audio bookmarks with notes. */
+function ChaptersSheet({ tab, onTab }: { tab: "none" | "chapters" | "bookmarks"; onTab: (t: "none" | "chapters" | "bookmarks") => void }) {
+  const p = usePlayer(useShallow((s) => ({ bookId: s.bookId, chapters: s.chapters, chapterIndex: s.chapterIndex, position: s.position })));
+  const progress = useProgress(p.bookId);
+  const completed = new Set(progress?.completedChapters ?? []);
+  const bookmarks = (progress?.bookmarks ?? []).filter((b) => b.kind === "audio").sort((a, b) => a.position - b.position);
+  return (
+    <Sheet
+      open={tab !== "none"}
+      onClose={() => onTab("none")}
+      title={
+        <Segmented
+          className="w-full"
+          layoutKey="player-list"
+          value={tab === "bookmarks" ? "bookmarks" : "chapters"}
+          onChange={onTab}
+          options={[
+            { value: "chapters", label: `Главы · ${p.chapters.length}` },
+            { value: "bookmarks", label: `Закладки · ${bookmarks.length}` },
+          ]}
+        />
+      }
+    >
+      {tab !== "bookmarks" ? (
+        <ol className="px-3 pb-4">
           {p.chapters.map((c) => {
             const current = c.index === p.chapterIndex;
             const done = completed.has(c.index) && !current;
-            const frac = current ? Math.min(1, (p.position - c.startTime) / (c.duration || 1)) : done ? 1 : 0;
+            const frac = current ? Math.min(1, (p.position - c.startTime) / (c.duration || 1)) : 0;
             return (
-              <li key={c.index} className="relative border-b border-hairline">
-                {current && <span className="absolute -left-6 top-0 h-full w-[2px] bg-steel" />}
-                <button type="button" onClick={() => void playChapter(c.index)} className="flex w-full items-center gap-3 py-3 text-left">
-                  <span className={cn("num w-6 shrink-0 text-[11px]", current ? "text-steel" : "text-ink-3")}>{String(c.index + 1).padStart(2, "0")}</span>
+              <li key={c.index}>
+                <button
+                  type="button"
+                  onClick={() => { void playChapter(c.index); onTab("none"); }}
+                  className={cn("flex w-full items-center gap-3 rounded-[14px] px-3 py-3 text-left", current && "bg-surface-2")}
+                >
+                  <span className={cn("tabular w-7 shrink-0 text-[15px] font-semibold", current ? "text-ink" : "text-ink-3")}>{c.index + 1}</span>
                   <span className="min-w-0 flex-1">
-                    <span className={cn("block truncate text-[14.5px]", current ? "font-medium text-ink" : done ? "text-ink-2" : "text-ink")}>{c.title}</span>
-                    {c.group && <span className="block truncate text-[12px] text-ink-3">{c.group}</span>}
-                    {frac > 0 && frac < 1 && <ProgressBar value={frac} ticks={false} className="mt-1" />}
+                    <span className={cn("block truncate text-[16px]", current ? "font-bold" : done ? "text-ink-2" : "font-medium")}>{c.title}</span>
+                    {c.group && <span className="block truncate text-[13px] text-ink-3">{c.group}</span>}
+                    {current && frac > 0 && <ProgressBar value={frac} className="mt-1.5" />}
                   </span>
-                  <span className="num w-14 shrink-0 text-right text-[11px] text-ink-3">{done ? "✓" : formatClock(c.duration)}</span>
+                  <span className="tabular w-16 shrink-0 text-right text-[14px] text-ink-2">{done ? <Check size={17} className="ml-auto" /> : formatClock(c.duration)}</span>
                 </button>
               </li>
             );
           })}
         </ol>
       ) : bookmarks.length === 0 ? (
-        <p className="py-8 text-center font-display text-[16px] italic text-ink-3">Отмечайте моменты кнопкой «Закладка».</p>
+        <p className="px-6 py-10 text-center text-[16px] text-ink-2">Отмечайте моменты кнопкой с закладкой вверху плеера.</p>
       ) : (
-        <ul>
+        <ul className="px-5 pb-4">
           {bookmarks.map((b) => (
-            <li key={b.id} className="flex items-start gap-3 border-b border-hairline py-3">
-              <button type="button" className="num mt-0.5 shrink-0 rounded-[3px] border border-ink/20 px-2 py-1 text-[11px]" onClick={() => void seek(b.position, { autoplay: true })}>
+            <li key={b.id} className="flex items-start gap-3 border-b border-line py-3 last:border-b-0">
+              <button type="button" className="tabular mt-0.5 shrink-0 rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-semibold" onClick={() => void seek(b.position, { autoplay: true })}>
                 {formatClock(b.position)}
               </button>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[12px] text-ink-3">{p.chapters[b.chapterIndex]?.title}</div>
+                <div className="truncate text-[13px] text-ink-2">{p.chapters[b.chapterIndex]?.title}</div>
                 <input
                   defaultValue={b.note ?? ""}
                   placeholder="Добавить заметку…"
                   aria-label="Заметка к закладке"
-                  className="mt-0.5 w-full bg-transparent font-display text-[16px] italic text-ink outline-none placeholder:text-ink-3"
+                  className="mt-0.5 w-full bg-transparent text-[16px] font-medium text-ink outline-none placeholder:text-ink-3"
                   onBlur={(e) => e.target.value !== (b.note ?? "") && void updateBookmark(p.bookId!, b.id, { note: e.target.value })}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
                 />
               </div>
-              <IconButton label="Удалить закладку" size={32} className="text-ink-3" onClick={() => void removeBookmark(p.bookId!, b.id)}>
-                <Trash2 size={15} strokeWidth={1.6} />
+              <IconButton label="Удалить закладку" size={34} className="text-ink-3" onClick={() => void removeBookmark(p.bookId!, b.id)}>
+                <Trash2 size={16} strokeWidth={1.9} />
               </IconButton>
             </li>
           ))}
         </ul>
       )}
-      <div className="h-6" />
-    </div>
+    </Sheet>
   );
 }
