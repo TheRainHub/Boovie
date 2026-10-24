@@ -23,6 +23,10 @@ export interface AudioMetadata {
   duration?: number;
   cover?: Blob;
   chapters: AudioChapterMark[];
+  /** Sample entry of the sound track (mp4a, alac, drms, enca…) for MP4 containers. */
+  codec?: string;
+  /** FairPlay (drms) or Common Encryption (enca): not playable outside the vendor's app. */
+  encrypted?: boolean;
 }
 
 async function read(blob: Blob, start: number, length: number): Promise<Uint8Array> {
@@ -352,8 +356,18 @@ async function readMp4(blob: Blob): Promise<AudioMetadata | null> {
     }
   }
 
-  // QuickTime chapter track (Apple's standard; written by iTunes, ffmpeg, most audiobook tools).
   const traks = atomsIn(b, moov.start + moov.header, moov.size).filter((a) => a.type === "trak");
+  const sound = traks.find((t) => {
+    const hdlr = path(b, t, ["mdia", "hdlr"]);
+    return hdlr && fourcc(b, hdlr.start + hdlr.header + 8) === "soun";
+  });
+  const stsd = sound && path(b, sound, ["mdia", "minf", "stbl", "stsd"]);
+  if (stsd && stsd.size >= stsd.header + 16) {
+    meta.codec = fourcc(b, stsd.start + stsd.header + 12);
+    meta.encrypted = meta.codec === "drms" || meta.codec === "enca";
+  }
+
+  // QuickTime chapter track (Apple's standard; written by iTunes, ffmpeg, most audiobook tools).
   const trackId = (t: Atom) => {
     const tkhd = child(b, t, "tkhd");
     if (!tkhd) return -1;

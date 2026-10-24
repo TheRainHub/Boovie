@@ -65,16 +65,23 @@ export async function putFile(
   return record;
 }
 
+/** iOS reports .m4b/.m4a as audio/x-m4b / audio/x-m4a; blob: URLs play by their type, and Safari wants audio/mp4. */
+const MIME_ALIASES: Record<string, string> = { "audio/x-m4b": "audio/mp4", "audio/x-m4a": "audio/mp4", "audio/m4a": "audio/mp4", "audio/m4b": "audio/mp4" };
+
+function withType(blob: Blob, mime: string): Blob {
+  const type = MIME_ALIASES[mime] ?? mime;
+  return type && blob.type !== type ? new Blob([blob], { type }) : blob;
+}
+
 export async function getFileBlob(id: string): Promise<Blob | null> {
   const record = await getDB().files.get(id);
   if (!record) return null;
-  if (record.storage === "idb") return record.blob ?? null;
+  if (record.storage === "idb") return record.blob ? withType(record.blob, record.mime) : null;
   const dir = await getOpfsDir();
   if (!dir) return null;
   try {
     const handle = await dir.getFileHandle(id);
-    const file = await handle.getFile();
-    return record.mime && file.type !== record.mime ? new Blob([file], { type: record.mime }) : file;
+    return withType(await handle.getFile(), record.mime);
   } catch {
     return null;
   }

@@ -13,11 +13,15 @@ export const AUTO_CHAPTER_SECONDS = 20 * 60;
 export interface AudioInput {
   blob: Blob;
   name: string;
+  /** Path inside a picked folder/archive ("CD2/01.mp3"): orders untagged files across disc subfolders. */
+  path?: string;
 }
 
 export interface AudioParseOptions {
   /** Fallback when the container has no readable duration (ogg/wav/flac/…): typically an <audio> probe. */
   probeDuration?: (blob: Blob) => Promise<number>;
+  /** Title/author derived from the folder name ("Автор - Название"), used when tags don't provide them. */
+  hint?: { title?: string; author?: string };
 }
 
 function commonPrefix(names: string[]): string {
@@ -27,6 +31,22 @@ function commonPrefix(names: string[]): string {
     while (p && !n.startsWith(p)) p = p.slice(0, -1);
   }
   return p.replace(/[\s\d._\-–—()[\]#]+$/u, "").trim();
+}
+
+/**
+ * MIME type to store with the file: blob: URLs are played by the type they carry, and iOS reports .m4b/.m4a as
+ * audio/x-m4b / audio/x-m4a, which Safari may refuse. Known extensions win over the browser-reported type.
+ */
+export function playableMime(input: AudioInput): string {
+  const byName = mimeFromName(input.name);
+  return byName !== "application/octet-stream" ? byName : input.blob.type || "audio/mpeg";
+}
+
+/** "01 Prologue.mp3" → "Prologue", "03. Глава третья.mp3" → "Глава третья"; bare numbers are kept ("07"). */
+export function chapterTitleFromFile(name: string): string {
+  const base = stripExtension(name).replace(/_/g, " ").trim();
+  const stripped = base.replace(/^\s*\d{1,3}\s*[-._)]?\s+(?=\S)/u, "");
+  return /\p{L}/u.test(stripped) ? stripped : base;
 }
 
 export function autoChapters(duration: number, step = AUTO_CHAPTER_SECONDS): { title: string; start: number; duration: number }[] {
@@ -46,6 +66,9 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
   for (let i = 0; i < inputs.length; i++) {
     onProgress?.(0.05 + 0.85 * (i / inputs.length), `Чтение тегов: ${inputs[i].name}`);
     const meta = await readAudioMetadata(inputs[i].blob).catch((): AudioMetadata => ({ container: "unknown", chapters: [] }));
+    if (meta.encrypted) {
+      throw new ParseError(`«${inputs[i].name}» защищён DRM (Apple FairPlay) и воспроизводится только в Apple Books. Нужна версия без защиты.`);
+    }
     if (!meta.duration && opts.probeDuration) {
       meta.duration = await opts.probeDuration(inputs[i].blob).catch(() => undefined);
     }
@@ -58,7 +81,7 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
     metas.sort((a, b) =>
       tracked
         ? (a.meta.disc ?? 1) - (b.meta.disc ?? 1) || a.meta.track! - b.meta.track!
-        : naturalCompare(a.input.name, b.input.name),
+        : naturalCompare(a.input.path || a.input.name, b.input.path || b.input.name),
     );
   }
 
@@ -77,17 +100,18 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
         chapters.push({ title: part.title, sourceIndex, fileStart: part.start, startTime: t + part.start, duration: part.duration });
       }
     } else {
-      chapters.push({ title: meta.title || stripExtension(input.name), sourceIndex, fileStart: 0, startTime: t, duration: fileDuration });
+      chapters.push({ title: meta.title || chapterTitleFromFile(input.name), sourceIndex, fileStart: 0, startTime: t, duration: fileDuration });
     }
     t += fileDuration;
   });
 
   const first = metas[0].meta;
+  const hint = opts.hint ?? {};
   const albums = [...new Set(metas.map((m) => m.meta.album).filter(Boolean))];
   const title = metas.length === 1
-    ? first.album || first.title || stripExtension(metas[0].input.name)
-    : albums.length === 1 ? albums[0]! : commonPrefix(metas.map((m) => stripExtension(m.input.name))) || stripExtension(metas[0].input.name);
-  const author = first.albumArtist || first.artist || "Неизвестный автор";
+    ? first.album || hint.title || first.title || stripExtension(metas[0].input.name)
+    : albums.length === 1 ? albums[0]! : hint.title || commonPrefix(metas.map((m) => stripExtension(m.input.name))) || stripExtension(metas[0].input.name);
+  const author = first.albumArtist || first.artist || hint.author || "Неизвестный автор";
   onProgress?.(1);
 
   return {
@@ -98,7 +122,7 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
     cover: metas.find((m) => m.meta.cover)?.meta.cover,
     chapters,
     assets: [],
-    sources: metas.map(({ input }) => ({ blob: input.blob, name: input.name, mime: input.blob.type || mimeFromName(input.name) })),
+    sources: metas.map(({ input }) => ({ blob: input.blob, name: input.name, mime: playableMime(input) })),
     duration: t,
   };
 }
