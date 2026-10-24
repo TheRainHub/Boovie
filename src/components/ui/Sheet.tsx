@@ -10,17 +10,23 @@ import { cn } from "./primitives";
  * `full` makes it a full-height sheet (player, book details); `style` can tint it (see lib/covers/tone).
  */
 export function Sheet({
-  open, onClose, children, title, full, className, labelledBy, style, handleClassName,
+  open, onClose, children, title, full, fill, widthClass = "max-w-[640px] md:max-w-[720px]", className, labelledBy, style, handleClassName, backdrop,
 }: {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
   title?: ReactNode;
   full?: boolean;
+  /** Span the whole width on tablets too (the player); other sheets stay a centred column. */
+  fill?: boolean;
+  /** Max-width utilities when not `fill`. */
+  widthClass?: string;
   className?: string;
   labelledBy?: string;
   style?: CSSProperties;
   handleClassName?: string;
+  /** Decorative layer behind the content (e.g. a blurred cover). */
+  backdrop?: ReactNode;
 }) {
   const drag = useDragControls();
 
@@ -65,12 +71,14 @@ export function Sheet({
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 40, mass: 0.9 }}
             className={cn(
-              "absolute inset-x-0 bottom-0 mx-auto flex max-w-[640px] flex-col overflow-hidden rounded-t-[22px] bg-surface shadow-[0_-8px_40px_rgb(0_0_0/0.18)]",
+              "absolute inset-x-0 bottom-0 isolate mx-auto flex flex-col overflow-hidden rounded-t-[22px] bg-surface shadow-[0_-8px_40px_rgb(0_0_0/0.18)]",
+              !fill && widthClass,
               full ? "top-[calc(var(--sat)+10px)]" : "max-h-[86dvh]",
               className,
             )}
             style={style}
           >
+            {backdrop}
             <div
               className="flex shrink-0 cursor-grab touch-none flex-col items-center pt-2.5 pb-1 active:cursor-grabbing"
               onPointerDown={(e) => drag.start(e)}

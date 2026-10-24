@@ -4,6 +4,17 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
+  Screens: phones up to 430 px (iPhone 14 Pro Max), 8" tablets at ~600 × 960 (Lenovo Yoga Tab), 11" tablets at
+  ~854 × 1280 (Xiaomi Pad 8). `sm` starts at 576 px so small tablets get the roomier layout; `wide` is a tablet
+  (or desktop) in landscape, where screens with a big cover switch to two columns.
+*/
+@custom-variant wide {
+  @media (min-width: 760px) and (orientation: landscape) and (min-height: 500px) {
+    @slot;
+  }
+}
+
+/*
   Design language: the book is the interface.
   Golos Text throughout, big plain words for navigation, pill-shaped controls, and colour taken from the cover
   of the book you are reading or listening to (see lib/covers/tone.ts). The chrome itself stays quiet:
@@ -65,6 +76,7 @@
   --color-t-btn-ink: var(--t-btn-ink, var(--bg));
   --color-t-chip: var(--t-chip, var(--surface-2));
   --color-t-track: var(--t-track, var(--track));
+  --breakpoint-sm: 36rem;
   --font-sans: var(--nf-ui), -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --font-serif: Georgia, var(--font-literata), "Times New Roman", serif;

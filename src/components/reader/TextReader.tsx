@@ -51,8 +51,16 @@ export function TextReader({
   const pointer = useRef<{ x: number; y: number; t: number; swiped: boolean } | null>(null);
 
   const paged = prefs.mode === "paged";
-  const stride = size.w; // one page = viewport width (page width + 2 × margin)
-  const pageW = Math.max(100, size.w - prefs.margin * 2);
+  // Page geometry. Lines stay at a readable length on tablets; a landscape tablet shows a two-page spread.
+  // The text is laid out in CSS columns inside a clipping frame; one screen = `cols` columns, and turning the
+  // page shifts the columns by the frame width plus one gutter.
+  const spread = paged && size.w >= 900 && size.w > size.h * 1.15;
+  const cols = spread ? 2 : 1;
+  const gutter = spread ? Math.max(64, prefs.margin * 2) : prefs.margin * 2;
+  const colW = Math.max(100, Math.min(spread ? 600 : 680, (size.w - prefs.margin * 2 - (cols - 1) * gutter) / cols));
+  const pageW = Math.round(colW * cols + (cols - 1) * gutter);
+  const pageLeft = Math.round((size.w - pageW) / 2);
+  const stride = pageW + gutter;
   const pageH = Math.max(100, size.h - size.top - size.bottom);
 
   // Show the HUD briefly on open so the controls are discoverable, then get out of the way —
@@ -98,7 +106,7 @@ export function TextReader({
     const el = content.current;
     if (!el || !size.w) return;
     if (paged) {
-      const total = Math.max(1, Math.round((el.scrollWidth + prefs.margin * 2) / stride));
+      const total = Math.max(1, Math.ceil((el.scrollWidth + gutter) / stride - 0.02));
       setPages(total);
       let target = Math.round(fractionRef.current * (total - 1));
       if (anchorRef.current) {
@@ -117,7 +125,7 @@ export function TextReader({
       } else sc.scrollTop = fractionRef.current * max;
       setScrollFrac(max > 0 ? sc.scrollTop / max : 0);
     }
-  }, [paged, prefs.margin, size.w, stride]);
+  }, [gutter, paged, size.w, stride]);
 
   // Re-paginate when content, typography or viewport change; resolve stored images.
   useLayoutEffect(() => {
@@ -137,7 +145,7 @@ export function TextReader({
     return () => {
       alive = false;
     };
-  }, [html, measure, prefs.fontSize, prefs.lineHeight, prefs.font, prefs.justify, pageH, pageW]);
+  }, [html, measure, prefs.fontSize, prefs.lineHeight, prefs.font, prefs.justify, pageH, pageW, cols]);
 
   // ── Position persistence ───────────────────────────────────────────────────────────
   const fraction = paged ? (pages > 1 ? page / (pages - 1) : 1) : scrollFrac;
@@ -298,22 +306,23 @@ export function TextReader({
           <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>
         )}
         {html !== null && paged && (
-          <div
-            ref={content}
-            className="book-content absolute"
-            style={{
-              left: prefs.margin,
-              top: size.top,
-              width: pageW,
-              height: pageH,
-              columnWidth: pageW,
-              columnGap: prefs.margin * 2,
-              columnFill: "auto",
-              transform: `translate3d(${-page * stride}px,0,0)`,
-              transition: "transform 280ms cubic-bezier(0.32,0.72,0,1)",
-            }}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          <div className="absolute overflow-hidden" style={{ left: pageLeft, top: size.top, width: pageW, height: pageH }}>
+            <div
+              ref={content}
+              className="book-content"
+              style={{
+                width: pageW,
+                height: pageH,
+                columnCount: cols,
+                columnGap: gutter,
+                columnFill: "auto",
+                transform: `translate3d(${-page * stride}px,0,0)`,
+                transition: "transform 280ms cubic-bezier(0.32,0.72,0,1)",
+              }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+            {spread && <div className="pointer-events-none absolute inset-y-6 left-1/2 w-px -translate-x-1/2" style={{ background: paper.rule }} />}
+          </div>
         )}
         {html !== null && !paged && (
           <div style={{ padding: `${size.top}px ${prefs.margin}px ${size.bottom + 24}px` }} className="mx-auto max-w-[760px]">
@@ -331,7 +340,7 @@ export function TextReader({
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 text-[13px] font-medium" style={{ height: size.top - 8, color: paper.muted }}>
         <span className="truncate">{chapter?.title}</span>
       </div>
-      <div className="tabular pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between text-[12px] font-medium" style={{ height: size.bottom, paddingLeft: prefs.margin, paddingRight: prefs.margin, paddingTop: 10, color: paper.muted }}>
+      <div className="tabular pointer-events-none absolute inset-x-0 bottom-0 flex items-start justify-between text-[12px] font-medium" style={{ height: size.bottom, paddingLeft: paged ? pageLeft : prefs.margin, paddingRight: paged ? pageLeft : prefs.margin, paddingTop: 10, color: paper.muted }}>
         <span>{paged ? `${page + 1} / ${pages}` : `${Math.round(scrollFrac * 100)}%`}</span>
         <span>{Math.round(percent)}%</span>
       </div>

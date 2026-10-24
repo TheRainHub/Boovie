@@ -48,11 +48,11 @@ export function StoreView() {
   }, [tab, q]);
 
   return (
-    <main className="mx-auto max-w-[760px] pt-[calc(var(--sat)+14px)]">
+    <main className="mx-auto max-w-[1280px] pt-[calc(var(--sat)+14px)]">
       <TopNav />
 
-      <div className="px-5">
-        <label className="mt-4 flex h-11 items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5">
+      <div className="px-5 sm:px-8">
+        <label className="mt-4 flex h-11 sm:max-w-[560px] items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5">
           <Search size={18} strokeWidth={2.1} className="shrink-0 text-ink-2" />
           <input
             value={query}
@@ -71,7 +71,7 @@ export function StoreView() {
       </div>
 
       <ChipTabs
-        className="mt-3 px-5"
+        className="mt-3 px-5 sm:px-8"
         label="Разделы магазина"
         value={tab}
         onChange={setTab}
@@ -88,12 +88,12 @@ export function StoreView() {
       {tab === "overview" && !searching ? (
         <Overview onSelect={setSelected} owned={owned} />
       ) : tab === "top" ? (
-        <TopChart items={list} onSelect={setSelected} className="mt-4 px-5" />
+        <TopChart items={list} onSelect={setSelected} className="mt-4 px-5 sm:px-8 md:grid md:grid-cols-2 md:gap-x-10" />
       ) : (
-        <section className="px-5 pt-5">
+        <section className="px-5 pt-5 sm:px-8">
           {searching && <SectionTitle title="Найдено" action={list.length} />}
           {list.length === 0 && <p className="py-12 text-center text-[16px] text-ink-2">Ничего не найдено</p>}
-          <div className="mt-3 grid grid-cols-3 items-start gap-x-3 gap-y-6 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-3 items-start gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
             {list.map((i, n) => (
               <StoreCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => setSelected(i)} index={n} />
             ))}
@@ -116,7 +116,7 @@ function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned
 
   return (
     <div className="pt-4">
-      <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">
+      <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 sm:scroll-px-8 sm:gap-4 sm:px-8">
         {featured.map((i) => (
           <FeaturedCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => onSelect(i)} />
         ))}
@@ -124,7 +124,7 @@ function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned
 
       <Rail title="Аудиокниги" items={audio} onSelect={onSelect} owned={owned} />
 
-      <button type="button" onClick={() => onSelect(pair[0])} className="mx-5 mt-9 flex w-[calc(100%-40px)] items-center gap-4 rounded-[22px] bg-surface-2 p-4 text-left active:opacity-85">
+      <button type="button" onClick={() => onSelect(pair[0])} className="mx-5 mt-9 flex w-[calc(100%-40px)] items-center gap-4 rounded-[22px] bg-surface-2 p-4 text-left active:opacity-85 sm:mx-8 sm:w-[calc(100%-64px)] sm:max-w-[640px]">
         <div className="flex shrink-0 items-end">
           <div className="w-[54px]"><BookCover url={pair[0].coverUrl} title={pair[0].title} sizes="sm" /></div>
           <div className="-ml-3 w-[66px]"><BookCover url={pair[1].coverUrl} title={pair[1].title} square sizes="sm" /></div>
@@ -135,14 +135,14 @@ function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned
         </div>
       </button>
 
-      <section className="mt-9 px-5">
+      <section className="mt-9 px-5 sm:px-8">
         <SectionTitle title="Топ" action={5} />
-        <TopChart items={top} onSelect={onSelect} className="mt-2" />
+        <TopChart items={top} onSelect={onSelect} className="mt-2 md:grid md:grid-cols-2 md:gap-x-10" />
       </section>
 
       <Rail title="Русская классика" items={ru} onSelect={onSelect} owned={owned} />
       <Rail title="На английском" items={en} onSelect={onSelect} owned={owned} />
-      <p className="px-5 pb-4 pt-10 text-[13px] leading-relaxed text-ink-3">
+      <p className="px-5 pb-4 pt-10 text-[13px] leading-relaxed text-ink-3 sm:px-8">
         Все книги — общественное достояние. Русская классика — из открытого корпуса русской прозы, английские издания — Standard Ebooks (CC0). Аудиокниги озвучены RHVoice.
       </p>
     </div>
@@ -158,7 +158,7 @@ function FeaturedCard({ item, owned, onOpen }: { item: StoreItem; owned?: boolea
       type="button"
       onClick={onOpen}
       aria-label={`${audio ? "Аудиокнига недели" : "Выбор редакции"}: ${item.title}`}
-      className="flex h-[212px] w-[calc(100vw-56px)] max-w-[560px] shrink-0 snap-start items-center gap-4 overflow-hidden rounded-[24px] px-5 text-left text-t-ink active:opacity-90"
+      className="relative isolate flex h-[212px] w-[86%] shrink-0 snap-start items-center gap-4 overflow-hidden rounded-[24px] px-5 text-left text-t-ink active:opacity-90 sm:h-[240px] sm:w-[62%] md:w-[47%] xl:w-[32.4%]"
       style={{ ...style, background: "var(--t-bg)" } as CSSProperties}
     >
       <div className="min-w-0 flex-1">
@@ -182,10 +182,10 @@ function FeaturedCard({ item, owned, onOpen }: { item: StoreItem; owned?: boolea
 function Rail({ title, items, onSelect, owned }: { title: string; items: StoreItem[]; onSelect: (i: StoreItem) => void; owned?: Map<string, string> }) {
   return (
     <section className="mt-9">
-      <SectionTitle className="px-5" title={title} action={`Все ${items.length}`} />
-      <div className="no-scrollbar mt-3 flex snap-x items-start gap-3.5 overflow-x-auto scroll-px-5 px-5">
+      <SectionTitle className="px-5 sm:px-8" title={title} action={`Все ${items.length}`} />
+      <div className="no-scrollbar mt-3 flex snap-x items-start gap-3.5 overflow-x-auto scroll-px-5 px-5 sm:scroll-px-8 sm:gap-5 sm:px-8">
         {items.map((i) => (
-          <StoreCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => onSelect(i)} width={i.kind === "audiobook" ? 132 : 106} />
+          <StoreCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => onSelect(i)} rail />
         ))}
       </div>
     </section>

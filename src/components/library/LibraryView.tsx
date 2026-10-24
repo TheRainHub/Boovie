@@ -49,14 +49,14 @@ export function LibraryView() {
 
   return (
     <DropTarget>
-      <main className="mx-auto max-w-[760px] pt-[calc(var(--sat)+14px)]">
+      <main className="mx-auto max-w-[1280px] pt-[calc(var(--sat)+14px)]">
         <TopNav />
 
         {empty ? (
           <EmptyState onFiles={openFiles} onFolder={openFolder} />
         ) : (
           <>
-            <div className="mt-4 flex items-center gap-2 pl-5 pr-3">
+            <div className="mt-4 flex items-center gap-2 pl-5 pr-3 sm:mt-5 sm:pl-8 sm:pr-6">
               <ChipTabs
                 className="min-w-0 flex-1"
                 label="Фильтр книг"
@@ -76,7 +76,7 @@ export function LibraryView() {
 
             {filter === "all" && current && <ContinueCard current={current} />}
 
-            <div className="grid grid-cols-3 items-end gap-x-3 gap-y-5 px-5 pt-5 sm:grid-cols-4">
+            <div className="grid grid-cols-3 items-end gap-x-3 gap-y-5 px-5 pt-5 sm:grid-cols-4 sm:gap-x-4 sm:gap-y-7 sm:px-8 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
               <AddTile onClick={() => setAdding(true)} />
               {filtered.map((b, i) => (
                 <GridItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} onMenu={() => setMenuFor(b)} />
@@ -117,13 +117,13 @@ function ContinueCard({ current }: { current: CurrentBook }) {
   };
 
   return (
-    <div className="mx-5 mt-4 flex items-center gap-4 rounded-[22px] p-4 text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
-      <Link prefetch={false} href={`/book/?id=${book.id}`} aria-label={book.title} className={cn("shrink-0", audio ? "w-[84px]" : "w-[58px]")}>
+    <div className="mx-5 mt-4 flex items-center gap-4 rounded-[22px] p-4 text-t-ink sm:mx-8 sm:gap-5 sm:p-5" style={{ ...style, background: "var(--t-bg)" }}>
+      <Link prefetch={false} href={`/book/?id=${book.id}`} aria-label={book.title} className={cn("shrink-0", audio ? "w-[84px] sm:w-[112px]" : "w-[58px] sm:w-[76px]")}>
         <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={audio} sizes="sm" className="shadow-[0_10px_20px_-8px_var(--t-shadow)]" shadow={false} />
       </Link>
       <Link prefetch={false} href={`/book/?id=${book.id}`} className="min-w-0 flex-1">
         <div className="text-[13px] font-semibold text-t-ink-2">{pct > 0 ? (audio ? "Продолжить слушать" : "Продолжить чтение") : audio ? "Начать слушать" : "Начать читать"}</div>
-        <div className="mt-0.5 truncate text-[21px] font-extrabold tracking-[-0.02em]">{book.title}</div>
+        <div className="mt-0.5 truncate text-[21px] font-extrabold tracking-[-0.02em] sm:text-[26px]">{book.title}</div>
         <div className="truncate text-[14px] font-medium text-t-ink-2">{line.filter(Boolean).join(" · ")}</div>
       </Link>
       <button
@@ -237,7 +237,7 @@ function BookMenu({ book, onClose, onCover }: { book: BookRecord | null; onClose
 
 function EmptyState({ onFiles, onFolder }: { onFiles: () => void; onFolder: () => void }) {
   return (
-    <section className="px-5 pt-10">
+    <section className="px-5 pt-10 sm:px-8">
       <p className="display text-[30px]">Книг пока нет</p>
       <p className="mt-3 max-w-[420px] text-[16px] leading-[1.5] text-ink-2">
         Добавьте файлы или папку с аудиокнигой — или возьмите классику в магазине. Всё работает без интернета.

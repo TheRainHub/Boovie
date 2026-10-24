@@ -3,17 +3,18 @@
 import { BookOpen, FilePlus2, FolderPlus, Headphones } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, type CSSProperties } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { DropTarget, useImportPicker } from "@/components/library/ImportPicker";
-import { PauseGlyph, PlayGlyph } from "@/components/player/icons";
+import { PlayGlyph } from "@/components/player/icons";
+import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { TopNav } from "@/components/shell/TopNav";
 import { BookCover } from "@/components/ui/BookCover";
-import { Button, cn, ProgressBar, Spinner } from "@/components/ui/primitives";
+import { CoverBackdrop } from "@/components/ui/CoverBackdrop";
+import { Button, cn, ProgressBar } from "@/components/ui/primitives";
 import { STORE_ITEMS } from "@/data/catalog";
-import { openAudioBook, toggle, usePlayer } from "@/lib/audio/player";
+import { openAudioBook, usePlayer } from "@/lib/audio/player";
 import { toneVars, useToned } from "@/lib/covers/tone";
-import { formatDuration } from "@/lib/format";
+import { FORMAT_LABELS, formatDuration } from "@/lib/format";
 import { useCurrentBook, type CurrentBook } from "@/lib/library/current";
 import { useAllProgress, useBooks, useChapterList } from "@/lib/library/hooks";
 import type { BookRecord, ProgressRecord } from "@/lib/storage/types";
@@ -35,90 +36,115 @@ export function HomeView() {
 }
 
 function NowScreen({ current }: { current: CurrentBook }) {
-  const { book, progress } = current;
-  const router = useRouter();
+  const { book } = current;
   const { style } = useToned(book.coverFileId, book.coverUrl);
-  const chapters = useChapterList(book.id);
-  const player = usePlayer(useShallow((s) => ({ bookId: s.bookId, isPlaying: s.isPlaying, isLoading: s.isLoading, position: s.position, chapterIndex: s.chapterIndex })));
   const audio = book.format === "audio";
-  const loaded = audio && player.bookId === book.id;
-
-  const pct = loaded && book.duration ? player.position / book.duration : (progress?.percentage ?? 0) / 100;
-  const chapterIndex = loaded ? player.chapterIndex : progress?.currentChapterIndex ?? 0;
-  const chapter = chapters?.[chapterIndex];
-  const started = pct > 0.001;
-  const detail = audio
-    ? [chapter?.title, book.duration ? (started ? `осталось ${formatDuration(book.duration * (1 - pct))}` : formatDuration(book.duration)) : null]
-    : [book.totalChapters > 1 ? `Глава ${chapterIndex + 1} из ${book.totalChapters}` : null, started ? `${Math.round(pct * 100)}%` : "не начата"];
-
-  const openPlayer = async () => {
-    if (!loaded) await openAudioBook(book.id, { autoplay: false });
-    usePlayer.getState().setExpanded(true);
-  };
-  const primary = () => {
-    if (!audio) return router.push(`/book/?id=${book.id}`);
-    if (loaded) toggle();
-    else void openAudioBook(book.id, { autoplay: true });
-  };
-
   return (
     <DropTarget>
-      <main className="min-h-dvh pb-10 text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
-        <TopNav toned className="pt-[calc(var(--sat)+14px)]" />
-
-        <div className="mx-auto max-w-[560px] px-6">
-          <button
-            type="button"
-            onClick={() => (audio ? void openPlayer() : router.push(`/book/?id=${book.id}`))}
-            aria-label={audio ? `Открыть плеер: ${book.title}` : `Читать: ${book.title}`}
-            className={cn("mx-auto mt-7 block transition-transform active:scale-[0.985]", audio ? "w-[min(70vw,300px)]" : "w-[min(52vw,214px)]")}
-          >
-            <BookCover
-              fileId={book.coverFileId}
-              url={book.coverUrl}
-              title={book.title}
-              author={book.author}
-              square={audio}
-              sizes="lg"
-              className="shadow-[0_26px_50px_-18px_var(--t-shadow)]"
-              shadow={false}
-            />
-          </button>
-
-          <div className="mt-7 flex items-center gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="display line-clamp-2 text-[27px]">{book.title}</h1>
-              <p className="mt-1 truncate text-[15px] font-medium text-t-ink-2">{[shortAuthor(book.author), ...detail].filter(Boolean).join(" · ")}</p>
-            </div>
-            {audio ? (
-              <button
-                type="button"
-                onClick={primary}
-                aria-label={loaded && player.isPlaying ? "Пауза" : "Слушать"}
-                className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full bg-t-btn text-t-btn-ink shadow-[0_10px_24px_-10px_var(--t-shadow)] transition-transform active:scale-95"
-              >
-                {loaded && player.isLoading ? <Spinner size={24} /> : loaded && player.isPlaying ? <PauseGlyph size={28} /> : <PlayGlyph size={28} />}
-              </button>
-            ) : (
-              <Button variant="toned" size="lg" onClick={primary} icon={<BookOpen size={18} strokeWidth={2} />}>
-                {started ? "Читать" : "Начать"}
-              </Button>
-            )}
-          </div>
-          <ProgressBar toned value={pct} className="mt-5 h-[3px]" />
-          {book.companionId && <CompanionLink book={book} audio={audio} />}
-        </div>
-
-        <ContinueRow exclude={book.id} />
+      <main className="relative isolate min-h-dvh pb-10 text-t-ink" style={style}>
+        <CoverBackdrop fileId={book.coverFileId} url={book.coverUrl} fixed />
+        <TopNav toned padClass="px-6 wide:px-10" className="mx-auto max-w-[600px] pt-[calc(var(--sat)+14px)] wide:max-w-[1180px]" />
+        {audio ? <ListeningNow current={current} /> : <ReadingNow current={current} />}
+        <ContinueRow exclude={[book.id, book.companionId]} />
       </main>
     </DropTarget>
+  );
+}
+
+/** «Слушаю»: the full player right on the home screen (the book is loaded into the engine, paused). */
+function ListeningNow({ current }: { current: CurrentBook }) {
+  const { book } = current;
+  const loaded = usePlayer((s) => s.bookId === book.id && s.chapters.length > 0);
+  const requested = useRef<string | null>(null);
+  useEffect(() => {
+    if (usePlayer.getState().bookId === book.id || requested.current === book.id) return;
+    requested.current = book.id;
+    void openAudioBook(book.id, { autoplay: false, touch: false });
+  }, [book.id]);
+  if (!loaded) return <NowHero current={current} />;
+  return (
+    <>
+      <PlayerPanel variant="home" />
+      {book.companionId && <div className="flex justify-center"><CompanionLink book={book} audio /></div>}
+    </>
+  );
+}
+
+/** «Читаю»: the cover, where you stopped, how far you are, and one button back into the text. */
+function ReadingNow({ current }: { current: CurrentBook }) {
+  const { book, progress } = current;
+  const router = useRouter();
+  const pct = (progress?.percentage ?? 0) / 100;
+  const ci = progress?.currentChapterIndex ?? 0;
+  const chapters = useChapterList(book.id);
+  const started = pct > 0.001;
+  return (
+    <div className="mx-auto max-w-[600px] px-6 wide:grid wide:max-w-[1100px] wide:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] wide:items-center wide:gap-14 wide:px-10">
+      <button
+        type="button"
+        onClick={() => router.push(`/book/?id=${book.id}`)}
+        aria-label={`Читать: ${book.title}`}
+        className="mx-auto mt-7 block w-[min(56vw,250px)] transition-transform active:scale-[0.985] sm:w-[min(46vw,320px)] wide:mt-6 wide:w-[min(100%,calc((100dvh-200px)*0.667))]"
+      >
+        <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} sizes="lg" shadow={false} className="shadow-[0_26px_50px_-18px_var(--t-shadow)]" />
+      </button>
+      <div className="mt-8 wide:mt-0">
+        <h1 className="display line-clamp-3 text-[28px] sm:text-[36px]">{book.title}</h1>
+        <p className="mt-1 text-[16px] font-medium text-t-ink-2 sm:text-[18px]">{book.author}</p>
+        <div className="mt-6 rounded-[20px] bg-t-chip p-4">
+          <div className="flex items-baseline justify-between gap-3 text-[14px] font-semibold">
+            <span className="truncate">{started ? chapters?.[ci]?.title ?? `Глава ${ci + 1}` : "Ещё не начата"}</span>
+            <span className="tabular shrink-0 text-t-ink-2">{Math.round(pct * 100)}%</span>
+          </div>
+          <ProgressBar toned value={pct} className="mt-2.5" />
+          <div className="tabular mt-2 text-[13px] text-t-ink-2">
+            {book.totalChapters > 1 ? `Раздел ${ci + 1} / ${book.totalChapters}` : FORMAT_LABELS[book.format]}
+            {book.pageCount ? ` · ${book.pageCount} стр.` : ""}
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2.5">
+          <Button variant="toned" size="lg" onClick={() => router.push(`/book/?id=${book.id}`)} icon={<BookOpen size={19} strokeWidth={2} />}>
+            {started ? "Продолжить чтение" : "Начать читать"}
+          </Button>
+          {book.companionId && <CompanionLink book={book} audio={false} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Before the audiobook is loaded: the same composition without live controls. */
+function NowHero({ current }: { current: CurrentBook }) {
+  const { book, progress } = current;
+  const pct = (progress?.percentage ?? 0) / 100;
+  return (
+    <div className="mx-auto max-w-[600px] px-6">
+      <div className="mx-auto mt-6 w-[min(84vw,340px)] sm:w-[min(70vw,460px)]">
+        <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square sizes="lg" shadow={false} className="shadow-[0_26px_50px_-18px_var(--t-shadow)]" />
+      </div>
+      <div className="mt-8 flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="display line-clamp-2 text-[28px]">{book.title}</h1>
+          <p className="mt-1 truncate text-[16px] font-medium text-t-ink-2">{shortAuthor(book.author)}{book.duration ? ` · ${formatDuration(book.duration * (1 - pct))}` : ""}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void openAudioBook(book.id, { autoplay: true })}
+          aria-label="Слушать"
+          className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full bg-t-btn text-t-btn-ink shadow-[0_10px_24px_-10px_var(--t-shadow)] transition-transform active:scale-95"
+        >
+          <PlayGlyph size={28} />
+        </button>
+      </div>
+      <ProgressBar toned value={pct} className="mt-5 h-[3px]" />
+    </div>
   );
 }
 
 function CompanionLink({ book, audio }: { book: BookRecord; audio: boolean }) {
   return (
     <Link prefetch={false} href={`/book/?id=${book.id}&mode=${audio ? "read" : "listen"}`}
-      className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-t-chip px-4 text-[14px] font-semibold"
+      className={cn("inline-flex h-11 items-center gap-2 rounded-full bg-t-chip px-4 text-[14.5px] font-semibold", audio && "mt-4")}
     >
       {audio ? <BookOpen size={16} strokeWidth={2} /> : <Headphones size={16} strokeWidth={2} />}
       {audio ? "Читать текстом" : "Слушать аудиокнигу"}
@@ -127,11 +153,11 @@ function CompanionLink({ book, audio }: { book: BookRecord; audio: boolean }) {
 }
 
 /** Other started books (most recent first), or the newest ones when nothing else is in progress. */
-function ContinueRow({ exclude }: { exclude: string }) {
+function ContinueRow({ exclude }: { exclude: (string | undefined)[] }) {
   const books = useBooks();
   const progress = useAllProgress();
   const { started, rest } = useMemo(() => {
-    const list = (books ?? []).filter((b) => b.id !== exclude);
+    const list = (books ?? []).filter((b) => !exclude.includes(b.id));
     const pct = (b: BookRecord) => progress?.get(b.id)?.percentage ?? 0;
     const s = list.filter((b) => b.lastOpenedAt && pct(b) > 0 && pct(b) < 99.5).sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0));
     return { started: s, rest: list.filter((b) => !s.includes(b)) };
@@ -139,9 +165,9 @@ function ContinueRow({ exclude }: { exclude: string }) {
   const row = started.length ? started : rest;
   if (!row.length) return null;
   return (
-    <section className="mx-auto mt-10 max-w-[560px]">
-      <h2 className="px-6 text-[18px] font-bold">{started.length ? "Продолжить" : "Ещё на полке"}</h2>
-      <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-6 pb-2">
+    <section className="mx-auto mt-10 max-w-[600px] wide:max-w-[1180px]">
+      <h2 className="px-6 text-[18px] font-bold sm:text-[20px] wide:px-10">{started.length ? "Продолжить" : "Ещё на полке"}</h2>
+      <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-6 pb-2 wide:px-10">
         {row.slice(0, 12).map((b, i) => (
           <ContinueItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} />
         ))}
@@ -153,7 +179,7 @@ function ContinueRow({ exclude }: { exclude: string }) {
 function ContinueItem({ book, progress, index }: { book: BookRecord; progress?: ProgressRecord; index: number }) {
   const audio = book.format === "audio";
   return (
-    <Link prefetch={false} href={`/book/?id=${book.id}`} aria-label={book.title} data-format={book.format} className="rise block shrink-0" style={{ "--i": index, width: audio ? 112 : 92 } as CSSProperties}>
+    <Link prefetch={false} href={`/book/?id=${book.id}`} aria-label={book.title} data-format={book.format} className={cn("rise block shrink-0", audio ? "w-[112px] sm:w-[140px]" : "w-[92px] sm:w-[116px]")} style={{ "--i": index } as CSSProperties}>
       <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={audio} sizes="sm" />
       <ProgressBar toned value={(progress?.percentage ?? 0) / 100} className="mt-2 h-[3px]" />
     </Link>
@@ -170,8 +196,8 @@ function Welcome() {
   return (
     <DropTarget>
       <main className="min-h-dvh pb-10 text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
-        <TopNav toned className="pt-[calc(var(--sat)+14px)]" />
-        <div className="mx-auto max-w-[560px] px-6 pt-12">
+        <TopNav toned padClass="px-6" className="mx-auto max-w-[600px] pt-[calc(var(--sat)+14px)]" />
+        <div className="mx-auto max-w-[600px] px-6 pt-12">
           <h1 className="display text-[38px] leading-[1.02]">Здесь будет ваша книга</h1>
           <p className="mt-4 text-[17px] leading-[1.5] text-t-ink-2">
             Добавьте PDF, FB2, EPUB или аудиокнигу — файлом, папкой или архивом. Всё хранится на телефоне и работает без интернета.
@@ -185,7 +211,7 @@ function Welcome() {
             </Button>
           </div>
         </div>
-        <section className="mx-auto mt-12 max-w-[560px]">
+        <section className="mx-auto mt-12 max-w-[600px]">
           <div className="flex items-baseline justify-between px-6">
             <h2 className="text-[18px] font-bold">Или возьмите в магазине</h2>
             <Link href="/store/" className="text-[14px] font-semibold text-t-ink-2">Все {STORE_ITEMS.length}</Link>

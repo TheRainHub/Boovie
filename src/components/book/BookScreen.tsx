@@ -7,6 +7,7 @@ import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { PdfReader } from "@/components/reader/PdfReader";
 import { TextReader } from "@/components/reader/TextReader";
 import { BookCover } from "@/components/ui/BookCover";
+import { CoverBackdrop } from "@/components/ui/CoverBackdrop";
 import { Button, IconButton, ProgressBar, Segmented, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { storeItem } from "@/data/catalog";
@@ -140,12 +141,13 @@ export function BookScreen() {
   return <ListenScreen audioBook={audioBook} toggle={makeToggle(true)} />;
 }
 
-/** «Слушать»: the whole screen in the colour of the audiobook's cover, with the player on it. */
+/** «Слушать»: the whole screen in the colour of the audiobook's cover (with the cover blurred behind), and the player. */
 function ListenScreen({ audioBook, toggle }: { audioBook: BookRecord; toggle: React.ReactNode }) {
   const loaded = usePlayer((s) => s.bookId === audioBook.id && s.chapters.length > 0);
   const { style } = useToned(audioBook.coverFileId, audioBook.coverUrl);
   return (
-    <div className="min-h-dvh text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
+    <div className="relative isolate min-h-dvh text-t-ink" style={style}>
+      <CoverBackdrop fileId={audioBook.coverFileId} url={audioBook.coverUrl} fixed />
       <TopBar toggle={toggle} toned />
       <div className="pt-[calc(var(--sat)+60px)] pb-[calc(var(--sab)+12px)]">
         {loaded ? <PlayerPanel variant="inline" /> : <div className="flex justify-center pt-40"><Spinner size={26} /></div>}
