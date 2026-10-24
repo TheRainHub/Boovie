@@ -30,12 +30,12 @@
     {
      "url": "/store/books/pikovaya-dama.epub",
      "name": "pikovaya-dama.epub",
-     "size": 69585
+     "size": 75778
     }
    ],
    "chapterCount": 7,
    "pages": 25,
-   "fileSize": 69585
+   "fileSize": 75778
   },
   {
    "id": "pikovaya-dama-audio",
@@ -60,12 +60,12 @@
     {
      "url": "/store/audio/pikovaya-dama-audio.m4b",
      "name": "pikovaya-dama-audio.m4b",
-     "size": 18737544
+     "size": 18738504
     }
    ],
    "duration": 3619.13,
    "chapterCount": 7,
-   "fileSize": 18737544
+   "fileSize": 18738504
   },
   {
    "id": "dama-s-sobachkoy",
@@ -90,12 +90,12 @@
     {
      "url": "/store/books/dama-s-sobachkoy.fb2",
      "name": "dama-s-sobachkoy.fb2",
-     "size": 123607
+     "size": 123307
     }
    ],
    "chapterCount": 4,
    "pages": 17,
-   "fileSize": 123607
+   "fileSize": 123307
   },
   {
    "id": "dama-s-sobachkoy-audio",
@@ -121,27 +121,27 @@
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-01.mp3",
      "name": "dama-s-sobachkoy-audio-01.mp3",
-     "size": 1656370
+     "size": 1656192
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-02.mp3",
      "name": "dama-s-sobachkoy-audio-02.mp3",
-     "size": 2974164
+     "size": 2973986
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-03.mp3",
      "name": "dama-s-sobachkoy-audio-03.mp3",
-     "size": 3263990
+     "size": 3263812
     },
     {
      "url": "/store/audio/dama-s-sobachkoy-audio-04.mp3",
      "name": "dama-s-sobachkoy-audio-04.mp3",
-     "size": 1640916
+     "size": 1640738
     }
    ],
    "duration": 2349.16,
    "chapterCount": 4,
-   "fileSize": 9535440
+   "fileSize": 9534728
   },
   {
    "id": "vystrel-audio",
@@ -165,12 +165,12 @@
     {
      "url": "/store/audio/vystrel-audio.mp3",
      "name": "vystrel-audio.mp3",
-     "size": 5664362
+     "size": 5666495
     }
    ],
    "duration": 1406.73,
    "chapterCount": 2,
-   "fileSize": 5664362
+   "fileSize": 5666495
   },
   {
    "id": "viy-audio",
@@ -194,12 +194,12 @@
     {
      "url": "/store/audio/viy-audio.mp3",
      "name": "viy-audio.mp3",
-     "size": 23817917
+     "size": 23818936
     }
    ],
    "duration": 5946.94,
    "chapterCount": 5,
-   "fileSize": 23817917
+   "fileSize": 23818936
   },
   {
    "id": "chernyi-monah",
@@ -223,12 +223,12 @@
     {
      "url": "/store/books/chernyi-monah.epub",
      "name": "chernyi-monah.epub",
-     "size": 78371
+     "size": 82265
     }
    ],
    "chapterCount": 9,
    "pages": 33,
-   "fileSize": 78371
+   "fileSize": 82265
   },
   {
    "id": "povesti-belkina",
@@ -251,12 +251,12 @@
     {
      "url": "/store/books/povesti-belkina.fb2",
      "name": "povesti-belkina.fb2",
-     "size": 293381
+     "size": 294949
     }
    ],
    "chapterCount": 7,
    "pages": 68,
-   "fileSize": 293381
+   "fileSize": 294949
   },
   {
    "id": "kapitanskaya-dochka",
@@ -279,12 +279,12 @@
     {
      "url": "/store/books/kapitanskaya-dochka.fb2",
      "name": "kapitanskaya-dochka.fb2",
-     "size": 423073
+     "size": 423573
     }
    ],
    "chapterCount": 14,
    "pages": 105,
-   "fileSize": 423073
+   "fileSize": 423573
   },
   {
    "id": "anna-karenina",
@@ -308,12 +308,12 @@
     {
      "url": "/store/books/anna-karenina.fb2.zip",
      "name": "anna-karenina.fb2.zip",
-     "size": 864528
+     "size": 865904
     }
    ],
    "chapterCount": 239,
    "pages": 940,
-   "fileSize": 864528
+   "fileSize": 865904
   },
   {
    "id": "prestuplenie-i-nakazanie",
@@ -337,12 +337,12 @@
     {
      "url": "/store/books/prestuplenie-i-nakazanie.epub",
      "name": "prestuplenie-i-nakazanie.epub",
-     "size": 642343
+     "size": 644657
     }
    ],
    "chapterCount": 41,
    "pages": 595,
-   "fileSize": 642343
+   "fileSize": 644657
   },
   {
    "id": "otcy-i-deti",
@@ -365,12 +365,12 @@
     {
      "url": "/store/books/otcy-i-deti.fb2",
      "name": "otcy-i-deti.fb2",
-     "size": 436614
+     "size": 439838
     }
    ],
    "chapterCount": 28,
    "pages": 197,
-   "fileSize": 436614
+   "fileSize": 439838
   },
   {
    "id": "dyadya-vanya",
@@ -393,12 +393,12 @@
     {
      "url": "/store/books/dyadya-vanya.pdf",
      "name": "dyadya-vanya.pdf",
-     "size": 494304
+     "size": 501384
     }
    ],
    "pages": 58,
    "chapterCount": 5,
-   "fileSize": 494304
+   "fileSize": 501384
   },
   {
    "id": "flatland",
@@ -423,11 +423,11 @@
     {
      "url": "/store/books/flatland.pdf",
      "name": "flatland.pdf",
-     "size": 950208
+     "size": 951867
     }
    ],
    "pages": 118,
-   "fileSize": 950208
+   "fileSize": 951867
   },
   {
    "id": "time-machine",
@@ -450,12 +450,12 @@
     {
      "url": "/store/books/time-machine.epub",
      "name": "time-machine.epub",
-     "size": 574673
+     "size": 573900
     }
    ],
    "chapterCount": 13,
    "pages": 99,
-   "fileSize": 574673
+   "fileSize": 573900
   },
   {
    "id": "war-of-the-worlds",
@@ -478,12 +478,12 @@
     {
      "url": "/store/books/war-of-the-worlds.epub",
      "name": "war-of-the-worlds.epub",
-     "size": 868846
+     "size": 872301
     }
    ],
    "chapterCount": 31,
    "pages": 187,
-   "fileSize": 868846
+   "fileSize": 872301
   },
   {
    "id": "franklin-autobiography",
@@ -507,12 +507,12 @@
     {
      "url": "/store/books/franklin-autobiography.epub",
      "name": "franklin-autobiography.epub",
-     "size": 534290
+     "size": 537246
     }
    ],
    "chapterCount": 21,
    "pages": 202,
-   "fileSize": 534290
+   "fileSize": 537246
   },
   {
    "id": "meditations",
@@ -536,12 +536,12 @@
     {
      "url": "/store/books/meditations.epub",
      "name": "meditations.epub",
-     "size": 732264
+     "size": 736248
     }
    ],
    "chapterCount": 12,
    "pages": 137,
-   "fileSize": 732264
+   "fileSize": 736248
   },
   {
    "id": "news-from-nowhere",
@@ -564,12 +564,12 @@
     {
      "url": "/store/books/news-from-nowhere.epub",
      "name": "news-from-nowhere.epub",
-     "size": 905385
+     "size": 907425
     }
    ],
    "chapterCount": 32,
    "pages": 233,
-   "fileSize": 905385
+   "fileSize": 907425
   },
   {
    "id": "leisure-class",
@@ -593,12 +593,12 @@
     {
      "url": "/store/books/leisure-class.epub",
      "name": "leisure-class.epub",
-     "size": 811891
+     "size": 813574
     }
    ],
    "chapterCount": 15,
    "pages": 358,
-   "fileSize": 811891
+   "fileSize": 813574
   }
  ]
 }

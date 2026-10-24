@@ -1,4 +1,4 @@
-// Render typographic "cold titanium" covers and PWA icons with headless Chromium.
+// Render typographic covers (warm earth palette) and PWA icons with headless Chromium.
 // Usage: node render_covers.mjs <catalog.source.json> <out-public-dir> <fonts-dir>
 // <fonts-dir> holds Old Standard TT + Martian Mono woff2 files and a local.css with their @font-face rules
 // (downloaded from Google Fonts). Requires a Chromium binary (CHROMIUM_PATH).
@@ -12,15 +12,15 @@ const fontFaces = readFileSync(join(fontsDir, 'local.css'), 'utf8');
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
 const TINTS = {
-  graphite: ['#3A3F47', '#1B1E23', 'dark'],
-  obsidian: ['#24272D', '#0A0B0D', 'dark'],
-  steel: ['#71879A', '#2F3C48', 'dark'],
-  ink: ['#3A4D62', '#121922', 'dark'],
-  slate: ['#66766F', '#28302D', 'dark'],
-  oxide: ['#80605A', '#33231F', 'dark'],
-  titanium: ['#E1E4E8', '#A7AEB7', 'light'],
-  bone: ['#F0EEE9', '#C6C2B9', 'light'],
-  sand: ['#DDD5C7', '#A69B89', 'light'],
+  wine: ['#7A2B30', '#36111A', 'dark'],
+  espresso: ['#3E2B22', '#140D0A', 'dark'],
+  sea: ['#3C6762', '#1A3230', 'dark'],
+  navy: ['#2F4166', '#131B33', 'dark'],
+  olive: ['#68673A', '#2C2B15', 'dark'],
+  terracotta: ['#A3532F', '#4A2010', 'dark'],
+  oat: ['#EEE4D2', '#CDBC9E', 'light'],
+  ivory: ['#F3ECDF', '#D8CAB2', 'light'],
+  ochre: ['#DCA55A', '#A8722C', 'light'],
 };
 
 const s = (d, extra = '') => `<path d="${d}" ${extra}/>`;
@@ -100,20 +100,17 @@ function iconHtml(size, maskable) {
   const inner = size - pad * 2;
   return `<!doctype html><html><head><style>
   *{margin:0;padding:0}
-  body{width:${size}px;height:${size}px;overflow:hidden;background:${maskable ? '#16181C' : 'transparent'}}
+  body{width:${size}px;height:${size}px;overflow:hidden;background:${maskable ? '#7A3A20' : 'transparent'}}
   .tile{position:absolute;inset:0;border-radius:${maskable ? 0 : size * 0.225}px;
     background:
-      radial-gradient(110% 70% at 20% 0%, rgba(255,255,255,0.16) 0%, transparent 60%),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 3px),
-      linear-gradient(165deg, #2B2F36 0%, #0E0F12 100%);
-    box-shadow: inset 0 ${size * 0.006}px 0 rgba(255,255,255,0.22)}
+      radial-gradient(110% 80% at 20% 0%, rgba(255,240,220,0.22) 0%, transparent 60%),
+      linear-gradient(165deg, #B35C34 0%, #5A2614 100%)}
   svg{position:absolute;left:${pad}px;top:${pad}px;width:${inner}px;height:${inner}px}
   </style></head><body><div class="tile"></div>
-  <svg viewBox="0 0 100 100"><defs>
-    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F9"/><stop offset="0.55" stop-color="#C3C9D2"/><stop offset="1" stop-color="#8E96A4"/></linearGradient></defs>
-    <path d="M22 24 C 34 20, 44 22, 50 28 C 56 22, 66 20, 78 24 L 78 74 C 66 70, 56 72, 50 78 C 44 72, 34 70, 22 74 Z" fill="none" stroke="url(#chrome)" stroke-width="4.2" stroke-linejoin="round"/>
-    <line x1="50" y1="28" x2="50" y2="78" stroke="url(#chrome)" stroke-width="3.2"/>
-    ${[0, 1, 2, 3, 4].map((i) => `<line x1="${60 + i * 3.6}" y1="${50 - [4, 9, 13, 7, 3][i]}" x2="${60 + i * 3.6}" y2="${50 + [4, 9, 13, 7, 3][i]}" stroke="#7B93A8" stroke-width="2" stroke-linecap="round"/>`).join('')}
+  <svg viewBox="0 0 100 100">
+    <path d="M22 24 C 34 20, 44 22, 50 28 C 56 22, 66 20, 78 24 L 78 74 C 66 70, 56 72, 50 78 C 44 72, 34 70, 22 74 Z" fill="none" stroke="#FFF6EA" stroke-width="4.6" stroke-linejoin="round"/>
+    <line x1="50" y1="28" x2="50" y2="78" stroke="#FFF6EA" stroke-width="3.6"/>
+    ${[0, 1, 2, 3, 4].map((i) => `<line x1="${60 + i * 3.6}" y1="${50 - [4, 9, 13, 7, 3][i]}" x2="${60 + i * 3.6}" y2="${50 + [4, 9, 13, 7, 3][i]}" stroke="#FFF6EA" stroke-opacity="0.7" stroke-width="2.2" stroke-linecap="round"/>`).join('')}
   </svg></body></html>`;
 }
 
