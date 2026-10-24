@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Golos_Text, Inter, JetBrains_Mono, Literata } from "next/font/google";
 import { AppShell } from "@/components/shell/AppShell";
-import { withBase } from "@/lib/basePath";
+import { BASE_PATH, withBase } from "@/lib/basePath";
 import { THEME_STORAGE_KEY } from "@/lib/themeKey";
 import "./globals.css";
 
@@ -12,10 +12,28 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", 
 const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-jetbrains", display: "swap" });
 const literata = Literata({ subsets: ["latin", "cyrillic"], variable: "--font-literata", display: "swap" });
 
+// Absolute URLs for link previews: NEXT_PUBLIC_SITE_URL, else Vercel's production domain, else the current one.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://boovie-kappa.vercel.app")
+).replace(/\/$/, "");
+const TITLE = "Boowie — книги и аудиокниги";
+const DESCRIPTION = "Читалка PDF, FB2 и EPUB и плеер аудиокниг MP3 и M4B. Книги хранятся в телефоне и открываются без интернета, а в магазине ждёт бесплатная классика.";
+
 export const metadata: Metadata = {
-  title: { default: "Boowie — книги и аудиокниги", template: "%s · Boowie" },
-  description: "Офлайн-читалка PDF, FB2, EPUB и плеер аудиокниг MP3/M4B с магазином классики.",
+  metadataBase: new URL(`${SITE_URL}${BASE_PATH}/`),
+  title: { default: TITLE, template: "%s · Boowie" },
+  description: DESCRIPTION,
   applicationName: "Boowie",
+  openGraph: {
+    type: "website",
+    siteName: "Boowie",
+    locale: "ru_RU",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Boowie — книги и аудиокниги" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/og.jpg"] },
   manifest: withBase("/manifest.webmanifest"),
   appleWebApp: { capable: true, title: "Boowie", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },

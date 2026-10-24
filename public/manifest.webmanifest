@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Boowie — книги и аудиокниги",
   "short_name": "Boowie",
-  "description": "Офлайн-читалка PDF, FB2, EPUB и плеер аудиокниг MP3/M4B.",
+  "description": "Читалка PDF, FB2 и EPUB и плеер аудиокниг MP3 и M4B — без интернета.",
   "lang": "ru",
   "dir": "ltr",
   "start_url": "./",
