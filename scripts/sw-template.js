@@ -6,7 +6,7 @@ const CACHE = `titan-${VERSION}`;
 const RUNTIME = `titan-runtime-${VERSION}`;
 // "" at a domain root, "/Boovie" on GitHub Pages project sites.
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
-const SHELLS = ["/", "/library/", "/store/", "/book/", "/settings/"].map((p) => BASE + p);
+const SHELLS = ["/", "/library/", "/store/", "/book/", "/settings/", "/profile/"].map((p) => BASE + p);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

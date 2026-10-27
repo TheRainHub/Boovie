@@ -79,6 +79,38 @@ export interface ProgressRecord {
   completedChapters: number[];
 }
 
+export type ActivityKind = "listen" | "read";
+
+/**
+ * One day of reading or listening to one book, on one device. Rows are absolute daily totals, so uploading the
+ * same row twice is harmless and an account's numbers are the sum over its devices.
+ */
+export interface ActivityRecord {
+  /** `${owner}|${deviceId}|${day}|${bookKey}|${kind}` */
+  id: string;
+  /** Account id, or "guest" for time spent while not signed in. */
+  owner: string;
+  deviceId: string;
+  /** Local date, YYYY-MM-DD. */
+  day: string;
+  /** Same book on every device: `store:<id>` for store books, otherwise title, author and medium. */
+  bookKey: string;
+  kind: ActivityKind;
+  title: string;
+  author: string;
+  /** Time spent, in seconds of real time. */
+  seconds: number;
+  /** Pages turned forward. */
+  pages: number;
+  /** Listening: seconds of the book that were played (more than `seconds` at higher speeds). */
+  audioSeconds: number;
+  /** The book was finished on this day. */
+  finished: boolean;
+  updatedAt: number;
+  /** When this row (as of `updatedAt`) was uploaded to the account. */
+  syncedAt?: number;
+}
+
 export interface FileRecord {
   id: string;
   bookId: string;

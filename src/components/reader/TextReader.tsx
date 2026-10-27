@@ -7,6 +7,8 @@ import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, getChapter, getChapters, journalPosition, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
 import { FONT_STACKS, PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
+import { recordFinish, recordPage } from "@/lib/stats/activity";
+import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
 import { ReaderChrome } from "./ReaderChrome";
@@ -33,6 +35,10 @@ export function TextReader({
   const prefs = useReaderPrefs();
   const paper = PAPERS[prefs.paper];
   const progress = useProgress(book.id);
+  useReadingTime(book.id);
+  // Scroll mode counts a page per screen height read further down; the mark only moves forward.
+  const readMark = useRef(-1);
+  const finishedRef = useRef(false);
 
   const [chapterIndex, setChapterIndex] = useState(() => Math.min(initialChapter, Math.max(0, chapters.length - 1)));
   const [html, setHtml] = useState<string | null>(null);
@@ -74,6 +80,7 @@ export function TextReader({
   // ── Load chapter HTML ──────────────────────────────────────────────────────────────
   const loadChapter = useCallback(async (index: number, fraction: number, anchor?: string) => {
     const rec = await getChapter(book.id, index);
+    readMark.current = -1;
     fractionRef.current = fraction;
     anchorRef.current = anchor ?? null;
     setChapterIndex(index);
@@ -156,6 +163,10 @@ export function TextReader({
       const pct = textPercentage(chapters, chapterIndex, fractionRef.current);
       void updateProgress(book.id, { currentChapterIndex: chapterIndex, scrollOffsetOrPage: fractionRef.current, percentage: pct });
       if (fraction >= 0.98) void markChaptersComplete(book.id, [chapterIndex]);
+      if (pct >= 99.5 && !finishedRef.current) {
+        finishedRef.current = true;
+        recordFinish(book.id, "read");
+      }
     }, 350);
     return () => clearTimeout(t);
   }, [book.id, chapterIndex, chapters, fraction, html, page, pages, paged, scrollFrac]);
@@ -190,18 +201,26 @@ export function TextReader({
   }, [book.id, chapterIndex, chapters.length, loadChapter]);
 
   const next = useCallback(() => {
-    if (paged && page < pages - 1) setPage(page + 1);
+    if (paged && page < pages - 1) {
+      setPage(page + 1);
+      recordPage(book.id, cols);
+    }
     else if (!paged && viewport.current && viewport.current.scrollTop + viewport.current.clientHeight < viewport.current.scrollHeight - 4) {
       viewport.current.scrollBy({ top: viewport.current.clientHeight * 0.9, behavior: "smooth" });
     }
-    else if (chapterIndex < chapters.length - 1) goChapter(chapterIndex + 1, 0);
+    else if (chapterIndex < chapters.length - 1) {
+      if (paged) recordPage(book.id, cols);
+      goChapter(chapterIndex + 1, 0);
+    }
     else {
       void markChaptersComplete(book.id, [chapterIndex]);
       void updateProgress(book.id, { percentage: 100 });
+      finishedRef.current = true;
+      recordFinish(book.id, "read");
       toast("Книга прочитана до конца", "success");
     }
     setHud(false);
-  }, [book.id, chapterIndex, chapters.length, goChapter, page, paged, pages]);
+  }, [book.id, chapterIndex, chapters.length, cols, goChapter, page, paged, pages]);
 
   const prev = useCallback(() => {
     if (paged && page > 0) setPage(page - 1);
@@ -321,6 +340,12 @@ export function TextReader({
           const sc = e.currentTarget;
           const max = sc.scrollHeight - sc.clientHeight;
           setScrollFrac(max > 0 ? sc.scrollTop / max : 0);
+          // A jump of more than two screens is the reader restoring a position, not reading.
+          if (readMark.current < 0 || sc.scrollTop - readMark.current > sc.clientHeight * 2) readMark.current = sc.scrollTop;
+          while (sc.scrollTop - readMark.current >= sc.clientHeight) {
+            recordPage(book.id);
+            readMark.current += sc.clientHeight;
+          }
         } : undefined}
       >
         {html === null && (

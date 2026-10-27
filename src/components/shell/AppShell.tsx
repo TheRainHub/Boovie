@@ -5,9 +5,11 @@ import { useEffect, type ReactNode } from "react";
 import { FullPlayer } from "@/components/player/FullPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { Toaster } from "@/components/ui/Toaster";
+import { startAccount, syncSoon } from "@/lib/account/session";
 import { persistNow, restoreLastSession, unlockAudio } from "@/lib/audio/player";
 import { withBase } from "@/lib/basePath";
 import { flushJournal } from "@/lib/library/repository";
+import { backfillFinished, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
 import { useTheme } from "@/lib/theme";
 import { ImportTray } from "./ImportTray";
 
@@ -30,14 +32,23 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("pointerup", unlock);
     window.addEventListener("keydown", unlock);
 
-    const onHide = () => {
-      if (document.visibilityState === "hidden") void persistNow();
+    const onHide = (e: Event) => {
+      if (e.type === "visibilitychange" && document.visibilityState === "visible") {
+        restoreStashedActivity();
+        return;
+      }
+      if (e.type !== "pagehide" && document.visibilityState !== "hidden") return;
+      void persistNow();
+      stashActivity();
+      syncSoon(0);
     };
     document.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", onHide);
 
     void restoreLastSession();
     void flushJournal().catch(() => undefined);
+    restoreStashedActivity();
+    void startAccount().then(() => backfillFinished()).catch(() => undefined);
 
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => undefined);

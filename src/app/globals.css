@@ -34,6 +34,9 @@
   --track: #e4dbcd;
   --accent: #b4512c;
   --on-accent: #fffaf3;
+  /* Profile chart: listening and reading (validated for colour-blind separation on --surface). */
+  --chart-listen: #b4512c;
+  --chart-read: #1677a6;
   --cover-shadow: 0 1px 2px rgb(29 24 20 / 0.12), 0 12px 24px -14px rgb(29 24 20 / 0.45);
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -55,6 +58,8 @@
   --track: #2a241f;
   --accent: #eadbc2;
   --on-accent: #100d0b;
+  --chart-listen: #d26c45;
+  --chart-read: #3d9cc2;
   --cover-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 28px -14px rgb(0 0 0 / 0.9);
 }
 

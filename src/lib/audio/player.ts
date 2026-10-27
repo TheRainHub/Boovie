@@ -14,6 +14,7 @@
  */
 import { create } from "zustand";
 import { getChapters, getProgress, journaledPosition, journalPosition, markChaptersComplete, updateProgress } from "../library/repository";
+import { recordFinish, recordListen } from "../stats/activity";
 import { getFileUrl, revokeFileUrls } from "../storage/blobStore";
 import { getDB } from "../storage/db";
 import { installMediaHandlers, setMediaMetadata, setPlaybackState, setPositionState, SKIP_BACK, SKIP_FORWARD } from "./mediaSession";
@@ -291,6 +292,10 @@ function onTime(): void {
     aim(a, known.fileStart + (s.position - known.startTime), { mute: true });
     return;
   }
+  // Statistics: playback that ran forward since the last update. Seeks set the position themselves, so they
+  // don't count; a step this big can only be a jump.
+  const step = position - s.position;
+  if (step > 0 && step < 120) recordListen(s.bookId, step / (a.playbackRate || 1), step);
 
   if (ch.index !== s.chapterIndex) {
     const prev = s.chapterIndex;
@@ -357,6 +362,7 @@ async function onEnded(): Promise<void> {
     set({ isPlaying: false, position: s.duration });
     await markChaptersComplete(s.bookId, s.chapters.map((c) => c.index));
     await updateProgress(s.bookId, { audioTimestamp: s.duration, percentage: 100, currentChapterIndex: cur.index });
+    recordFinish(s.bookId, "listen");
   }
 }
 

@@ -52,6 +52,14 @@ landscape the player and the store details go two-column and the reader shows a 
   downloaded into Boowie and then works offline like a local file. Boowie only reads the library; searching and
   grabbing new books stays in Librarr. The browser blocks an https page from talking to an http server, so a home
   server needs an HTTPS address (Tailscale, Cloudflare Tunnel, a reverse proxy).
+- **Profile & statistics** (`/profile/`, the avatar at the end of the top navigation) — time spent listening
+  and reading, pages read, books finished, days in a row, a per-day (per-month) chart and the books you spent
+  the most time with, for a week, a month or all time. Listening counts playback that actually ran forward (seeks
+  don't count); reading counts time the book is on screen and was touched in the last few minutes; pages count
+  forward page turns. Rows are kept per day and book in IndexedDB (`activity`), so it all works without an account.
+- **Accounts** (Supabase Auth: email + password, name, password reset) — statistics are saved to the account and
+  add up across devices: each device uploads its own daily rows and downloads the others'. Time recorded before
+  signing in on a device moves into the account. Books and their files stay on each device. See *Accounts* below.
 - **PWA** — static export, generated service worker (precached shell, cache-first chunks, offline navigation),
   `manifest.webmanifest`, Apple status-bar meta, safe-area insets everywhere.
 
@@ -73,6 +81,19 @@ npm run cap:sync     # after `npx cap add ios|android`
 (`npm ci` → `npm run build`) and serves `out/` as a static site, with no-cache for the service worker and
 immutable caching for hashed chunks. Every push to `main` redeploys; pull requests get preview URLs.
 
+**Accounts** (optional — without them the profile and statistics work on each device alone):
+
+1. Create a project at https://supabase.com (free plan is enough), or in Vercel → the project → *Storage* →
+   *Supabase* (it creates one and adds the env vars below for you).
+2. Supabase → *SQL Editor* → paste `supabase/schema.sql` → *Run* (the `activity` table with row-level security).
+3. Supabase → *Authentication* → *URL Configuration*: *Site URL* = the site's address (e.g.
+   `https://boovie-kappa.vercel.app`), and add `https://boovie-kappa.vercel.app/profile/` to *Redirect URLs*
+   (confirmation and password-reset links land there). To let people in without confirming their email,
+   turn off *Authentication* → *Sign In / Providers* → *Email* → *Confirm email*.
+4. Vercel → the project → *Settings* → *Environment Variables*: `NEXT_PUBLIC_SUPABASE_URL` (Project URL) and
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the anon / publishable key — it is public by design; access is limited by the
+   row-level security above). Redeploy.
+
 **GitHub Pages** (optional): `.github/workflows/deploy-pages.yml`, run manually, builds with
 `NEXT_PUBLIC_BASE_PATH=/Boovie` for https://therainhub.github.io/Boovie/. Any other static host:
 `npm run build` and upload `out/` (set `NEXT_PUBLIC_BASE_PATH` when serving from a sub-path).
@@ -80,7 +101,11 @@ immutable caching for hashed chunks. Every push to `main` redeploys; pull reques
 ## Layout
 
 ```
-src/app/                 routes: / (Слушаю/Читаю), /library, /store, /book?id=…&mode=read|listen, /settings
+src/app/                 routes: / (Слушаю/Читаю), /library, /store, /book?id=…&mode=read|listen, /profile, /settings
+src/components/profile   ProfileView, ActivityChart, AuthSheet, Avatar
+src/lib/stats            activity tracking (daily rows), reading-time hook, profile summary
+src/lib/account          device identity, Supabase session and statistics sync
+supabase/schema.sql      the accounts' statistics table and its row-level security
 src/components/ui        Button, IconButton, Slider, Segmented, ChipTabs, Sheet, BookCover, CoverBackdrop, Toaster
 src/components/shell     AppShell, TopNav, ImportTray
 src/components/home      HomeView

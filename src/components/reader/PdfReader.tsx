@@ -9,6 +9,8 @@ import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, markChaptersComplete, removeBookmark, updateProgress } from "@/lib/library/repository";
 import { loadPdfjs, type PdfLib } from "@/lib/pdf/pdfjs";
 import { PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
+import { recordFinish, recordPage } from "@/lib/stats/activity";
+import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileBlob } from "@/lib/storage/blobStore";
 import type { BookRecord } from "@/lib/storage/types";
 import { ReaderChrome } from "./ReaderChrome";
@@ -182,6 +184,20 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
     return idx;
   }, [chapters]);
   const chapterIndex = chapterOf(page);
+
+  // Statistics: reading time, pages read one after another (jumps don't count), and reaching the last page.
+  useReadingTime(book.id);
+  const prevPage = useRef(page);
+  const finished = useRef(false);
+  useEffect(() => {
+    if (!doc) return;
+    if (page === prevPage.current + 1) recordPage(book.id);
+    prevPage.current = page;
+    if (page === numPages && numPages > 1 && !finished.current) {
+      finished.current = true;
+      recordFinish(book.id, "read");
+    }
+  }, [book.id, doc, numPages, page]);
 
   useEffect(() => {
     if (!doc) return;
