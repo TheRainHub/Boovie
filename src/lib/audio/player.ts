@@ -340,7 +340,10 @@ async function persist(force = false): Promise<void> {
 }
 
 async function onEnded(): Promise<void> {
-  arrived(el());
+  const a = el();
+  // The silent unlock clip ends at once: that is not the book's chapter ending (it would start the next one).
+  if (a.src === SILENT || !currentFileId) return;
+  arrived(a);
   const s = get();
   const cur = s.chapters[s.chapterIndex];
   if (!cur || !s.bookId) return;
