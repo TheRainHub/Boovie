@@ -70,6 +70,31 @@ async function main() {
     assert.ok(b.chapters.length >= 3, `got ${b.chapters.length}`);
     assert.match(b.chapters[1].title, /часть 2/);
   });
+  await test("a long chapter stays whole; a whole book in one section is split", async () => {
+    const para = `<p>${"слово ".repeat(25)}</p>`;
+    const doc = (n: number) => `<?xml version="1.0" encoding="utf-8"?><FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"><description><title-info><book-title>Длинная</book-title></title-info></description><body><section><title><p>Глава первая</p></title>${para.repeat(n)}</section></body></FictionBook>`;
+    const chapter = await parseFb2(new Blob([doc(600)]), "long.fb2"); // ~90 000 characters, a long Dostoevsky chapter
+    assert.deepEqual(chapter.chapters.map((c) => c.title), ["Глава первая"]);
+    const book = await parseFb2(new Blob([doc(1400)]), "book.fb2");
+    assert.ok(book.chapters.length > 3 && /часть 2/.test(book.chapters[1].title), `got ${book.chapters.length}`);
+  });
+
+  console.log("Store catalog");
+  const catalog = JSON.parse(readFileSync(join(process.cwd(), "src/data/catalog.generated.json"), "utf8")) as {
+    items: { id: string; kind: string; format: string; title: string; chapterCount?: number; files: { url: string; name: string }[] }[];
+  };
+  for (const item of catalog.items.filter((i) => i.kind === "ebook" && /^(epub|fb2|fb2\.zip)$/.test(i.format))) {
+    await test(`${item.id} (${item.format}) opens with its chapters and cover`, async () => {
+      const file = item.files[0];
+      const blob = blobOf(join(process.cwd(), "public", file.url));
+      const b = item.format === "epub" ? await parseEpub(blob, file.name) : await parseFb2(blob, file.name);
+      assert.ok(b.cover && b.cover.size > 10_000, "cover");
+      // FB2 sections map one to one; EPUBs add their title page, imprint and the like to the chapter list.
+      if (item.format === "epub") assert.ok(b.chapters.length >= item.chapterCount!, `${b.chapters.length} < ${item.chapterCount}`);
+      else assert.equal(b.chapters.length, item.chapterCount);
+      assert.ok(b.chapters.filter((c) => (c.charCount ?? 0) > 500).length >= item.chapterCount! * 0.7, "chapters have text");
+    });
+  }
 
   console.log("EPUB");
   await test("generated EPUB 3: nav.xhtml nested TOC (parts → chapters)", async () => {

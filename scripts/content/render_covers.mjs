@@ -4,7 +4,7 @@
 // <icon-source.png> is the square app-icon artwork (a rounded tile on a dark ground); every icon size is cut from it.
 // <art-dir>/<repo>/images/cover.jpg is the cover painting of a Standard Ebooks source repository — the
 // paintings are in the public domain, Standard Ebooks' crops are CC0 (see README). Requires CHROMIUM_PATH.
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -17,7 +17,10 @@ const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 function coverHtml(item, w, h) {
   const audio = item.kind === 'audiobook';
-  const art = pathToFileURL(join(artDir, item.cover.art, 'images/cover.jpg')).href;
+  const file = join(artDir, item.cover.art, 'images/cover.jpg');
+  // A missing painting would render as a plain black cover without any error.
+  if (!existsSync(file)) throw new Error(`${item.id}: no painting at ${file}`);
+  const art = pathToFileURL(file).href;
   const scale = w / 600;
   const len = item.title.length;
   const titleSize = Math.round((len > 26 ? 44 : len > 16 ? 54 : len > 10 ? 66 : 78) * scale * (audio ? 0.82 : 1));

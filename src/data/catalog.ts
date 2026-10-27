@@ -1,7 +1,7 @@
 import { withBase } from "@/lib/basePath";
 import data from "./catalog.generated.json";
 
-export type CategoryId = "classics" | "scifi" | "design" | "psychology" | "tech" | "bio";
+export type CategoryId = "classics" | "scifi" | "detective" | "adventure" | "science" | "design" | "psychology" | "tech" | "bio";
 
 export interface StoreFile {
   url: string;

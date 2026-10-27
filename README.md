@@ -1,7 +1,7 @@
 # Boowie — offline e-book reader & audiobook player
 
 An installable iOS/Android PWA (Next.js App Router · TypeScript · Tailwind CSS v4, Capacitor-ready) that reads
-**EPUB, FB2 and PDF**, plays **MP3 / M4B / M4A audiobooks**, and ships with a built-in store of 20 public-domain
+**EPUB, FB2 and PDF**, plays **MP3 / M4B / M4A audiobooks**, and ships with a built-in store of 51 public-domain
 books and audiobooks that work out of the box — fully offline once downloaded.
 
 Design: **every book in its own colour.** Navigation is three big words at the top («Слушаю/Читаю · Книги ·
@@ -128,7 +128,9 @@ scripts/content          store content pipeline (see its README for sources and 
 
 Everything in `public/store/` is generated from public-domain sources by `scripts/content/` — Russian classics
 from the RussianNovels corpus, English titles from Standard Ebooks (CC0), narration by the RHVoice speech
-synthesizer, covers made from public-domain paintings (credited on each book's store page). See
+synthesizer, covers made from public-domain paintings (credited on each book's store page). A book goes in only if it is in
+the public domain in Russia, the EU and the US alike: its author and translator died more than 70 years ago and it
+was published before 1931. See
 [`scripts/content/README.md`](scripts/content/README.md).
 
 Note: headless Chromium builds without proprietary codecs cannot decode AAC, so the M4B sample plays on

@@ -15,8 +15,9 @@ import { StoreCard } from "./StoreCard";
 import { useStoreActions } from "./useStoreActions";
 
 type Tab = "overview" | "librarr" | "audio" | "ebooks" | "top" | "new" | `cat:${CategoryId}`;
-const CHIP_ORDER: CategoryId[] = ["classics", "scifi", "psychology", "design", "tech", "bio"];
-const FEATURED = ["anna-karenina", "viy-audio", "time-machine", "pikovaya-dama"];
+const CHIP_ORDER: CategoryId[] = ["classics", "scifi", "detective", "adventure", "psychology", "science", "bio", "design", "tech"];
+const FEATURED = ["anna-karenina", "viy-audio", "bratya-karamazovy", "sherlock-holmes", "pikovaya-dama"];
+const FRESH = 12;
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
 
@@ -92,7 +93,7 @@ export function StoreView() {
       {tab === "librarr" ? (
         <LibrarrShelf />
       ) : tab === "overview" && !searching ? (
-        <Overview onSelect={setSelected} owned={owned} />
+        <Overview onSelect={setSelected} owned={owned} onNew={() => setTab("new")} />
       ) : tab === "top" ? (
         <TopChart items={list} onSelect={setSelected} className="mt-4 px-5 sm:px-8 md:grid md:grid-cols-2 md:gap-x-10" />
       ) : (
@@ -112,12 +113,13 @@ export function StoreView() {
   );
 }
 
-function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned?: Map<string, string> }) {
+function Overview({ onSelect, owned, onNew }: { onSelect: (i: StoreItem) => void; owned?: Map<string, string>; onNew: () => void }) {
   const featured = FEATURED.map((id) => storeItem(id)!).filter(Boolean);
   const audio = STORE_ITEMS.filter((i) => i.kind === "audiobook");
   const ru = STORE_ITEMS.filter((i) => i.kind === "ebook" && i.language === "ru");
   const en = STORE_ITEMS.filter((i) => i.language === "en");
   const top = [...STORE_ITEMS].sort((a, b) => a.rank - b.rank).slice(0, 5);
+  const fresh = [...STORE_ITEMS].sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.rank - b.rank).slice(0, FRESH);
   const pair = [storeItem("pikovaya-dama")!, storeItem("pikovaya-dama-audio")!];
 
   return (
@@ -128,6 +130,7 @@ function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned
         ))}
       </div>
 
+      <Rail title="Новые поступления" items={fresh} onSelect={onSelect} owned={owned} onAll={onNew} />
       <Rail title="Аудиокниги" items={audio} onSelect={onSelect} owned={owned} />
 
       <button type="button" onClick={() => onSelect(pair[0])} className="mx-5 mt-9 flex w-[calc(100%-40px)] items-center gap-4 rounded-[22px] bg-surface-2 p-4 text-left active:opacity-85 sm:mx-8 sm:w-[calc(100%-64px)] sm:max-w-[640px]">
@@ -149,7 +152,7 @@ function Overview({ onSelect, owned }: { onSelect: (i: StoreItem) => void; owned
       <Rail title="Русская классика" items={ru} onSelect={onSelect} owned={owned} />
       <Rail title="На английском" items={en} onSelect={onSelect} owned={owned} />
       <p className="px-5 pb-4 pt-10 text-[13px] leading-relaxed text-ink-3 sm:px-8">
-        Все книги — общественное достояние. Русская классика — из открытого корпуса русской прозы, английские издания — Standard Ebooks (CC0). Аудиокниги озвучены RHVoice.
+        Все книги — общественное достояние: авторы и переводчики умерли больше 70 лет назад, книги изданы до 1931 года. Русская классика — из открытого корпуса русской прозы, английские издания — Standard Ebooks (CC0). Аудиокниги озвучены RHVoice.
       </p>
     </div>
   );
@@ -185,10 +188,15 @@ function FeaturedCard({ item, owned, onOpen }: { item: StoreItem; owned?: boolea
   );
 }
 
-function Rail({ title, items, onSelect, owned }: { title: string; items: StoreItem[]; onSelect: (i: StoreItem) => void; owned?: Map<string, string> }) {
+/** A horizontal shelf. With `onAll` it shows a slice and links to the full list ("Все") instead of counting. */
+function Rail({ title, items, onSelect, owned, onAll }: { title: string; items: StoreItem[]; onSelect: (i: StoreItem) => void; owned?: Map<string, string>; onAll?: () => void }) {
   return (
     <section className="mt-9">
-      <SectionTitle className="px-5 sm:px-8" title={title} action={`Все ${items.length}`} />
+      <SectionTitle
+        className="px-5 sm:px-8"
+        title={title}
+        action={onAll ? <button type="button" onClick={onAll} className="underline-offset-2 hover:underline">Все</button> : `Все ${items.length}`}
+      />
       <div className="no-scrollbar mt-3 flex snap-x items-start gap-3.5 overflow-x-auto scroll-px-5 px-5 sm:scroll-px-8 sm:gap-5 sm:px-8">
         {items.map((i) => (
           <StoreCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => onSelect(i)} rail />

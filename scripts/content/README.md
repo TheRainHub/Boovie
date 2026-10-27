@@ -9,11 +9,15 @@ is exercised by real files.
 
 | Source | License | Used for |
 | --- | --- | --- |
-| [JoannaBy/RussianNovels](https://github.com/JoannaBy/RussianNovels) corpus | texts by 19th-century authors (public domain) | Pushkin, Gogol, Chekhov, Tolstoy, Dostoevsky, Turgenev |
-| [Standard Ebooks](https://standardebooks.org) source repositories | CC0 1.0 | Wells, Abbott, Franklin, Marcus Aurelius (tr. Long), Morris, Veblen |
+| [JoannaBy/RussianNovels](https://github.com/JoannaBy/RussianNovels) corpus | texts in the public domain | Pushkin, Gogol, Chekhov, Tolstoy, Dostoevsky, Turgenev, Bulgakov, Gorky, Sologub |
+| [Standard Ebooks](https://standardebooks.org) source repositories | CC0 1.0 | Wells, Abbott, Franklin, Marcus Aurelius (tr. Long), Morris, Veblen, Austen, Shelley, Stoker, Wilde, Carroll, Conan Doyle, Stevenson, Fitzgerald, London, Verne (tr. Towle), Washington, Thoreau, Darwin |
 | [RHVoice](https://github.com/RHVoice/RHVoice) speech synthesizer (voices Aleksandr, Irina, Mikhail, Yuriy) | LGPL engine, voices under their own licenses | audiobook narration |
 | Cover paintings from [Standard Ebooks](https://standardebooks.org) source repositories (`images/cover.jpg`) | paintings in the public domain, crops CC0 | every store cover; each item's `cover.credit` names the painting |
 | [Golos Text](https://fonts.google.com/specimen/Golos+Text) | SIL OFL 1.1 | cover titles |
+
+A work is added only if it is in the public domain in Russia, the EU and the US: author and translator died more
+than 70 years ago and the work was published before 1931 (the same goes for the cover painting). «War and Peace» is
+left out because the corpus copy is truncated.
 
 Covers are public-domain paintings with the title set in Golos Text (`render_covers.mjs`); the painting for each
 item is chosen in `catalog.source.json` (`cover.art` = Standard Ebooks repository, `cover.focus` = vertical crop for
@@ -24,9 +28,8 @@ square audiobook covers). The app icons (every size, maskable and Apple variants
 
 ```bash
 git clone --depth 1 https://github.com/JoannaBy/RussianNovels.git "$SRC/rn"
-for r in h-g-wells_the-time-machine h-g-wells_the-war-of-the-worlds edwin-a-abbott_flatland \
-  benjamin-franklin_the-autobiography-of-benjamin-franklin marcus-aurelius_meditations_george-long \
-  william-morris_news-from-nowhere thorstein-veblen_the-theory-of-the-leisure-class; do
+# the Standard Ebooks repositories listed in main() of extract_works.py
+for r in $(python3 -c "import re;print(' '.join(re.findall(r'\(\"[a-z0-9-]+\", \"([a-z0-9_-]+)\"\)', open('scripts/content/extract_works.py').read())))"); do
   git clone --depth 1 "https://github.com/standardebooks/$r.git" "$SRC/se/$r"
 done
 sudo apt-get install rhvoice rhvoice-russian ffmpeg
@@ -34,11 +37,16 @@ export CHROMIUM_PATH=/path/to/chromium
 
 python3 -I scripts/content/extract_works.py "$SRC/rn/corpus" "$SRC/se" "$SRC/works.json"
 # cover art: sparse clones of the Standard Ebooks repositories named in catalog.source.json (cover.art)
+# (a book repository cloned above is linked instead)
+mkdir -p "$SRC/art"
 for r in $(python3 -c "import json;print(' '.join(sorted({i['cover']['art'] for i in json.load(open('scripts/content/catalog.source.json'))['items']})))"); do
+  if [ -d "$SRC/se/$r" ]; then ln -sfn "$SRC/se/$r" "$SRC/art/$r"; continue; fi
   git clone -q --depth 1 --filter=blob:none --sparse "https://github.com/standardebooks/$r.git" "$SRC/art/$r" && git -C "$SRC/art/$r" sparse-checkout set images
 done
 node scripts/content/render_covers.mjs scripts/content/catalog.source.json public "$SRC/fonts" "$SRC/art" scripts/content/icon-artwork.png
-python3 -I scripts/content/build_books.py "$SRC/works.json" scripts/content/catalog.source.json public
+# traced SVG illustrations over 400 KB (Tenniel's «Alice») become JPEGs inside the EPUBs
+node scripts/content/rasterize_illustrations.mjs "$SRC/raster" "$SRC"/se/*
+python3 -I scripts/content/build_books.py "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/raster"
 node scripts/content/render_pdfs.mjs "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/pdf"
 python3 -I scripts/content/build_audio.py "$SRC/works.json" scripts/content/catalog.source.json public "$SRC/audio"
 python3 -I scripts/content/generate_catalog.py "$SRC/works.json" scripts/content/catalog.source.json public src/data/catalog.generated.json

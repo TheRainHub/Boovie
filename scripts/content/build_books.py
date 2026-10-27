@@ -1,6 +1,6 @@
 """Build real EPUB 3 and FB2 files for the bundled store from extracted works.
 
-Usage: python3 -I build_books.py <works.json> <catalog.source.json> <public-dir>
+Usage: python3 -I build_books.py <works.json> <catalog.source.json> <public-dir> [<rasterized-illustrations-dir>]
 """
 
 import base64
@@ -19,6 +19,10 @@ TODAY = "2026-10-23"
 
 def esc(s: str) -> str:
     return html.escape(s, quote=True)
+
+
+# A paragraph starting with this marker is a subheading inside a chapter (see extract_works.py).
+SUB = "§ "
 
 
 def leaves(chapters, group=None):
@@ -41,6 +45,7 @@ EPUB_CSS = """
 body { font-family: Georgia, serif; line-height: 1.55; margin: 0 5%; }
 h1.part { text-align: center; font-size: 1.5em; margin: 2em 0 1.2em; letter-spacing: .04em; }
 h2 { text-align: center; font-size: 1.25em; margin: 1.6em 0 1em; }
+h3.subtitle { text-align: center; font-size: 1em; font-weight: bold; margin: 1.4em 0 .8em; }
 p { text-indent: 1.5em; margin: 0; text-align: justify; }
 blockquote.epigraph { margin: 1em 0 1.6em 40%; font-style: italic; font-size: .92em; }
 blockquote.epigraph p { text-indent: 0; text-align: left; }
@@ -70,15 +75,25 @@ def chapter_body(c: dict, part_title: str | None) -> str:
     out.append(f"<h2>{esc(c['title'])}</h2>")
     if c.get("epigraph"):
         out.append('<blockquote class="epigraph">' + "".join(f"<p>{esc(p)}</p>" for p in c["epigraph"]) + "</blockquote>")
-    out.extend(f"<p>{esc(p)}</p>" for p in c["paragraphs"])
+    out.extend(f'<h3 class="subtitle">{esc(p[len(SUB):])}</h3>' if p.startswith(SUB) else f"<p>{esc(p)}</p>" for p in c["paragraphs"])
     return "<section epub:type=\"chapter\">\n" + "\n".join(out) + "\n</section>"
+
+
+# Fixed entry dates: rebuilding an unchanged book gives the same bytes (no churn in the repository).
+ZIP_DATE = (2026, 10, 1, 0, 0, 0)
+
+
+def zip_entry(name: str, compress: int = zipfile.ZIP_DEFLATED) -> zipfile.ZipInfo:
+    info = zipfile.ZipInfo(name, date_time=ZIP_DATE)
+    info.compress_type = compress
+    return info
 
 
 def write_zip_epub(out: Path, files: list[tuple[str, bytes]]) -> None:
     with zipfile.ZipFile(out, "w") as z:
-        z.writestr(zipfile.ZipInfo("mimetype"), b"application/epub+zip", compress_type=zipfile.ZIP_STORED)
+        z.writestr(zip_entry("mimetype", zipfile.ZIP_STORED), b"application/epub+zip")
         for name, data in files:
-            z.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
+            z.writestr(zip_entry(name), data)
 
 
 def build_epub(work: dict, item: dict, cover: Path, out: Path) -> None:
@@ -179,21 +194,38 @@ def build_epub(work: dict, item: dict, cover: Path, out: Path) -> None:
     write_zip_epub(out, files)
 
 
-def build_se_epub(work: dict, cover: Path, out: Path) -> None:
-    """Package a Standard Ebooks source tree into an EPUB, swapping in our cover."""
-    src = Path(work["standardEbooks"]) / "src"
+def build_se_epub(work: dict, cover: Path, out: Path, raster_dir: Path | None = None) -> None:
+    """Package a Standard Ebooks source tree into an EPUB with our cover instead of theirs (their cover.svg alone
+    is 1–1.6 MB). Illustrations rasterized by rasterize_illustrations.mjs replace their heavy SVGs."""
+    repo = Path(work["standardEbooks"])
+    src = repo / "src"
+    ras_dir = raster_dir / repo.name if raster_dir else None
+    raster = {p.stem: p for p in ras_dir.glob("*.jpg")} if ras_dir and ras_dir.is_dir() else {}
     files: list[tuple[str, bytes]] = []
     for p in sorted(src.rglob("*")):
-        if p.is_file() and p.name != "mimetype":
-            rel = p.relative_to(src).as_posix()
-            data = p.read_bytes()
-            if rel == "epub/content.opf":
-                opf = data.decode()
-                opf = re.sub(r'<item href="images/cover\.svg" id="cover\.svg" media-type="image/svg\+xml" properties="cover-image"/>',
-                             '<item href="images/cover.svg" id="cover.svg" media-type="image/svg+xml"/>\n\t\t'
-                             '<item href="images/cover.jpg" id="cover.jpg" media-type="image/jpeg" properties="cover-image"/>', opf)
-                data = opf.encode()
-            files.append((rel, data))
+        if not p.is_file() or p.name == "mimetype":
+            continue
+        rel = p.relative_to(src).as_posix()
+        if rel == "epub/images/cover.svg":
+            continue
+        if rel.startswith("epub/images/") and p.suffix == ".svg" and p.stem in raster:
+            files.append((f"epub/images/{p.stem}.jpg", raster[p.stem].read_bytes()))
+            continue
+        data = p.read_bytes()
+        if rel == "epub/content.opf":
+            opf = data.decode()
+            opf = re.sub(r'<item href="images/cover\.svg" id="cover\.svg" media-type="image/svg\+xml" properties="cover-image"/>',
+                         '<item href="images/cover.jpg" id="cover.jpg" media-type="image/jpeg" properties="cover-image"/>', opf)
+            for stem in raster:
+                opf = opf.replace(f'<item href="images/{stem}.svg" id="{stem}.svg" media-type="image/svg+xml"/>',
+                                  f'<item href="images/{stem}.jpg" id="{stem}.jpg" media-type="image/jpeg"/>')
+            data = opf.encode()
+        elif rel.endswith(".xhtml") and raster:
+            text = data.decode()
+            for stem in raster:
+                text = text.replace(f"../images/{stem}.svg", f"../images/{stem}.jpg")
+            data = text.encode()
+        files.append((rel, data))
     files.append(("epub/images/cover.jpg", cover.read_bytes()))
     write_zip_epub(out, files)
 
@@ -201,7 +233,7 @@ def build_se_epub(work: dict, cover: Path, out: Path) -> None:
 # ---------------------------------------------------------------- FB2
 
 def fb2_paras(paras: list[str]) -> str:
-    return "".join(f"<p>{esc(p)}</p>" for p in paras)
+    return "".join(f"<subtitle>{esc(p[len(SUB):])}</subtitle>" if p.startswith(SUB) else f"<p>{esc(p)}</p>" for p in paras)
 
 
 def fb2_section(c: dict) -> str:
@@ -250,6 +282,7 @@ def build_fb2(work: dict, item: dict, cover: Path, encoding: str = "utf-8") -> b
 
 def main() -> None:
     works_path, catalog_path, public = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+    raster_dir = Path(sys.argv[4]) if len(sys.argv) > 4 else None
     works = {w["id"]: w for w in json.loads(works_path.read_text(encoding="utf-8"))}
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     out_dir = public / "store" / "books"
@@ -264,7 +297,7 @@ def main() -> None:
         if fmt == "epub":
             out = out_dir / f"{item['id']}.epub"
             if "standardEbooks" in work:
-                build_se_epub(work, cover, out)
+                build_se_epub(work, cover, out, raster_dir)
             else:
                 build_epub(work, item, cover, out)
         elif fmt in ("fb2", "fb2-cp1251"):
@@ -272,8 +305,8 @@ def main() -> None:
             out.write_bytes(build_fb2(work, item, cover, "windows-1251" if fmt == "fb2-cp1251" else "utf-8"))
         elif fmt == "fb2.zip":
             out = out_dir / f"{item['id']}.fb2.zip"
-            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-                z.writestr(f"{item['id']}.fb2", build_fb2(work, item, cover))
+            with zipfile.ZipFile(out, "w") as z:
+                z.writestr(zip_entry(f"{item['id']}.fb2"), build_fb2(work, item, cover))
         else:
             raise ValueError(fmt)
         manifest[item["id"]] = {"file": f"/store/books/{out.name}", "size": out.stat().st_size}

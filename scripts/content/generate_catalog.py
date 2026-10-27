@@ -53,7 +53,8 @@ def main() -> None:
             else:
                 m = books_manifest[it["id"]]
                 name = m["file"].rsplit("/", 1)[1]
-                item["files"] = [{"url": m["file"], "name": name, "size": m["size"]}]
+                # The size on disk, not the one the build logged (a book can be kept from an earlier build).
+                item["files"] = [{"url": m["file"], "name": name, "size": (public / m["file"].lstrip("/")).stat().st_size}]
             if "chapters" in work:
                 item["chapterCount"] = count(work["chapters"])
                 item.setdefault("pages", round(chars(work["chapters"]) / 1800))

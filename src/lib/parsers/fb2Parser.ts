@@ -10,6 +10,8 @@ import { ParseError, type ParsedAsset, type ParsedBook, type ParsedChapter, type
 
 /** Split oversized flat bodies into readable parts of roughly this many characters. */
 const FLAT_CHUNK = 14000;
+/** A single section longer than this is a whole book in one piece, not a chapter, and is split like a flat body. */
+const HUGE_SECTION = 160_000;
 
 interface Ctx {
   binaries: Map<string, { mime: string; data: string }>;
@@ -128,7 +130,7 @@ function walkSection(section: Element, ctx: Ctx, group: string | undefined, out:
   const subsections = children.filter((c) => localName(c) === "section");
   if (subsections.length === 0) {
     const html = children.map((c) => convert(c, ctx)).join("");
-    if (textLength(html) > FLAT_CHUNK * 4) {
+    if (textLength(html) > HUGE_SECTION) {
       // Huge single section: keep the heading on the first part, split the rest at paragraph boundaries.
       splitFlat(children, ctx, title, group, out);
     } else if (normalizeSpace(section.textContent) || /<img/.test(html)) {
