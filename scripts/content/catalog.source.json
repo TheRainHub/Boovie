@@ -40,7 +40,7 @@
       "id": "dama-s-sobachkoy-audio", "work": "dama-s-sobachkoy", "kind": "audiobook", "format": "mp3-multi",
       "title": "Дама с собачкой", "author": "Антон Чехов", "year": 1899, "language": "ru",
       "narrator": "RHVoice · голос «Ирина»", "voice": "irina",
-      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 13, "addedAt": "2026-10-22",
+      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 14, "addedAt": "2026-10-22",
       "companion": "dama-s-sobachkoy",
       "cover": { "art": "ivan-turgenev_a-house-of-gentlefolk_constance-garnett", "focus": 0.45, "credit": "Эмиль Фриан, «Отброшенные тени», 1891" },
       "synopsis": "Аудиокнига из четырёх MP3-файлов — по одному на главу, с ID3-тегами и обложкой. Пример того, как приложение собирает несколько дорожек в единую книгу. Озвучено синтезатором речи RHVoice."
@@ -49,7 +49,7 @@
       "id": "vystrel-audio", "work": "vystrel", "kind": "audiobook", "format": "mp3-chapters",
       "title": "Выстрел", "author": "Александр Пушкин", "year": 1831, "language": "ru",
       "narrator": "RHVoice · голос «Михаил»", "voice": "mikhail",
-      "categories": ["classics"], "rating": 4.5, "rank": 16, "addedAt": "2026-10-23",
+      "categories": ["classics"], "rating": 4.5, "rank": 19, "addedAt": "2026-10-23",
       "cover": { "art": "leo-tolstoy_hadji-murad_aylmer-maude", "focus": 0.33, "credit": "Ян Цёнглиньский, «Кавказец», 1890" },
       "synopsis": "Первая из «Повестей Белкина»: отставной гусар Сильвио шесть лет хранит право на неиспользованный выстрел. Один MP3-файл с главами в ID3-тегах (CHAP) — приложение читает их прямо из файла. Озвучено синтезатором речи RHVoice."
     },
@@ -64,21 +64,21 @@
     {
       "id": "chernyi-monah", "work": "chernyi-monah", "kind": "ebook", "format": "epub",
       "title": "Чёрный монах", "author": "Антон Чехов", "year": 1894, "language": "ru",
-      "categories": ["psychology", "classics"], "rating": 4.6, "rank": 22, "addedAt": "2026-10-12",
+      "categories": ["psychology", "classics"], "rating": 4.6, "rank": 28, "addedAt": "2026-10-12",
       "cover": { "art": "fyodor-dostoevsky_notes-from-underground_constance-garnett", "focus": 0.3, "credit": "Гюстав Курбе, «Портрет Альфонса Промайе», 1851" },
       "synopsis": "Магистр философии Андрей Коврин уезжает в деревню лечить расстроенные нервы — и начинает видеть чёрного монаха, который убеждает его в собственной гениальности. Чехов, врач по образованию, с клинической точностью описывает манию величия и цену, которую близкие платят за чужую «избранность»."
     },
     {
       "id": "povesti-belkina", "work": "povesti-belkina", "kind": "ebook", "format": "fb2",
       "title": "Повести Белкина", "author": "Александр Пушкин", "year": 1831, "language": "ru",
-      "categories": ["classics"], "rating": 4.7, "rank": 18, "addedAt": "2026-10-08",
+      "categories": ["classics"], "rating": 4.7, "rank": 22, "addedAt": "2026-10-08",
       "cover": { "art": "ivan-turgenev_on-the-eve_constance-garnett", "focus": 0.4, "credit": "Гюстав Курбе, «Влюблённые в деревне», 1844" },
       "synopsis": "Пять повестей, будто бы записанных скромным помещиком Иваном Петровичем Белкиным: «Выстрел», «Метель», «Гробовщик», «Станционный смотритель» и «Барышня-крестьянка». Пушкинская проза в чистом виде — лаконичная, ироничная, безупречно построенная."
     },
     {
       "id": "kapitanskaya-dochka", "work": "kapitanskaya-dochka", "kind": "ebook", "format": "fb2",
       "title": "Капитанская дочка", "author": "Александр Пушкин", "year": 1836, "language": "ru",
-      "categories": ["classics"], "rating": 4.8, "rank": 12, "addedAt": "2026-09-30",
+      "categories": ["classics"], "rating": 4.8, "rank": 13, "addedAt": "2026-09-30",
       "cover": { "art": "nikolai-gogol_dead-souls_d-j-hogarth", "focus": 0.5, "credit": "Альфонс Муха, «Отмена крепостного права на Руси», 1914" },
       "synopsis": "Записки Петра Гринёва — недоросля, отправленного служить в глухую Белогорскую крепость накануне пугачёвского бунта. Метель, вожатый, присяга и любовь к Маше Мироновой. «Береги честь смолоду» — роман о том, как сохранить себя, когда рушится мир."
     },
@@ -99,63 +99,63 @@
     {
       "id": "otcy-i-deti", "work": "otcy-i-deti", "kind": "ebook", "format": "fb2-cp1251",
       "title": "Отцы и дети", "author": "Иван Тургенев", "year": 1862, "language": "ru",
-      "categories": ["classics"], "rating": 4.6, "rank": 24, "addedAt": "2026-09-05",
+      "categories": ["classics"], "rating": 4.6, "rank": 31, "addedAt": "2026-09-05",
       "cover": { "art": "ivan-turgenev_fathers-and-children_constance-garnett", "focus": 0.4, "credit": "Анри Фантен-Латур, «У стола», 1872" },
       "synopsis": "Нигилист Евгений Базаров приезжает с другом в имение Кирсановых — и спор поколений из гостиной переходит в дуэль. Файл в классической кодировке windows-1251, как в старых библиотеках FB2: приложение определяет её автоматически."
     },
     {
       "id": "dyadya-vanya", "work": "dyadya-vanya", "kind": "ebook", "format": "pdf",
       "title": "Дядя Ваня", "author": "Антон Чехов", "year": 1897, "language": "ru",
-      "categories": ["classics"], "rating": 4.5, "rank": 34, "addedAt": "2026-10-15",
+      "categories": ["classics"], "rating": 4.5, "rank": 46, "addedAt": "2026-10-15",
       "cover": { "art": "leo-tolstoy_resurrection_louise-maude", "focus": 0.4, "credit": "Илья Репин, «Портрет отца художника», 1879" },
       "synopsis": "Сцены из деревенской жизни в четырёх действиях. Отставной профессор Серебряков приезжает в имение, которое годами содержали дядя Ваня и Соня, — и рушит хрупкое равновесие. PDF с оглавлением (outline): каждое действие — отдельная глава."
     },
     {
       "id": "flatland", "work": "flatland", "kind": "ebook", "format": "pdf-no-outline",
       "title": "Flatland", "subtitle": "A Romance of Many Dimensions", "author": "Edwin A. Abbott", "year": 1884, "language": "en",
-      "categories": ["tech", "scifi", "science"], "rating": 4.6, "rank": 31, "addedAt": "2026-10-10",
+      "categories": ["tech", "scifi", "science"], "rating": 4.6, "rank": 41, "addedAt": "2026-10-10",
       "cover": { "art": "edwin-a-abbott_flatland", "focus": 0.5, "credit": "Эдвард Уодсворт, «Роттердам», 1914" },
       "synopsis": "Квадрат из двумерного мира рассказывает о геометрическом обществе, где статус определяется числом углов, — пока гость из Пространства не открывает ему третье измерение. Математическая сатира на английском. PDF без встроенного оглавления: главы определяются по крупным заголовкам."
     },
     {
       "id": "time-machine", "work": "time-machine", "kind": "ebook", "format": "epub",
       "title": "The Time Machine", "author": "H. G. Wells", "year": 1895, "language": "en",
-      "categories": ["scifi"], "rating": 4.7, "rank": 27, "addedAt": "2026-10-17",
+      "categories": ["scifi"], "rating": 4.7, "rank": 35, "addedAt": "2026-10-17",
       "cover": { "art": "h-g-wells_the-time-machine", "focus": 0.4, "credit": "Поль Сезанн, «Чёрные мраморные часы», около 1870" },
       "synopsis": "Путешественник во Времени отправляется в 802 701 год и находит человечество разделённым на беспечных элоев и подземных морлоков. Роман, с которого началась научная фантастика о путешествиях во времени. На английском, издание Standard Ebooks."
     },
     {
       "id": "war-of-the-worlds", "work": "war-of-the-worlds", "kind": "ebook", "format": "epub",
       "title": "The War of the Worlds", "author": "H. G. Wells", "year": 1898, "language": "en",
-      "categories": ["scifi"], "rating": 4.6, "rank": 36, "addedAt": "2026-09-27",
+      "categories": ["scifi"], "rating": 4.6, "rank": 49, "addedAt": "2026-09-27",
       "cover": { "art": "h-g-wells_the-war-of-the-worlds", "focus": 0.4, "credit": "Неизвестный художник, «Великий лондонский пожар», XVII век" },
       "synopsis": "Цилиндры с Марса падают на английские пустоши, и из них поднимаются боевые треножники. Первое большое вторжение инопланетян в литературе — глазами обычного человека, пытающегося выжить. На английском, издание Standard Ebooks."
     },
     {
       "id": "franklin-autobiography", "work": "franklin-autobiography", "kind": "ebook", "format": "epub",
       "title": "The Autobiography of Benjamin Franklin", "author": "Benjamin Franklin", "year": 1791, "language": "en",
-      "categories": ["bio", "tech"], "rating": 4.5, "rank": 45, "addedAt": "2026-10-05",
+      "categories": ["bio", "tech"], "rating": 4.5, "rank": 62, "addedAt": "2026-10-05",
       "cover": { "art": "benjamin-franklin_the-autobiography-of-benjamin-franklin", "focus": 0.4, "credit": "Дэвид Мартин, «Портрет Бенджамина Франклина», 1767" },
       "synopsis": "Печатник, изобретатель громоотвода и бифокальных очков, дипломат и один из отцов-основателей США рассказывает, как он себя сделал: от подмастерья в Бостоне до учёного с мировым именем. Знаменитый «план тринадцати добродетелей». На английском."
     },
     {
       "id": "meditations", "work": "meditations", "kind": "ebook", "format": "epub",
       "title": "Meditations", "author": "Marcus Aurelius", "translator": "George Long", "year": 180, "language": "en",
-      "categories": ["psychology"], "rating": 4.8, "rank": 42, "addedAt": "2026-10-02",
+      "categories": ["psychology"], "rating": 4.8, "rank": 58, "addedAt": "2026-10-02",
       "cover": { "art": "marcus-aurelius_meditations_george-long", "focus": 0.4, "credit": "Лоуренс Альма-Тадема, «После аудиенции», 1879" },
       "synopsis": "Личные записи римского императора, никогда не предназначавшиеся для публикации: как сохранять спокойствие, отличать зависящее от тебя от независящего и исполнять свой долг. Основа стоической психологии, в переводе Джорджа Лонга. На английском."
     },
     {
       "id": "news-from-nowhere", "work": "news-from-nowhere", "kind": "ebook", "format": "epub",
       "title": "News from Nowhere", "author": "William Morris", "year": 1890, "language": "en",
-      "categories": ["design"], "rating": 4.3, "rank": 49, "addedAt": "2026-10-14",
+      "categories": ["design"], "rating": 4.3, "rank": 69, "addedAt": "2026-10-14",
       "cover": { "art": "william-morris_news-from-nowhere", "focus": 0.4, "credit": "Камиль Писсарро, «Жатва, Понтуаз», 1881" },
       "synopsis": "Уильям Моррис — основатель движения «Искусства и ремёсла» и один из отцов современного дизайна — описывает Англию будущего, где труд стал творчеством, а вещи делают хорошо и для себя. Манифест о ремесле, качестве и среде. На английском."
     },
     {
       "id": "leisure-class", "work": "leisure-class", "kind": "ebook", "format": "epub",
       "title": "The Theory of the Leisure Class", "author": "Thorstein Veblen", "year": 1899, "language": "en",
-      "categories": ["design", "psychology", "science"], "rating": 4.2, "rank": 51, "addedAt": "2026-09-18",
+      "categories": ["design", "psychology", "science"], "rating": 4.2, "rank": 75, "addedAt": "2026-09-18",
       "cover": { "art": "thorstein-veblen_the-theory-of-the-leisure-class", "focus": 0.4, "credit": "Элеанор Фортескью-Брикдейл, «Обманчивость богатства», 1901" },
       "synopsis": "Книга, давшая миру термин «демонстративное потребление». Веблен объясняет, почему вещи ценят не только за функцию, но и за то, что они сообщают о владельце, — обязательное чтение для всех, кто проектирует продукты. На английском."
     },
@@ -169,14 +169,14 @@
     {
       "id": "taras-bulba", "work": "taras-bulba", "kind": "ebook", "format": "epub",
       "title": "Тарас Бульба", "author": "Николай Гоголь", "year": 1842, "language": "ru",
-      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 17, "addedAt": "2026-10-27",
+      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 20, "addedAt": "2026-10-27",
       "cover": { "art": "alexandre-dumas_the-three-musketeers_william-robson", "focus": 0.4, "credit": "Рембрандт ван Рейн, «Ночной дозор», 1642" },
       "synopsis": "Старый полковник Тарас Бульба везёт сыновей, Остапа и Андрия, из киевской бурсы прямо в Запорожскую Сечь. Поход на польский Дубно, любовь, предательство и месть — героическая и жестокая повесть о казачестве."
     },
     {
       "id": "dubrovskiy", "work": "dubrovskiy", "kind": "ebook", "format": "fb2",
       "title": "Дубровский", "author": "Александр Пушкин", "year": 1841, "language": "ru",
-      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 20, "addedAt": "2026-10-27",
+      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 25, "addedAt": "2026-10-27",
       "cover": { "art": "joseph-conrad_heart-of-darkness", "focus": 0.5, "credit": "Вильгельм Мишо фон Веве, «Бразильский тропический лес», между 1848 и 1902" },
       "synopsis": "Самодур Троекуров отнимает у старого друга имение, и молодой офицер Владимир Дубровский становится разбойником. Но месть путается с любовью к дочери врага. Неоконченный роман Пушкина — с переодеваниями, пожаром и лесной шайкой."
     },
@@ -190,14 +190,14 @@
     {
       "id": "besy", "work": "besy", "kind": "ebook", "format": "fb2.zip",
       "title": "Бесы", "author": "Фёдор Достоевский", "year": 1872, "language": "ru",
-      "categories": ["classics", "psychology"], "rating": 4.7, "rank": 21, "addedAt": "2026-10-27",
+      "categories": ["classics", "psychology"], "rating": 4.7, "rank": 26, "addedAt": "2026-10-27",
       "cover": { "art": "fyodor-dostoevsky_demons_constance-garnett", "focus": 0.35, "credit": "Анри Фантен-Латур, «Мастерская в Батиньоле», 1870" },
       "synopsis": "В тихий губернский город возвращается Николай Ставрогин, а рядом с ним — Пётр Верховенский со своей «пятёркой» заговорщиков. Интриги, пожары, убийство. Самый политический роман Достоевского — о том, как идеи превращают людей в бесов."
     },
     {
       "id": "bednye-lyudi", "work": "bednye-lyudi", "kind": "ebook", "format": "epub",
       "title": "Бедные люди", "author": "Фёдор Достоевский", "year": 1846, "language": "ru",
-      "categories": ["classics"], "rating": 4.5, "rank": 37, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.5, "rank": 50, "addedAt": "2026-10-27",
       "cover": { "art": "charlotte-bronte_jane-eyre", "focus": 0.3, "credit": "Вильгельм Хаммерсхёй, «Портрет молодой девушки», 1903–1904" },
       "synopsis": "Первый роман Достоевского — в письмах. Немолодой чиновник Макар Девушкин и бедная сирота Варенька Доброселова живут окнами друг к другу и пишут друг другу: о пустяках, о бедности, о достоинстве и о любви, которую нельзя назвать."
     },
@@ -211,42 +211,42 @@
     {
       "id": "voskresenie", "work": "voskresenie", "kind": "ebook", "format": "epub",
       "title": "Воскресение", "author": "Лев Толстой", "year": 1899, "language": "ru",
-      "categories": ["classics"], "rating": 4.6, "rank": 26, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.6, "rank": 34, "addedAt": "2026-10-27",
       "cover": { "art": "fyodor-dostoevsky_poor-folk_c-j-hogarth", "focus": 0.4, "credit": "Николай Ярошенко, «Всюду жизнь», 1888" },
       "synopsis": "Присяжный заседатель князь Нехлюдов узнаёт в подсудимой Катюше Масловой девушку, которую когда-то соблазнил и бросил. Её осуждают по ошибке, и он едет за ней в Сибирь. Последний роман Толстого — о суде, тюрьме и нравственном воскресении."
     },
     {
       "id": "dvoryanskoe-gnezdo", "work": "dvoryanskoe-gnezdo", "kind": "ebook", "format": "fb2",
       "title": "Дворянское гнездо", "author": "Иван Тургенев", "year": 1859, "language": "ru",
-      "categories": ["classics"], "rating": 4.6, "rank": 29, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.6, "rank": 38, "addedAt": "2026-10-27",
       "cover": { "art": "emily-bronte_wuthering-heights", "focus": 0.3, "credit": "Джордж Фредерик Уоттс, «Эдит Вильерс», 1862" },
       "synopsis": "Фёдор Лаврецкий возвращается в своё имение после несчастного брака и встречает тихую, глубоко верующую Лизу Калитину. Короткое счастье, неожиданное известие — и покой, который приходит слишком поздно. Самый лиричный роман Тургенева."
     },
     {
       "id": "nakanune", "work": "nakanune", "kind": "ebook", "format": "epub",
       "title": "Накануне", "author": "Иван Тургенев", "year": 1860, "language": "ru",
-      "categories": ["classics"], "rating": 4.5, "rank": 39, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.5, "rank": 53, "addedAt": "2026-10-27",
       "cover": { "art": "mikhail-artsybashev_sanine_percy-pinkerton", "focus": 0.35, "credit": "Андерс Цорн, «Полночь», 1891" },
       "synopsis": "Елена Стахова выбирает не художника и не учёного, а болгарина Инсарова, который живёт одной мыслью — освободить родину. Роман о женщине, готовой к поступку, и о времени, которое ждёт людей дела."
     },
     {
       "id": "rudin", "work": "rudin", "kind": "ebook", "format": "fb2",
       "title": "Рудин", "author": "Иван Тургенев", "year": 1856, "language": "ru",
-      "categories": ["classics"], "rating": 4.5, "rank": 41, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.5, "rank": 56, "addedAt": "2026-10-27",
       "cover": { "art": "charles-dickens_great-expectations", "focus": 0.3, "credit": "Жозеф Паэлинк, «Автопортрет», 1812" },
       "synopsis": "В усадьбу Ласунской приезжает Дмитрий Рудин — блестящий говорун, который покоряет всех речами о долге и свободе. Но когда юная Наталья готова идти за ним, слова расходятся с делом. Первый роман Тургенева о «лишнем человеке»."
     },
     {
       "id": "veshnie-vody", "work": "veshnie-vody", "kind": "ebook", "format": "epub",
       "title": "Вешние воды", "author": "Иван Тургенев", "year": 1872, "language": "ru",
-      "categories": ["classics"], "rating": 4.6, "rank": 33, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.6, "rank": 44, "addedAt": "2026-10-27",
       "cover": { "art": "thomas-hardy_tess-of-the-durbervilles", "focus": 0.35, "credit": "Франсиско Гойя, «Молочница из Бордо», 1827" },
       "synopsis": "Немолодой Санин находит в ящике стола гранатовый крестик и вспоминает лето 1840 года во Франкфурте: кондитерскую, красавицу итальянку Джемму, дуэль, помолвку — и встречу, которая всё перечеркнула. Повесть о первой любви."
     },
     {
       "id": "rokovye-yaytsa", "work": "rokovye-yaytsa", "kind": "ebook", "format": "fb2",
       "title": "Роковые яйца", "author": "Михаил Булгаков", "year": 1925, "language": "ru",
-      "categories": ["scifi"], "rating": 4.7, "rank": 14, "addedAt": "2026-10-27",
+      "categories": ["scifi"], "rating": 4.7, "rank": 16, "addedAt": "2026-10-27",
       "cover": { "art": "edgar-allan-poe_short-fiction", "focus": 0.4, "credit": "Робер Делоне, «Сен-Северен», 1909" },
       "synopsis": "Профессор Персиков открывает красный «луч жизни», от которого всё живое растёт с невероятной быстротой. Совхозный энтузиаст Рокк берёт луч, чтобы возродить куриное хозяйство, но из перепутанных яиц вылупляются гигантские змеи. Сатирическая фантастика Булгакова о Москве 1928 года."
     },
@@ -260,49 +260,49 @@
     {
       "id": "mat", "work": "mat", "kind": "ebook", "format": "fb2.zip",
       "title": "Мать", "author": "Максим Горький", "year": 1907, "language": "ru",
-      "categories": ["classics"], "rating": 4.3, "rank": 47, "addedAt": "2026-10-27",
-      "cover": { "art": "charles-dickens_a-tale-of-two-cities", "focus": 0.35, "credit": "Феликс-Жозеф Баррьяс, «Камиль Демулен в Пале-Рояле», 1888" },
+      "categories": ["classics"], "rating": 4.3, "rank": 65, "addedAt": "2026-10-27",
+      "cover": { "art": "elizabeth-gaskell_north-and-south", "focus": 0.35, "credit": "Роберт Кёлер, «Забастовка», 1886" },
       "synopsis": "Пелагея Ниловна, забитая жена фабричного слесаря, после смерти мужа видит, как её сын Павел становится революционером. Страх за сына превращается в понимание и в собственный выбор. Роман о рабочей слободке начала XX века."
     },
     {
       "id": "melkiy-bes", "work": "melkiy-bes", "kind": "ebook", "format": "epub",
       "title": "Мелкий бес", "author": "Фёдор Сологуб", "year": 1907, "language": "ru",
-      "categories": ["classics", "psychology"], "rating": 4.4, "rank": 44, "addedAt": "2026-10-27",
+      "categories": ["classics", "psychology"], "rating": 4.4, "rank": 61, "addedAt": "2026-10-27",
       "cover": { "art": "fyodor-sologub_the-little-demon_john-cournos_richard-aldington", "focus": 0.3, "credit": "Эйлиф Петерссен, «Портрет поэта Арне Гарборга», 1894" },
       "synopsis": "Гимназический учитель Передонов ждёт места инспектора и сходит с ума от подозрений: ему мерещатся доносы, заговоры и серая недотыкомка. Едкий и страшный роман символиста Сологуба о провинциальной пошлости."
     },
     {
       "id": "pride-and-prejudice", "work": "pride-and-prejudice", "kind": "ebook", "format": "epub",
       "title": "Pride and Prejudice", "author": "Jane Austen", "year": 1813, "language": "en",
-      "categories": ["classics"], "rating": 4.8, "rank": 15, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.8, "rank": 17, "addedAt": "2026-10-27",
       "cover": { "art": "jane-austen_pride-and-prejudice", "focus": 0.4, "credit": "Эдмунд Блэр Лейтон, «Дождливое воскресное утро», 1896" },
       "synopsis": "Элизабет Беннет — умная, насмешливая и без большого приданого; мистер Дарси — богат, горд и, кажется, невыносим. Первое впечатление обманывает обоих. Самый любимый роман Джейн Остин. На английском, издание Standard Ebooks."
     },
     {
       "id": "frankenstein", "work": "frankenstein", "kind": "ebook", "format": "epub",
       "title": "Frankenstein", "author": "Mary Shelley", "year": 1818, "language": "en",
-      "categories": ["scifi"], "rating": 4.6, "rank": 30, "addedAt": "2026-10-27",
+      "categories": ["scifi"], "rating": 4.6, "rank": 40, "addedAt": "2026-10-27",
       "cover": { "art": "mary-shelley_frankenstein", "focus": 0.35, "credit": "Джузеппе Арчимбольдо, «Портрет Адама», 1578" },
       "synopsis": "Молодой учёный Виктор Франкенштейн создаёт и оживляет человека — и в ужасе бежит от своего творения. Брошенное существо ищет любви, а находит месть. Роман, с которого начинается научная фантастика. На английском, Standard Ebooks."
     },
     {
       "id": "dracula", "work": "dracula", "kind": "ebook", "format": "epub",
       "title": "Dracula", "author": "Bram Stoker", "year": 1897, "language": "en",
-      "categories": ["classics", "adventure"], "rating": 4.6, "rank": 32, "addedAt": "2026-10-27",
+      "categories": ["classics", "adventure"], "rating": 4.6, "rank": 43, "addedAt": "2026-10-27",
       "cover": { "art": "bram-stoker_dracula", "focus": 0.45, "credit": "Йозеф Магнус Штэк, «Итальянский пейзаж с руинами при лунном свете», 1850" },
       "synopsis": "Юрист Джонатан Харкер едет в Трансильванию оформить сделку с графом Дракулой — и становится пленником в его замке. А потом граф прибывает в Англию. Роман в письмах и дневниках, создавший образ вампира. На английском, Standard Ebooks."
     },
     {
       "id": "dorian-gray", "work": "dorian-gray", "kind": "ebook", "format": "epub",
       "title": "The Picture of Dorian Gray", "author": "Oscar Wilde", "year": 1890, "language": "en",
-      "categories": ["classics", "psychology"], "rating": 4.7, "rank": 23, "addedAt": "2026-10-27",
+      "categories": ["classics", "psychology"], "rating": 4.7, "rank": 29, "addedAt": "2026-10-27",
       "cover": { "art": "oscar-wilde_the-picture-of-dorian-gray", "focus": 0.35, "credit": "Джон Кольер, «Сад», 1899" },
       "synopsis": "Красавец Дориан Грей желает, чтобы старел его портрет, а не он сам, — и желание исполняется. Годы пороков не оставляют следа на лице, но портрет, спрятанный под замок, меняется. Единственный роман Оскара Уайльда. На английском, Standard Ebooks."
     },
     {
       "id": "alice", "work": "alice", "kind": "ebook", "format": "epub",
       "title": "Alice’s Adventures in Wonderland", "author": "Lewis Carroll", "year": 1865, "language": "en",
-      "categories": ["classics"], "rating": 4.7, "rank": 25, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.7, "rank": 32, "addedAt": "2026-10-27",
       "cover": { "art": "lewis-carroll_alices-adventures-in-wonderland", "focus": 0.45, "credit": "Иван Шишкин, «Мухоморы», 1879" },
       "synopsis": "Алиса прыгает в кроличью нору за Белым Кроликом и попадает в страну, где всё подчиняется логике сна: Чеширский Кот, безумное чаепитие, Королева, которая всем рубит головы. На английском, со всеми языковыми играми оригинала. Standard Ebooks."
     },
@@ -316,65 +316,240 @@
     {
       "id": "baskervilles", "work": "baskervilles", "kind": "ebook", "format": "epub",
       "title": "The Hound of the Baskervilles", "author": "Arthur Conan Doyle", "year": 1902, "language": "en",
-      "categories": ["detective"], "rating": 4.8, "rank": 28, "addedAt": "2026-10-27",
+      "categories": ["detective"], "rating": 4.8, "rank": 37, "addedAt": "2026-10-27",
       "cover": { "art": "arthur-conan-doyle_the-hound-of-the-baskervilles", "focus": 0.45, "credit": "Каспар Давид Фридрих, «Пейзаж Исполиновых гор с поднимающимся туманом», 1820" },
       "synopsis": "Над родом Баскервилей тяготеет легенда о дьявольской собаке, и вот сэр Чарльз умирает на болотах с ужасом на лице. Холмс отправляет Ватсона в Девоншир охранять наследника. Самая знаменитая повесть о Холмсе. На английском, Standard Ebooks."
     },
     {
       "id": "jekyll-and-hyde", "work": "jekyll-and-hyde", "kind": "ebook", "format": "epub",
       "title": "Strange Case of Dr Jekyll and Mr Hyde", "author": "Robert Louis Stevenson", "year": 1886, "language": "en",
-      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 35, "addedAt": "2026-10-27",
+      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 47, "addedAt": "2026-10-27",
       "cover": { "art": "robert-louis-stevenson_the-strange-case-of-dr-jekyll-and-mr-hyde", "focus": 0.35, "credit": "Ханс фон Маре, «Двойной портрет Маре и Ленбаха», 1863" },
       "synopsis": "Адвокат Аттерсон не понимает, почему уважаемый доктор Джекил завещал всё отталкивающему мистеру Хайду. Разгадка страшнее любого шантажа. Короткая повесть о двойственности человека. На английском, Standard Ebooks."
     },
     {
       "id": "great-gatsby", "work": "great-gatsby", "kind": "ebook", "format": "epub",
       "title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "year": 1925, "language": "en",
-      "categories": ["classics"], "rating": 4.7, "rank": 19, "addedAt": "2026-10-27",
+      "categories": ["classics"], "rating": 4.7, "rank": 23, "addedAt": "2026-10-27",
       "cover": { "art": "virginia-woolf_mrs-dalloway", "focus": 0.3, "credit": "Исаак Израэльс, «Портрет женщины», 1900–1922" },
       "synopsis": "Лето 1922 года, Лонг-Айленд. Таинственный миллионер Джей Гэтсби устраивает ослепительные вечеринки ради одной женщины — Дэйзи, живущей на другом берегу залива. Роман о джазовом веке и американской мечте. На английском, Standard Ebooks."
     },
     {
       "id": "call-of-the-wild", "work": "call-of-the-wild", "kind": "ebook", "format": "epub",
       "title": "The Call of the Wild", "author": "Jack London", "year": 1903, "language": "en",
-      "categories": ["adventure"], "rating": 4.6, "rank": 38, "addedAt": "2026-10-27",
+      "categories": ["adventure"], "rating": 4.6, "rank": 52, "addedAt": "2026-10-27",
       "cover": { "art": "jack-london_the-call-of-the-wild", "focus": 0.45, "credit": "Альфред Ковальский, «Зимняя ночь», до 1915" },
       "synopsis": "Пса Бэка крадут из тёплого калифорнийского дома и продают на север, где в разгар золотой лихорадки он становится ездовой собакой. Суровая земля пробуждает в нём древний зов. На английском, Standard Ebooks."
     },
     {
       "id": "eighty-days", "work": "eighty-days", "kind": "ebook", "format": "epub",
       "title": "Around the World in Eighty Days", "author": "Jules Verne", "year": 1873, "language": "en",
-      "categories": ["adventure"], "rating": 4.6, "rank": 40, "addedAt": "2026-10-27",
+      "categories": ["adventure"], "rating": 4.6, "rank": 55, "addedAt": "2026-10-27",
       "cover": { "art": "jules-verne_around-the-world-in-eighty-days_george-makepeace-towle", "focus": 0.45, "credit": "Исаак Левитан, «Поезд в пути», около 1895" },
       "synopsis": "Невозмутимый англичанин Филеас Фогг заключает пари, что объедет вокруг света за восемьдесят дней, и отправляется в путь со слугой Паспарту, а по пятам идёт сыщик Фикс. Поезда, пароходы, слон и спасение вдовы-индианки Ауды. На английском, перевод Джорджа Таула."
     },
     {
       "id": "treasure-island", "work": "treasure-island", "kind": "ebook", "format": "epub",
       "title": "Treasure Island", "author": "Robert Louis Stevenson", "year": 1883, "language": "en",
-      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 43, "addedAt": "2026-10-27",
+      "categories": ["classics", "adventure"], "rating": 4.7, "rank": 59, "addedAt": "2026-10-27",
       "cover": { "art": "robert-louis-stevenson_treasure-island", "focus": 0.4, "credit": "Ньюэлл Конверс Уайет, «Ещё шаг, мистер Хендс», 1911" },
       "synopsis": "Джим Хокинс, сын хозяина трактира «Адмирал Бенбоу», находит в сундуке старого пирата карту острова, где капитан Флинт зарыл свои сокровища, и уходит за ними юнгой на шхуне «Испаньола». Он ещё не знает, что многие в команде — бывшие люди Флинта во главе с одноногим коком Джоном Сильвером. На английском, Standard Ebooks."
     },
     {
       "id": "up-from-slavery", "work": "up-from-slavery", "kind": "ebook", "format": "epub",
       "title": "Up from Slavery", "author": "Booker T. Washington", "year": 1901, "language": "en",
-      "categories": ["bio"], "rating": 4.5, "rank": 46, "addedAt": "2026-10-27",
+      "categories": ["bio"], "rating": 4.5, "rank": 64, "addedAt": "2026-10-27",
       "cover": { "art": "booker-t-washington_up-from-slavery", "focus": 0.4, "credit": "Уильям Сидни Маунт, «Сила музыки», 1847" },
       "synopsis": "Букер Т. Вашингтон родился рабом на виргинской плантации, после отмены рабства мальчиком работал на соляных варницах и в угольной шахте, почти без денег добрался до школы в Хэмптоне — и основал в Алабаме институт Таскиги. Автобиография о труде, учёбе и достоинстве. На английском, Standard Ebooks."
     },
     {
       "id": "walden", "work": "walden", "kind": "ebook", "format": "epub",
       "title": "Walden", "author": "Henry David Thoreau", "year": 1854, "language": "en",
-      "categories": ["psychology", "bio"], "rating": 4.5, "rank": 48, "addedAt": "2026-10-27",
+      "categories": ["psychology", "bio"], "rating": 4.5, "rank": 67, "addedAt": "2026-10-27",
       "cover": { "art": "henry-david-thoreau_walden", "focus": 0.45, "credit": "Иван Шишкин, «Мельница в лесу», 1897" },
       "synopsis": "Два года Генри Дэвид Торо прожил в хижине у Уолденского пруда, которую построил своими руками. Книга о простой жизни, природе, одиночестве и о том, сколько на самом деле нужно человеку. На английском, Standard Ebooks."
     },
     {
       "id": "origin-of-species", "work": "origin-of-species", "kind": "ebook", "format": "epub",
       "title": "On the Origin of Species", "author": "Charles Darwin", "year": 1859, "language": "en",
-      "categories": ["science"], "rating": 4.6, "rank": 50, "addedAt": "2026-10-27",
+      "categories": ["science"], "rating": 4.6, "rank": 72, "addedAt": "2026-10-27",
       "cover": { "art": "charles-darwin_the-origin-of-species", "focus": 0.4, "credit": "Эдвин Ландсир, «Больная обезьяна», 1870" },
       "synopsis": "Книга, изменившая биологию: на примерах домашних голубей, островной фауны и окаменелостей Дарвин показывает, как из изменчивости и естественного отбора вырастает всё многообразие жизни. На английском, Standard Ebooks."
+    },
+    {
+      "id": "jane-eyre", "work": "jane-eyre", "kind": "ebook", "format": "epub",
+      "title": "Jane Eyre", "author": "Charlotte Brontë", "year": 1847, "language": "en",
+      "categories": ["classics", "psychology"], "rating": 4.8, "rank": 12, "addedAt": "2026-10-28",
+      "cover": { "art": "charlotte-bronte_villette", "focus": 0.4, "credit": "Гюстав Курбе, «Мадам Фредерик Брейер», 1858" },
+      "synopsis": "Сирота Джейн Эйр переживает детство у жестокой тётки и в суровой школе Ловуд, становится гувернанткой в поместье Торнфилд и влюбляется в его хозяина, мистера Рочестера. Но в доме есть тайна, запертая на верхнем этаже. Роман о достоинстве и свободе, рассказанный от первого лица. На английском, Standard Ebooks."
+    },
+    {
+      "id": "christmas-carol", "work": "christmas-carol", "kind": "ebook", "format": "epub",
+      "title": "A Christmas Carol", "author": "Charles Dickens", "year": 1843, "language": "en",
+      "categories": ["classics"], "rating": 4.7, "rank": 15, "addedAt": "2026-10-28",
+      "cover": { "art": "charles-dickens_a-christmas-carol", "focus": 0.4, "credit": "Истмен Джонсон, «Новая шляпка», 1876" },
+      "synopsis": "В сочельник к скряге Эбенезеру Скруджу является призрак его покойного компаньона Марли, а за ним — три Духа: Прошлого, Нынешнего и Будущего Рождества. За одну ночь они показывают Скруджу его собственную жизнь и то, чем она кончится. Самая известная рождественская повесть. На английском, Standard Ebooks."
+    },
+    {
+      "id": "great-expectations", "work": "great-expectations", "kind": "ebook", "format": "epub",
+      "title": "Great Expectations", "author": "Charles Dickens", "year": 1861, "language": "en",
+      "categories": ["classics"], "rating": 4.7, "rank": 18, "addedAt": "2026-10-28",
+      "cover": { "art": "charles-dickens_oliver-twist", "focus": 0.4, "credit": "Дороти Стэнли, «Его первый проступок», 1896" },
+      "synopsis": "Деревенский мальчик Пип помогает беглому каторжнику на болотах, потом бывает в доме полубезумной мисс Хэвишем и влюбляется в её холодную воспитанницу Эстеллу. Неизвестный благодетель дарит ему «большие надежды» и отправляет в Лондон становиться джентльменом. На английском, Standard Ebooks."
+    },
+    {
+      "id": "moby-dick", "work": "moby-dick", "kind": "ebook", "format": "epub",
+      "title": "Moby Dick", "author": "Herman Melville", "year": 1851, "language": "en",
+      "categories": ["classics", "adventure"], "rating": 4.6, "rank": 21, "addedAt": "2026-10-28",
+      "cover": { "art": "herman-melville_moby-dick", "focus": 0.4, "credit": "Альберт Пинкхем Райдер, «Летучий голландец», 1887" },
+      "synopsis": "Измаил нанимается на китобойное судно «Пекод», и в море выясняется, что капитан Ахав, потерявший ногу в схватке с белым кашалотом Моби Диком, ведёт корабль не за добычей, а за местью. Роман об океане, одержимости и китобойном промысле во всех подробностях. На английском, Standard Ebooks."
+    },
+    {
+      "id": "wuthering-heights", "work": "wuthering-heights", "kind": "ebook", "format": "epub",
+      "title": "Wuthering Heights", "author": "Emily Brontë", "year": 1847, "language": "en",
+      "categories": ["classics", "psychology"], "rating": 4.6, "rank": 24, "addedAt": "2026-10-28",
+      "cover": { "art": "thomas-hardy_the-return-of-the-native", "focus": 0.4, "credit": "Фредерик Голден Шорт, «Пустошь со стоячей водой», 1925" },
+      "synopsis": "Найдёныш Хитклиф вырастает в доме Эрншо на йоркширских пустошах и связан с Кэтрин Эрншо чувством, которое сильнее их обоих. Отвергнутый, он возвращается богатым и два поколения мстит обеим семьям — Эрншо и Линтонам. Единственный роман Эмили Бронте. На английском, Standard Ebooks."
+    },
+    {
+      "id": "study-in-scarlet", "work": "study-in-scarlet", "kind": "ebook", "format": "epub",
+      "title": "A Study in Scarlet", "author": "Arthur Conan Doyle", "year": 1887, "language": "en",
+      "categories": ["detective"], "rating": 4.6, "rank": 27, "addedAt": "2026-10-28",
+      "cover": { "art": "arthur-conan-doyle_a-study-in-scarlet", "focus": 0.4, "credit": "Бритон Ривьер, «Потерялся?», 1905" },
+      "synopsis": "Первая встреча доктора Ватсона и Шерлока Холмса, квартира на Бейкер-стрит и первое общее дело: в пустом доме найден мёртвый человек, а на стене кровью написано слово «RACHE». Разгадка уводит в прошлое — в американскую пустыню, к мормонам Юты. На английском, Standard Ebooks."
+    },
+    {
+      "id": "tale-of-two-cities", "work": "tale-of-two-cities", "kind": "ebook", "format": "epub",
+      "title": "A Tale of Two Cities", "author": "Charles Dickens", "year": 1859, "language": "en",
+      "categories": ["classics"], "rating": 4.6, "rank": 30, "addedAt": "2026-10-28",
+      "cover": { "art": "charles-dickens_a-tale-of-two-cities", "focus": 0.4, "credit": "Феликс-Жозеф Баррьяс, «Камиль Демулен в Пале-Рояле», 1888" },
+      "synopsis": "Лондон и Париж накануне и во время Французской революции: доктор Манетт, восемнадцать лет просидевший в Бастилии, его дочь Люси, эмигрант Шарль Дарней, похожий на него как две капли воды циник Сидни Картон — и мадам Дефарж, которая вплетает в своё вязанье имена будущих жертв. На английском, Standard Ebooks."
+    },
+    {
+      "id": "tom-sawyer", "work": "tom-sawyer", "kind": "ebook", "format": "epub",
+      "title": "The Adventures of Tom Sawyer", "author": "Mark Twain", "year": 1876, "language": "en",
+      "categories": ["adventure"], "rating": 4.6, "rank": 33, "addedAt": "2026-10-28",
+      "cover": { "art": "mark-twain_the-adventures-of-tom-sawyer", "focus": 0.4, "credit": "Истмен Джонсон, «Мальчик с удочкой», 1860-е" },
+      "synopsis": "Том Сойер живёт у тёти Полли в городке на Миссисипи: прогуливает школу, красит забор чужими руками, влюбляется в Бекки Тэтчер, а с Геком Финном становится свидетелем убийства на ночном кладбище. Книга о детстве, которую с удовольствием читают и взрослые. На английском, Standard Ebooks."
+    },
+    {
+      "id": "wizard-of-oz", "work": "wizard-of-oz", "kind": "ebook", "format": "epub",
+      "title": "The Wonderful Wizard of Oz", "author": "L. Frank Baum", "year": 1900, "language": "en",
+      "categories": ["adventure"], "rating": 4.5, "rank": 36, "addedAt": "2026-10-28",
+      "cover": { "art": "l-frank-baum_the-wonderful-wizard-of-oz", "focus": 0.4, "credit": "Йозеф Антон Кох, «Героический пейзаж с радугой», 1824" },
+      "synopsis": "Ураган уносит Дороти из Канзаса вместе с домиком и пёсиком Тото в волшебную страну Оз. По дороге из жёлтого кирпича к Изумрудному городу к ней присоединяются Страшила, Железный Дровосек и Трусливый Лев — каждый надеется получить у Волшебника то, чего ему не хватает. На английском, Standard Ebooks."
+    },
+    {
+      "id": "jungle-book", "work": "jungle-book", "kind": "ebook", "format": "epub",
+      "title": "The Jungle Book", "author": "Rudyard Kipling", "year": 1894, "language": "en",
+      "categories": ["adventure"], "rating": 4.6, "rank": 39, "addedAt": "2026-10-28",
+      "cover": { "art": "rudyard-kipling_the-jungle-book", "focus": 0.4, "credit": "Катберт Эдмунд Суон, «Час расплаты», около 1900" },
+      "synopsis": "Человеческий детёныш Маугли вырастает в волчьей стае; его учат медведь Балу и пантера Багира, а тигр Шер-Хан ждёт своего часа. Кроме историй о Маугли — «Рикки-Тикки-Тави», «Белый котик» и другие рассказы. На английском, Standard Ebooks."
+    },
+    {
+      "id": "huckleberry-finn", "work": "huckleberry-finn", "kind": "ebook", "format": "epub",
+      "title": "The Adventures of Huckleberry Finn", "author": "Mark Twain", "year": 1884, "language": "en",
+      "categories": ["classics", "adventure"], "rating": 4.6, "rank": 42, "addedAt": "2026-10-28",
+      "cover": { "art": "mark-twain_the-adventures-of-huckleberry-finn", "focus": 0.4, "credit": "Ньюэлл Конверс Уайет, «Назад на ферму», 1908" },
+      "synopsis": "Гек Финн сбегает от отца-пьяницы и плывёт на плоту вниз по Миссисипи вместе с Джимом, беглым рабом. По пути — мошенники «король» и «герцог», кровная вражда двух семейств и выбор, который Гек делает против всего, чему его учили. На английском, Standard Ebooks."
+    },
+    {
+      "id": "sign-of-four", "work": "sign-of-four", "kind": "ebook", "format": "epub",
+      "title": "The Sign of the Four", "author": "Arthur Conan Doyle", "year": 1890, "language": "en",
+      "categories": ["detective"], "rating": 4.5, "rank": 45, "addedAt": "2026-10-28",
+      "cover": { "art": "arthur-conan-doyle_the-sign-of-the-four", "focus": 0.4, "credit": "Эмиль Клаус, «Ненастье», 1917" },
+      "synopsis": "К Холмсу приходит мисс Мэри Морстен: её отец бесследно исчез десять лет назад, а сама она каждый год получает по почте жемчужину от неизвестного. Дело ведёт к сокровищам Агры, одноногому каторжнику и погоне по ночной Темзе; здесь Ватсон встречает свою будущую жену. На английском, Standard Ebooks."
+    },
+    {
+      "id": "three-men-in-a-boat", "work": "three-men-in-a-boat", "kind": "ebook", "format": "epub",
+      "title": "Three Men in a Boat", "author": "Jerome K. Jerome", "year": 1889, "language": "en",
+      "categories": ["classics"], "rating": 4.6, "rank": 48, "addedAt": "2026-10-28",
+      "cover": { "art": "jerome-k-jerome_three-men-in-a-boat", "focus": 0.4, "credit": "Ньюэлл Конверс Уайет, «Наутро настал ясный день — жаркий день», 1918" },
+      "synopsis": "Трое приятелей, уверенных, что у них все болезни на свете, кроме воспаления коленной чашечки, решают отдохнуть и отправляются в лодке вверх по Темзе — не считая собаки Монморанси. Самая смешная книга о путешествии, которое идёт не по плану. На английском, Standard Ebooks."
+    },
+    {
+      "id": "invisible-man", "work": "invisible-man", "kind": "ebook", "format": "epub",
+      "title": "The Invisible Man", "author": "H. G. Wells", "year": 1897, "language": "en",
+      "categories": ["scifi"], "rating": 4.5, "rank": 51, "addedAt": "2026-10-28",
+      "cover": { "art": "h-g-wells_the-invisible-man", "focus": 0.4, "credit": "Поль Гоген, «Деревня в снегу», 1894" },
+      "synopsis": "Посреди зимы в деревенскую гостиницу приезжает незнакомец, весь в бинтах, в тёмных очках и с накладным носом. Учёный Гриффин нашёл способ стать невидимым, но вернуть себе видимость не может — и невидимость делает из него чудовище. На английском, Standard Ebooks."
+    },
+    {
+      "id": "secret-garden", "work": "secret-garden", "kind": "ebook", "format": "epub",
+      "title": "The Secret Garden", "author": "Frances Hodgson Burnett", "year": 1911, "language": "en",
+      "categories": ["classics"], "rating": 4.6, "rank": 54, "addedAt": "2026-10-28",
+      "cover": { "art": "frances-hodgson-burnett_the-secret-garden", "focus": 0.4, "credit": "Винсент Ван Гог, «Сад Добиньи», 1890" },
+      "synopsis": "Избалованная и одинокая Мэри Леннокс, осиротев в Индии, попадает в мрачное поместье дяди на йоркширских пустошах. Там она находит ключ от сада, запертого десять лет назад, — и вместе с садом возвращает к жизни себя и больного кузена Колина. На английском, Standard Ebooks."
+    },
+    {
+      "id": "moonstone", "work": "moonstone", "kind": "ebook", "format": "epub",
+      "title": "The Moonstone", "author": "Wilkie Collins", "year": 1868, "language": "en",
+      "categories": ["detective"], "rating": 4.5, "rank": 57, "addedAt": "2026-10-28",
+      "cover": { "art": "wilkie-collins_the-moonstone", "focus": 0.4, "credit": "Анн-Луи Жироде-Триозон, этюд к «Портрету индийца», 1807" },
+      "synopsis": "Огромный жёлтый алмаз, когда-то похищенный из индийского храма, достаётся в наследство Рейчел Вериндер — и в ночь после её дня рождения исчезает. За камнем следят трое индийских жрецов, расследует сержант Кафф, а рассказ передаётся от одного свидетеля к другому. Один из первых детективных романов. На английском, Standard Ebooks."
+    },
+    {
+      "id": "wind-in-the-willows", "work": "wind-in-the-willows", "kind": "ebook", "format": "epub",
+      "title": "The Wind in the Willows", "author": "Kenneth Grahame", "year": 1908, "language": "en",
+      "categories": ["classics"], "rating": 4.6, "rank": 60, "addedAt": "2026-10-28",
+      "cover": { "art": "george-eliot_the-mill-on-the-floss", "focus": 0.4, "credit": "Джон Констебл, «Водяная мельница в Гиллингеме», 1827" },
+      "synopsis": "Крот бросает весеннюю уборку, выходит к реке и знакомится с Водяной Крысой; к ним присоединяются мудрый Барсук и хвастливый мистер Жаб, помешанный на автомобилях. Сказка о дружбе, доме и английской реке. На английском, Standard Ebooks."
+    },
+    {
+      "id": "father-brown", "work": "father-brown", "kind": "ebook", "format": "epub",
+      "title": "The Innocence of Father Brown", "author": "G. K. Chesterton", "year": 1911, "language": "en",
+      "categories": ["detective"], "rating": 4.5, "rank": 63, "addedAt": "2026-10-28",
+      "cover": { "art": "g-k-chesterton_the-innocence-of-father-brown", "focus": 0.4, "credit": "Камиль Коро, «Марисель, дорога к церкви», 1866" },
+      "synopsis": "Отец Браун — маленький круглолицый католический священник с вечным зонтиком, которого никто не принимает всерьёз. Двенадцать рассказов о том, как он раскрывает преступления, разбираясь не столько в уликах, сколько в людях; рядом с ним — великий вор Фламбо, который станет сыщиком. На английском, Standard Ebooks."
+    },
+    {
+      "id": "emma", "work": "emma", "kind": "ebook", "format": "epub",
+      "title": "Emma", "author": "Jane Austen", "year": 1815, "language": "en",
+      "categories": ["classics"], "rating": 4.5, "rank": 66, "addedAt": "2026-10-28",
+      "cover": { "art": "jane-austen_emma", "focus": 0.4, "credit": "Фредерик Гудолл, «Рика», 1894" },
+      "synopsis": "Эмма Вудхаус красива, умна, богата и уверена, что лучше всех знает, кому за кого выходить замуж. Её сватовство в провинциальном Хайбери оборачивается путаницей — пока она не понимает, что совсем не разбиралась в собственном сердце. На английском, Standard Ebooks."
+    },
+    {
+      "id": "doctor-moreau", "work": "doctor-moreau", "kind": "ebook", "format": "epub",
+      "title": "The Island of Doctor Moreau", "author": "H. G. Wells", "year": 1896, "language": "en",
+      "categories": ["scifi"], "rating": 4.4, "rank": 68, "addedAt": "2026-10-28",
+      "cover": { "art": "h-g-wells_the-island-of-doctor-moreau", "focus": 0.4, "credit": "Уинслоу Хомер, «Пушечная скала», 1895" },
+      "synopsis": "После кораблекрушения Эдвард Прендик попадает на остров, где доктор Моро, изгнанный из Лондона вивисектор, превращает зверей в подобие людей и держит их в повиновении законом и страхом. Ранний научно-фантастический роман о границе между человеком и животным. На английском, Standard Ebooks."
+    },
+    {
+      "id": "mrs-dalloway", "work": "mrs-dalloway", "kind": "ebook", "format": "epub",
+      "title": "Mrs. Dalloway", "author": "Virginia Woolf", "year": 1925, "language": "en",
+      "categories": ["classics", "psychology"], "rating": 4.4, "rank": 70, "addedAt": "2026-10-28",
+      "cover": { "art": "gustave-flaubert_madame-bovary_eleanor-marx-aveling", "focus": 0.4, "credit": "Джон Сингер Сарджент, «Портрет леди Агнью», 1892" },
+      "synopsis": "Один июньский день 1923 года в Лондоне: Кларисса Дэллоуэй готовится к вечернему приёму, а контуженный на войне Септимус Смит теряет связь с реальностью. Роман потока сознания, в котором прошлое и настоящее звучат одновременно. На английском, Standard Ebooks."
+    },
+    {
+      "id": "dubliners", "work": "dubliners", "kind": "ebook", "format": "epub",
+      "title": "Dubliners", "author": "James Joyce", "year": 1914, "language": "en",
+      "categories": ["classics"], "rating": 4.4, "rank": 71, "addedAt": "2026-10-28",
+      "cover": { "art": "james-joyce_dubliners", "focus": 0.4, "credit": "Уолтер Осборн, «В дублинском парке, свет и тень», около 1895" },
+      "synopsis": "Пятнадцать рассказов о жителях Дублина начала XX века — от детства до старости: мальчишки, конторские служащие, певицы, политики — и финальные «Мёртвые», одна из лучших новелл столетия. Первая книга прозы Джеймса Джойса. На английском, Standard Ebooks."
+    },
+    {
+      "id": "thirty-nine-steps", "work": "thirty-nine-steps", "kind": "ebook", "format": "epub",
+      "title": "The Thirty-Nine Steps", "author": "John Buchan", "year": 1915, "language": "en",
+      "categories": ["adventure"], "rating": 4.4, "rank": 73, "addedAt": "2026-10-28",
+      "cover": { "art": "john-buchan_the-thirty-nine-steps", "focus": 0.4, "credit": "Питер Грэм, «Бродячие тени», 1878" },
+      "synopsis": "Скучающий в Лондоне Ричард Ханней прячет у себя соседа, который рассказывает о заговоре накануне войны, — и через несколько дней находит его убитым в своей квартире. Подозреваемый в убийстве и преследуемый шпионами, Ханней бежит в Шотландию, чтобы понять, что значат «тридцать девять ступеней». На английском, Standard Ebooks."
+    },
+    {
+      "id": "poe-short-fiction", "work": "poe-short-fiction", "kind": "ebook", "format": "epub",
+      "title": "Short Fiction", "author": "Edgar Allan Poe", "year": 1845, "language": "en",
+      "categories": ["classics", "detective"], "rating": 4.6, "rank": 74, "addedAt": "2026-10-28",
+      "cover": { "art": "horace-walpole_the-castle-of-otranto", "focus": 0.4, "credit": "Карл Густав Карус, «Готические окна в руинах монастыря в Ойбине», около 1828" },
+      "synopsis": "Рассказы Эдгара По: «Падение дома Ашеров», «Колодец и маятник», «Чёрный кот», «Маска Красной смерти», «Золотой жук» и «Убийство на улице Морг» — первая история о сыщике Огюсте Дюпене. Готика, ужас и рождение детектива. На английском, Standard Ebooks."
+    },
+    {
+      "id": "voyage-of-the-beagle", "work": "voyage-of-the-beagle", "kind": "ebook", "format": "epub",
+      "title": "The Voyage of the Beagle", "author": "Charles Darwin", "year": 1839, "language": "en",
+      "categories": ["science"], "rating": 4.4, "rank": 76, "addedAt": "2026-10-28",
+      "cover": { "art": "charles-darwin_the-voyage-of-the-beagle", "focus": 0.4, "credit": "Томас Сомерскейлс, «Корабль с селитрой», 1907" },
+      "synopsis": "Пять лет, с 1831 по 1836 год, молодой натуралист Чарльз Дарвин плавал вокруг света на корабле «Бигль»: Бразилия, Огненная Земля, Анды, Галапагосские острова, Австралия. Дневник путешествия, в котором уже видны вопросы, приведшие его к теории эволюции. С иллюстрациями. На английском, Standard Ebooks."
     }
   ]
 }
