@@ -113,12 +113,19 @@ function el(): HTMLAudioElement {
     setPlaybackState("playing");
   });
   a.addEventListener("pause", () => {
+    // Nothing is loading for a paused element (whatever was waiting for data before).
+    set({ isLoading: false });
     if (unlocking()) return;
     set({ isPlaying: false });
     setPlaybackState("paused");
     void persist(true);
   });
-  a.addEventListener("waiting", () => set({ isLoading: true }));
+  // The spinner is for playback that was asked for and waits for data. A paused element also reports waiting —
+  // iOS dropping its file while the app is away, a seek while paused, the silent unlock clip — and would then
+  // spin until the next tap.
+  a.addEventListener("waiting", () => {
+    if (!a.paused && !unlocking()) set({ isLoading: true });
+  });
   a.addEventListener("playing", () => {
     set({ isLoading: false });
     nudge(a);
@@ -414,6 +421,8 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
 async function startPlayback(a: HTMLAudioElement): Promise<void> {
   try {
     await a.play();
+    // iOS may settle play() and still not run (an interruption, a dropped file): show the play button then.
+    if (a.paused) set({ isLoading: false });
   } catch {
     a.muted = false;
     set({ isPlaying: false, isLoading: false });

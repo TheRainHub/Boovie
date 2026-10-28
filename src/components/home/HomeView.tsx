@@ -43,7 +43,7 @@ function NowScreen({ current }: { current: CurrentBook }) {
     <DropTarget>
       <main className="relative isolate min-h-dvh pb-10 text-t-ink" style={style}>
         <CoverBackdrop fileId={book.coverFileId} url={book.coverUrl} fixed />
-        <TopNav toned padClass="px-6 wide:px-10" className="mx-auto max-w-[600px] pt-[calc(var(--sat)+14px)] wide:max-w-[1180px]" />
+        <TopNav toned className="pt-[calc(var(--sat)+14px)]" />
         {audio ? <ListeningNow current={current} /> : <ReadingNow current={current} />}
         <ContinueRow exclude={[book.id, book.companionId]} />
       </main>
@@ -79,7 +79,7 @@ function ReadingNow({ current }: { current: CurrentBook }) {
   const chapters = useChapterList(book.id);
   const started = pct > 0.001;
   return (
-    <div className="mx-auto max-w-[600px] px-6 wide:grid wide:max-w-[1100px] wide:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] wide:items-center wide:gap-14 wide:px-10">
+    <div className="mx-auto max-w-[600px] px-5 wide:grid wide:max-w-[1100px] wide:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] wide:items-center wide:gap-14 wide:px-10">
       <button
         type="button"
         onClick={() => router.push(`/book/?id=${book.id}`)}
@@ -118,7 +118,7 @@ function NowHero({ current }: { current: CurrentBook }) {
   const { book, progress } = current;
   const pct = (progress?.percentage ?? 0) / 100;
   return (
-    <div className="mx-auto max-w-[600px] px-6">
+    <div className="mx-auto max-w-[600px] px-5">
       <div className="mx-auto mt-6 w-[min(84vw,340px)] sm:w-[min(70vw,460px)]">
         <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square sizes="lg" shadow={false} className="shadow-[0_26px_50px_-18px_var(--t-shadow)]" />
       </div>
@@ -166,8 +166,8 @@ function ContinueRow({ exclude }: { exclude: (string | undefined)[] }) {
   if (!row.length) return null;
   return (
     <section className="mx-auto mt-10 max-w-[600px] wide:max-w-[1180px]">
-      <h2 className="px-6 text-[18px] font-bold sm:text-[20px] wide:px-10">{started.length ? "Продолжить" : "Ещё на полке"}</h2>
-      <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-6 pb-2 wide:px-10">
+      <h2 className="px-5 text-[18px] font-bold sm:text-[20px] wide:px-10">{started.length ? "Продолжить" : "Ещё на полке"}</h2>
+      <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-5 pb-2 wide:px-10">
         {row.slice(0, 12).map((b, i) => (
           <ContinueItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} />
         ))}
@@ -196,8 +196,8 @@ function Welcome() {
   return (
     <DropTarget>
       <main className="min-h-dvh pb-10 text-t-ink" style={{ ...style, background: "var(--t-bg)" }}>
-        <TopNav toned padClass="px-6" className="mx-auto max-w-[600px] pt-[calc(var(--sat)+14px)]" />
-        <div className="mx-auto max-w-[600px] px-6 pt-12">
+        <TopNav toned className="pt-[calc(var(--sat)+14px)]" />
+        <div className="mx-auto max-w-[600px] px-5 pt-12">
           <h1 className="display text-[38px] leading-[1.02]">Здесь будет ваша книга</h1>
           <p className="mt-4 text-[17px] leading-[1.5] text-t-ink-2">
             Добавьте PDF, FB2, EPUB или аудиокнигу — файлом, папкой или архивом. Всё хранится на телефоне и работает без интернета.
@@ -212,11 +212,11 @@ function Welcome() {
           </div>
         </div>
         <section className="mx-auto mt-12 max-w-[600px]">
-          <div className="flex items-baseline justify-between px-6">
+          <div className="flex items-baseline justify-between px-5">
             <h2 className="text-[18px] font-bold">Или возьмите в магазине</h2>
             <Link href="/store/" className="text-[14px] font-semibold text-t-ink-2">Все {STORE_ITEMS.length}</Link>
           </div>
-          <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-6 pb-2">
+          <div className="no-scrollbar mt-3 flex items-end gap-3.5 overflow-x-auto px-5 pb-2">
             {picks.map((i) => (
               <Link key={i.id} href={`/store/?item=${i.id}`} aria-label={i.title} className="block shrink-0" style={{ width: i.kind === "audiobook" ? 112 : 92 }}>
                 <BookCover url={i.coverUrl} title={i.title} author={i.author} square={i.kind === "audiobook"} sizes="sm" />

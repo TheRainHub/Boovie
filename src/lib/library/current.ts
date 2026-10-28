@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePlayer } from "../audio/player";
 import { getDB } from "../storage/db";
 import type { BookRecord, ProgressRecord } from "../storage/types";
@@ -37,3 +38,41 @@ export function activityLabel(current: CurrentBook | null | undefined): string {
   if (!current) return "Главная";
   return current.book.format === "audio" ? "Слушаю" : "Читаю";
 }
+
+const LABEL_KEY = "boowie-activity-label";
+let lastLabel: string | null = null;
+
+function storedLabel(): string {
+  if (lastLabel === null) {
+    try {
+      lastLabel = localStorage.getItem(LABEL_KEY);
+    } catch {
+      /* no storage */
+    }
+    lastLabel ??= "Главная";
+  }
+  return lastLabel;
+}
+
+/**
+ * `activityLabel` for the navigation. Every page mounts its own navigation, and the current book takes a moment
+ * to load: until then the word it showed last is kept (also across launches), so it doesn't flash «Главная».
+ */
+export function useActivityLabel(): string {
+  const current = useCurrentBook();
+  // The static export is prerendered without storage: the first client render must say what the HTML says.
+  const remembered = useSyncExternalStore(noSubscribe, storedLabel, () => "Главная");
+  const label = current === undefined ? remembered : activityLabel(current);
+  useEffect(() => {
+    if (current === undefined || label === lastLabel) return;
+    lastLabel = label;
+    try {
+      localStorage.setItem(LABEL_KEY, label);
+    } catch {
+      /* no storage */
+    }
+  }, [current, label]);
+  return label;
+}
+
+const noSubscribe = () => () => {};

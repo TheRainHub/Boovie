@@ -5,24 +5,25 @@ import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/profile/Avatar";
 import { cn } from "@/components/ui/primitives";
 import { useIdentity } from "@/lib/account/identity";
-import { activityLabel, useCurrentBook } from "@/lib/library/current";
+import { useActivityLabel } from "@/lib/library/current";
 
 /**
  * Navigation as three big words at the top of the screen — «Слушаю · Книги · Магазин» — instead of a tab bar,
  * with the profile as an avatar at the end. The first word follows what you are doing (Слушаю / Читаю) and
  * leads to the home screen.
  */
-export function TopNav({ className, toned, padClass = "px-5 sm:px-8" }: { className?: string; toned?: boolean; padClass?: string }) {
+export function TopNav({ className, toned }: { className?: string; toned?: boolean }) {
   const pathname = usePathname() ?? "/";
-  const current = useCurrentBook();
+  const label = useActivityLabel();
   const user = useIdentity((s) => s.user);
   const items = [
-    { href: "/", label: activityLabel(current), active: pathname === "/" },
+    { href: "/", label, active: pathname === "/" },
     { href: "/library/", label: "Книги", active: pathname.startsWith("/library") },
     { href: "/store/", label: "Магазин", active: pathname.startsWith("/store") },
   ];
   return (
-    <div className={cn("flex items-center gap-3", padClass, className)}>
+    // The same box on every page, so switching sections never moves the words.
+    <div className={cn("mx-auto flex w-full max-w-[1280px] items-center gap-3 px-5 sm:px-8", className)}>
       <nav aria-label="Разделы" className="no-scrollbar flex min-w-0 flex-1 items-baseline gap-4 overflow-x-auto whitespace-nowrap sm:gap-6">
         {items.map((it) => (
           <Link
