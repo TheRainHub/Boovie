@@ -16,7 +16,9 @@ landscape the player and the store details go two-column and the reader shows a 
   «continue» button for texts, plus the other books you have started.
 - **Книги (library)** — filters Все / Читаю / Слушаю / Файлы, a «continue» card in the book's colour, a cover grid
   with progress, «Добавить»: files (PDF/FB2/EPUB/MP3/M4B/ZIP, any mix) or a whole folder (one audiobook per
-  folder, one file per chapter, CD/Disc subfolders merged, cover from the folder or found by name).
+  folder, one file per chapter, CD/Disc subfolders merged, cover from the folder or found by name). An audiobook
+  series tagged as one album («Ведьмак») takes each book's name from the file, folder or title tag when that name
+  says more; «…» → «Название и главы» renames the book, author, narrator and chapters (statistics follow the book).
 - **Real parsers** (`src/lib/parsers/`), no mocks:
   - FB2 — `DOMParser` + `TextDecoder` (UTF-8, windows-1251, koi8-r, mislabelled files), `.fb2.zip`, base64 cover,
     annotation, nested `<section>` → chapters with part groups, footnotes body.

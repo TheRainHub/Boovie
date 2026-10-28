@@ -11,7 +11,7 @@
  */
 import type { AuthError, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { withBase } from "../basePath";
-import { flushActivity, onActivityWritten, rowId } from "../stats/activity";
+import { flushActivity, forgetMovedBookKeys, movedBookKeys, onActivityWritten, rowId } from "../stats/activity";
 import { getDB } from "../storage/db";
 import type { ActivityRecord } from "../storage/types";
 import { deviceId, GUEST, useIdentity, type AccountUser } from "./identity";
@@ -246,6 +246,13 @@ export function syncNow(opts: { pull?: boolean } = {}): Promise<void> {
       const c = await client();
       const db = getDB();
       const device = deviceId();
+      // Renamed books: drop the rows uploaded under the old name first; the renamed rows are among the dirty ones.
+      const moved = movedBookKeys(user.id);
+      for (const key of moved) {
+        const { error } = await c.from(TABLE).delete().eq("user_id", user.id).eq("device_id", device).eq("book_key", key);
+        if (error) throw new Error(error.message);
+      }
+      forgetMovedBookKeys(user.id, moved);
       const dirty = (await db.activity.where("[owner+deviceId]").equals([user.id, device]).toArray()).filter((r) => (r.syncedAt ?? 0) < r.updatedAt);
       for (let i = 0; i < dirty.length; i += 500) {
         const chunk = dirty.slice(i, i + 500);

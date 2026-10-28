@@ -228,6 +228,33 @@ async function main() {
     assert.equal(cleanTitle("The Time Machine (audiobook).m4b"), "The Time Machine");
     assert.deepEqual(splitAuthorTitle("Сапковский Анджей - Владычица озера (2010) [MP3]"), { author: "Сапковский Анджей", title: "Владычица озера" });
     assert.equal(splitAuthorTitle("Владычица озера"), null);
+    assert.deepEqual(splitAuthorTitle("Сапковский Анджей - Ведьмак. Книга 1. Последнее желание [MP3]", true), { author: "Сапковский Анджей", title: "Ведьмак. Книга 1. Последнее желание" });
+  });
+  await test("audiobook title: a name that says more than a shared album tag wins", async () => {
+    const { audioBookTitle } = await import("../src/lib/parsers/audioParser");
+    const author = "Анджей Сапковский";
+    // A series tagged as one album: the file, the title tag or the folder names the book.
+    assert.equal(audioBookTitle({ album: "Ведьмак", tag: "Ведьмак", file: "Ведьмак 1. Последнее желание.mp3", author }), "Ведьмак 1. Последнее желание");
+    assert.equal(audioBookTitle({ album: "Ведьмак", tag: "Ведьмак. Меч предназначения", file: "02.m4b", author }), "Ведьмак. Меч предназначения");
+    assert.equal(audioBookTitle({ album: "Ведьмак", file: "03 Анджей Сапковский - Ведьмак. Кровь эльфов [128 kbps].mp3", author }), "Ведьмак. Кровь эльфов");
+    assert.equal(audioBookTitle({ album: "Ведьмак", tag: "Последнее желание", file: "01 - Последнее желание.mp3", author }), "Последнее желание");
+    assert.equal(audioBookTitle({ album: "Ведьмак", folder: "Ведьмак 4. Час презрения", file: "Глава", author }), "Ведьмак 4. Час презрения");
+    // The album is the book when the other names are pieces or say less.
+    assert.equal(audioBookTitle({ album: "Мастер и Маргарита", tag: "Часть 1", file: "01.mp3" }), "Мастер и Маргарита");
+    assert.equal(audioBookTitle({ album: "Мастер и Маргарита", tag: "Глава первая", file: "Глава первая.mp3" }), "Мастер и Маргарита");
+    assert.equal(audioBookTitle({ album: "Мастер и Маргарита", tag: "Мастер и Маргарита", file: "mim.mp3" }), "Мастер и Маргарита");
+    // No album: folder, then title tag, then file.
+    assert.equal(audioBookTitle({ tag: "Track 01", file: "Пикник на обочине.mp3" }), "Пикник на обочине");
+    assert.equal(audioBookTitle({ file: "Стругацкие - Пикник на обочине.m4b", author: "Аркадий и Борис Стругацкие" }), "Пикник на обочине");
+  });
+  await test("audiobook: an untagged loose file named «Автор - Название» gives both", async () => {
+    const bytes = readFileSync(join(root, "audio", readdirSync(join(root, "audio")).find((n) => n.startsWith("dama-s-sobachkoy-audio-"))!));
+    // Drop the ID3v2 tag so only the name is left.
+    const size = ((bytes[6] & 0x7f) << 21) | ((bytes[7] & 0x7f) << 14) | ((bytes[8] & 0x7f) << 7) | (bytes[9] & 0x7f);
+    const bare = bytes.subarray(bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33 ? 10 + size : 0);
+    const b = await parseAudio([{ blob: new Blob([bare]), name: "Сапковский Анджей - Ведьмак. Книга 2. Меч предназначения.mp3" }]);
+    assert.equal(b.author, "Сапковский Анджей");
+    assert.equal(b.title, "Ведьмак. Книга 2. Меч предназначения");
   });
   await test("a folder of chapter files becomes one book; CD subfolders merge; folder image is the cover", async () => {
     const f = (path: string, size = 10, type = "") => ({ blob: new Blob([new Uint8Array(size)], { type }), name: path.split("/").pop()!, path });

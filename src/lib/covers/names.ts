@@ -24,19 +24,30 @@ export function stripExt(name: string): string {
   return name.replace(/\.(fb2\.zip|[a-z0-9]{2,5})$/i, "");
 }
 
-/** Remove release noise, part numbers and separators; keep the work's name. */
-export function cleanTitle(raw: string): string {
-  let s = stripExt(raw).replace(/[_]+/g, " ");
+const tidy = (s: string) => s.replace(/\s{2,}/g, " ").replace(/^[\s.,:;–—-]+|[\s.,:;–—-]+$/g, "").trim();
+
+/**
+ * Remove release noise and the leading track number, keep part numbers: "02. Ведьмак. Книга 1 [MP3].mp3" →
+ * "Ведьмак. Книга 1". `file: false` for tag values, which have no extension to drop.
+ */
+export function tidyName(raw: string, file = true): string {
+  const base = file ? stripExt(raw) : raw;
+  let s = base.replace(/[_]+/g, " ");
   for (const rx of NOISE) s = s.replace(rx, " ");
-  s = s.replace(LEADING_TRACK, "");
-  s = s.replace(PART, "");
-  s = s.replace(/\s{2,}/g, " ").replace(/^[\s.,:;–—-]+|[\s.,:;–—-]+$/g, "").trim();
-  return s || stripExt(raw).trim();
+  return tidy(s.replace(LEADING_TRACK, "")) || base.trim();
 }
 
-/** "Автор - Название" (folder convention) → parts; returns null when there is no separator. */
-export function splitAuthorTitle(raw: string): { author: string; title: string } | null {
-  const s = cleanTitle(raw);
+/** Remove release noise, part numbers and separators; keep the work's name. */
+export function cleanTitle(raw: string): string {
+  return tidy(tidyName(raw).replace(PART, "")) || stripExt(raw).trim();
+}
+
+/**
+ * "Автор - Название" (folder convention) → parts; returns null when there is no separator. `keepParts` keeps
+ * "Том 2" in the title; `file: false` for folder names and tags.
+ */
+export function splitAuthorTitle(raw: string, keepParts = false, file = true): { author: string; title: string } | null {
+  const s = keepParts ? tidyName(raw, file) : cleanTitle(raw);
   const m = /^(.{2,60}?)\s+[-–—]\s+(.{2,})$/u.exec(s);
   if (!m) return null;
   return { author: m[1].trim(), title: m[2].trim() };

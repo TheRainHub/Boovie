@@ -420,6 +420,24 @@ async function startPlayback(a: HTMLAudioElement): Promise<void> {
   }
 }
 
+/** The book was renamed (or its cover redrawn): show the new names and cover in the player and on the lock screen. */
+export async function refreshPlayerInfo(bookId: string): Promise<void> {
+  if (get().bookId !== bookId) return;
+  const [book, rows] = await Promise.all([getDB().books.get(bookId), getChapters(bookId)]);
+  if (!book || get().bookId !== bookId) return;
+  const cover = book.coverFileId ? (await getFileUrl(book.coverFileId)) ?? book.coverUrl : book.coverUrl;
+  const titles = new Map(rows.map((r) => [r.index, r.title]));
+  set({
+    title: book.title,
+    author: book.author,
+    narrator: book.narrator,
+    cover,
+    artwork: book.coverUrl,
+    chapters: get().chapters.map((c) => ({ ...c, title: titles.get(c.index) ?? c.title })),
+  });
+  updateMediaMetadata();
+}
+
 export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; chapterIndex?: number; time?: number; touch?: boolean } = {}): Promise<void> {
   const a = el();
   const s = get();

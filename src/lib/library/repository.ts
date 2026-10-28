@@ -2,6 +2,7 @@ import { deleteFiles, newId, putFile, revokeFileUrls } from "../storage/blobStor
 import { getDB } from "../storage/db";
 import type { BookRecord, Bookmark, ChapterRecord, ProgressRecord } from "../storage/types";
 import type { ParsedBook } from "../parsers/types";
+import { renameBookActivity } from "../stats/activity";
 
 export interface SaveOptions {
   isStoreBook?: boolean;
@@ -138,6 +139,25 @@ export async function setBookCover(
     revokeFileUrls([old]);
     await deleteFiles([old]);
   }
+}
+
+export interface BookInfo {
+  title: string;
+  author: string;
+  narrator?: string;
+}
+
+/** Rename a book and (by index) its chapters; its statistics follow the new name. */
+export async function updateBookInfo(bookId: string, info: BookInfo, chapterTitles: Map<number, string> = new Map()): Promise<void> {
+  const db = getDB();
+  const before = await db.books.get(bookId);
+  if (!before) return;
+  const after: BookRecord = { ...before, title: info.title, author: info.author, narrator: info.narrator || undefined };
+  await db.transaction("rw", db.books, db.chapters, async () => {
+    await db.books.update(bookId, { title: after.title, author: after.author, narrator: after.narrator });
+    for (const [index, title] of chapterTitles) await db.chapters.update(`${bookId}:${index}`, { title });
+  });
+  if (before.title !== after.title || before.author !== after.author) await renameBookActivity(before, after);
 }
 
 export async function linkCompanions(aId: string, bId: string): Promise<void> {

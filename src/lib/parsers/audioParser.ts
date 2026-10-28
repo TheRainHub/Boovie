@@ -4,6 +4,7 @@
  *  - Many files: sorted by disc/track tags when every file has them, otherwise naturally by filename;
  *    every file becomes a chapter (or several, if it carries its own chapter marks).
  */
+import { splitAuthorTitle, surname, tidyName } from "../covers/names";
 import { readAudioMetadata, type AudioMetadata } from "./audioMetadata";
 import { mimeFromName, naturalCompare, stripExtension } from "./text";
 import { ParseError, type ParsedBook, type ParsedChapter, type ProgressFn } from "./types";
@@ -47,6 +48,45 @@ export function chapterTitleFromFile(name: string): string {
   const base = stripExtension(name).replace(/_/g, " ").trim();
   const stripped = base.replace(/^\s*\d{1,3}\s*[-._)]?\s+(?=\S)/u, "");
   return /\p{L}/u.test(stripped) ? stripped : base;
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+/** "Часть 3", "Глава первая", "Track 07", "07": the name of a piece, not of a book. */
+const PIECE = /^(?:(?:часть|глава|том|книга|трек|запись|файл|диск|part|chapter|track|book|volume|disc|cd)(?:[\s._-]+\S+)?|[\divxlc\s._-]*)$/iu;
+
+/** `name` contains `base` as whole words and says more: "Ведьмак 1. Последнее желание" over "Ведьмак". */
+function extendsName(name: string, base: string): boolean {
+  const n = norm(name);
+  const b = norm(base);
+  return !!b && n !== b && ` ${n} `.includes(` ${b} `);
+}
+
+/** "Анджей Сапковский - Последнее желание" → "Последнее желание" when the left side names the author. */
+function withoutAuthor(name: string, author?: string): string {
+  const m = /^(.{2,60}?)\s+[-–—]\s+(.{2,})$/u.exec(name);
+  const key = surname(author);
+  return m && key && norm(m[1]).split(" ").includes(key) ? m[2].trim() : name;
+}
+
+/**
+ * The book's name. The album tag usually is it, but a series or collection tagged as one album ("Ведьмак") names
+ * each book in the title tag, the file or the folder ("Ведьмак 1. Последнее желание"): a name that contains the
+ * album and says more wins, and so does a title tag that the file name repeats.
+ */
+export function audioBookTitle(c: { album?: string; tag?: string; file?: string; folder?: string; author?: string }): string {
+  const clean = (s: string | undefined, file: boolean) => (s?.trim() ? withoutAuthor(tidyName(s, file), c.author) : "");
+  const album = clean(c.album, false);
+  const tag = clean(c.tag, false);
+  const file = clean(c.file, true);
+  const folder = c.folder?.trim() ?? "";
+  const named = [folder, tag, file].filter((n) => n && !PIECE.test(n));
+  if (album) {
+    const more = named.find((n) => extendsName(n, album));
+    if (more) return more;
+    if (tag && file && !PIECE.test(tag) && norm(tag) !== norm(album) && (norm(tag) === norm(file) || extendsName(file, tag))) return tag;
+    return album;
+  }
+  return named[0] || folder || tag || file || "Без названия";
 }
 
 export function autoChapters(duration: number, step = AUTO_CHAPTER_SECONDS): { title: string; start: number; duration: number }[] {
@@ -107,11 +147,18 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
 
   const first = metas[0].meta;
   const hint = opts.hint ?? {};
+  const single = metas.length === 1;
   const albums = [...new Set(metas.map((m) => m.meta.album).filter(Boolean))];
-  const title = metas.length === 1
-    ? first.album || hint.title || first.title || stripExtension(metas[0].input.name)
-    : albums.length === 1 ? albums[0]! : hint.title || commonPrefix(metas.map((m) => stripExtension(m.input.name))) || stripExtension(metas[0].input.name);
-  const author = first.albumArtist || first.artist || hint.author || "Неизвестный автор";
+  // A loose untagged file follows the folder convention too: "Автор - Название.mp3".
+  const named = single && !hint.author && !first.albumArtist && !first.artist ? splitAuthorTitle(metas[0].input.name, true) : null;
+  const author = first.albumArtist || first.artist || hint.author || named?.author || "Неизвестный автор";
+  const title = audioBookTitle({
+    album: albums.length === 1 ? albums[0] : undefined,
+    tag: single ? first.title : undefined,
+    file: single ? metas[0].input.name : commonPrefix(metas.map((m) => stripExtension(m.input.name))) || undefined,
+    folder: hint.title,
+    author,
+  }) || stripExtension(metas[0].input.name);
   onProgress?.(1);
 
   return {

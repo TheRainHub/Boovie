@@ -3,7 +3,7 @@
  * every directory that holds audio becomes one audiobook (files = chapters), CD/Disc/Часть subfolders are merged
  * into their parent, images next to the audio become cover candidates, documents stay separate books.
  */
-import { splitAuthorTitle } from "../covers/names";
+import { splitAuthorTitle, tidyName } from "../covers/names";
 import { isAudioName } from "../parsers";
 
 export interface PickedFile {
@@ -62,8 +62,8 @@ export function planImport(files: PickedFile[]): ImportPlan {
       let g = groups.get(key);
       if (!g) {
         const folderName = dir[dir.length - 1];
-        const split = folderName ? splitAuthorTitle(folderName) : null;
-        g = { key, folderName, hint: split ?? (folderName ? { title: folderName } : {}), audio: [] };
+        const split = folderName ? splitAuthorTitle(folderName, true, false) : null;
+        g = { key, folderName, hint: split ?? (folderName ? { title: tidyName(folderName, false) } : {}), audio: [] };
         groups.set(key, g);
       }
       g.audio.push(f);

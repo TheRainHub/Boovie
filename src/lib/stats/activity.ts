@@ -5,7 +5,7 @@
  * (`activity` table) every few seconds. When the app is hidden, whatever isn't written yet is also copied to
  * localStorage (an IndexedDB write may be cut off then) and added back on the next start.
  */
-import { currentOwner, deviceId } from "../account/identity";
+import { currentOwner, deviceId, GUEST } from "../account/identity";
 import { getDB } from "../storage/db";
 import type { ActivityKind, ActivityRecord, BookRecord } from "../storage/types";
 
@@ -19,6 +19,7 @@ interface Pending {
 }
 
 const PENDING_KEY = "boowie-activity-pending";
+const MOVED_KEY = "boowie-activity-moved";
 const FLUSH_MS = 15_000;
 
 let pending = new Map<string, Pending>();
@@ -177,4 +178,74 @@ export async function backfillFinished(): Promise<void> {
     if (!known) add(book.id, kind, { finished: true });
   }
   await flushActivity();
+}
+
+/**
+ * A book was renamed: this device's rows follow it to its new key and title (added to rows already there), unless
+ * another book in the library still has the old key and the time can't be told apart. Rows uploaded under the old
+ * key are removed from the account at the next sync (`movedBookKeys`).
+ */
+export async function renameBookActivity(before: BookRecord, after: BookRecord): Promise<void> {
+  await flushActivity();
+  const db = getDB();
+  const from = bookKey(before);
+  const to = bookKey(after);
+  if (from !== to && (await db.books.toArray()).some((b) => b.id !== after.id && bookKey(b) === from)) return;
+  const owner = currentOwner();
+  const device = deviceId();
+  let uploaded = false;
+  await db.transaction("rw", db.activity, async () => {
+    const owners = owner === GUEST ? [GUEST] : [owner, GUEST];
+    const rows = await db.activity.where("[owner+bookKey]").anyOf(owners.map((o) => [o, from])).filter((r) => r.deviceId === device).toArray();
+    for (const r of rows) {
+      const id = rowId(r.owner, device, r.day, to, r.kind);
+      const cur = id === r.id ? undefined : await db.activity.get(id);
+      if (id !== r.id) {
+        uploaded ||= !!r.syncedAt;
+        await db.activity.delete(r.id);
+      }
+      await db.activity.put({
+        ...r,
+        id,
+        bookKey: to,
+        title: after.title,
+        author: after.author,
+        seconds: (cur?.seconds ?? 0) + r.seconds,
+        pages: (cur?.pages ?? 0) + r.pages,
+        audioSeconds: (cur?.audioSeconds ?? 0) + r.audioSeconds,
+        finished: !!cur?.finished || r.finished,
+        updatedAt: Date.now(),
+        syncedAt: id === r.id ? r.syncedAt : cur?.syncedAt,
+      });
+    }
+  });
+  if (uploaded && owner !== GUEST) {
+    try {
+      const moved = JSON.parse(localStorage.getItem(MOVED_KEY) ?? "[]") as { owner: string; key: string }[];
+      localStorage.setItem(MOVED_KEY, JSON.stringify([...moved, { owner, key: from }]));
+    } catch {
+      /* the old rows stay in the account under the old name */
+    }
+  }
+  for (const fn of listeners) fn();
+}
+
+/** Book keys whose rows from this device the account should drop (the book was renamed). */
+export function movedBookKeys(owner: string): string[] {
+  try {
+    return (JSON.parse(localStorage.getItem(MOVED_KEY) ?? "[]") as { owner: string; key: string }[]).filter((m) => m.owner === owner).map((m) => m.key);
+  } catch {
+    return [];
+  }
+}
+
+export function forgetMovedBookKeys(owner: string, keys: string[]): void {
+  try {
+    const moved = JSON.parse(localStorage.getItem(MOVED_KEY) ?? "[]") as { owner: string; key: string }[];
+    const left = moved.filter((m) => m.owner !== owner || !keys.includes(m.key));
+    if (left.length) localStorage.setItem(MOVED_KEY, JSON.stringify(left));
+    else localStorage.removeItem(MOVED_KEY);
+  } catch {
+    /* ignore */
+  }
 }

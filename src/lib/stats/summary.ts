@@ -92,6 +92,7 @@ export function summarize(rows: ActivityRecord[], period: Period, now = new Date
   const byKey = new Map(buckets.map((b) => [b.key, b]));
 
   const books = new Map<string, BookTotal>();
+  const named = new Map<string, number>();
   const finished = { read: new Set<string>(), listen: new Set<string>() };
   const active = new Set<string>();
   let listenSeconds = 0;
@@ -111,6 +112,12 @@ export function summarize(rows: ActivityRecord[], period: Period, now = new Date
     if (b) b[r.kind] += r.seconds;
     const t = books.get(r.bookKey) ?? { bookKey: r.bookKey, title: r.title, author: r.author, listen: 0, read: 0 };
     t[r.kind] += r.seconds;
+    // The newest row has the book's current name (a store book renamed on one device keeps its key).
+    if (r.updatedAt > (named.get(r.bookKey) ?? 0)) {
+      named.set(r.bookKey, r.updatedAt);
+      t.title = r.title;
+      t.author = r.author;
+    }
     books.set(r.bookKey, t);
   }
   for (const [day, s] of perDay) if (day >= first && day <= todayKey && s >= MIN_ACTIVE) active.add(day);
