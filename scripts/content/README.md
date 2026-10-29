@@ -10,7 +10,7 @@ is exercised by real files.
 | Source | License | Used for |
 | --- | --- | --- |
 | [JoannaBy/RussianNovels](https://github.com/JoannaBy/RussianNovels) corpus | texts in the public domain | Pushkin, Gogol, Chekhov, Tolstoy, Dostoevsky, Turgenev, Bulgakov, Gorky, Sologub |
-| [Standard Ebooks](https://standardebooks.org) source repositories | CC0 1.0 | Wells, Abbott, Franklin, Marcus Aurelius (tr. Long), Morris, Veblen, Austen, Shelley, Stoker, Wilde, Carroll, Conan Doyle, Stevenson, Fitzgerald, London, Verne (tr. Towle), Washington, Thoreau, Darwin, Dickens, Charlotte and Emily Brontë, Melville, Twain, Baum, Kipling, Grahame, Burnett, Jerome, Joyce, Woolf, Buchan, Collins, Chesterton, Poe |
+| [Standard Ebooks](https://standardebooks.org) source repositories | CC0 1.0 | Wells, Abbott, Franklin, Marcus Aurelius (tr. Long), Morris, Veblen, Austen, Shelley, Stoker, Wilde, Carroll, Conan Doyle, Stevenson, Fitzgerald, London, Verne (tr. Towle), Washington, Thoreau, Darwin, Dickens, Charlotte and Emily Brontë, Melville, Twain, Baum, Kipling, Grahame, Burnett, Jerome, Joyce, Woolf, Buchan, Collins, Chesterton, Poe, O. Henry |
 | [RHVoice](https://github.com/RHVoice/RHVoice) speech synthesizer (voices Aleksandr, Irina, Mikhail, Yuriy) | LGPL engine, voices under their own licenses | audiobook narration |
 | Cover paintings from [Standard Ebooks](https://standardebooks.org) source repositories (`images/cover.jpg`) | paintings in the public domain, crops CC0 | every store cover; each item's `cover.credit` names the painting |
 | [Golos Text](https://fonts.google.com/specimen/Golos+Text) | SIL OFL 1.1 | cover titles |

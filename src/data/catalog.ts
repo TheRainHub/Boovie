@@ -17,6 +17,9 @@ export interface StoreItem {
   title: string;
   subtitle?: string;
   author: string;
+  /** English books: the title and author as Russian readers know them (shown, and found by search). */
+  titleRu?: string;
+  authorRu?: string;
   translator?: string;
   narrator?: string;
   year: number;

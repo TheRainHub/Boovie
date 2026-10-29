@@ -610,6 +610,12 @@ def main() -> None:
         ("thirty-nine-steps", "john-buchan_the-thirty-nine-steps"),
         ("poe-short-fiction", "edgar-allan-poe_short-fiction"),
         ("voyage-of-the-beagle", "charles-darwin_the-voyage-of-the-beagle"),
+        ("martin-eden", "jack-london_martin-eden"),
+        ("o-henry-short-fiction", "o-henry_short-fiction"),
+        ("white-fang", "jack-london_white-fang"),
+        ("sea-wolf", "jack-london_the-sea-wolf"),
+        ("lost-face", "jack-london_lost-face"),
+        ("son-of-the-wolf", "jack-london_the-son-of-the-wolf"),
     ]:
         works.append(se_work(se_dir / repo, wid))
 

@@ -19,7 +19,8 @@ const CHIP_ORDER: CategoryId[] = ["classics", "scifi", "detective", "adventure",
 const FEATURED = ["anna-karenina", "viy-audio", "bratya-karamazovy", "sherlock-holmes", "pikovaya-dama"];
 const FRESH = 12;
 
-const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
+// Letters and digits only: «о генри» finds «О. Генри», «доктор джекил» finds «Dr. Jekyll».
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 export function StoreView() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -40,7 +41,8 @@ export function StoreView() {
   const q = norm(query.trim());
   const searching = q.length > 0;
   const list = useMemo(() => {
-    const found = STORE_ITEMS.filter((i) => !q || norm(`${i.title} ${i.author} ${i.subtitle ?? ""}`).includes(q));
+    // English books are found by their Russian names too: «Гэтсби», «Конан Дойл».
+    const found = STORE_ITEMS.filter((i) => !q || norm(`${i.title} ${i.author} ${i.subtitle ?? ""} ${i.titleRu ?? ""} ${i.authorRu ?? ""}`).includes(q));
     if (tab.startsWith("cat:")) return found.filter((i) => i.categories.includes(tab.slice(4) as CategoryId));
     switch (tab) {
       case "audio": return found.filter((i) => i.kind === "audiobook");

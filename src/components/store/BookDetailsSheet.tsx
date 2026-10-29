@@ -73,6 +73,7 @@ function Details({
         <div className="mt-8 text-center">
           <h2 className="display text-[30px]">{item.title}</h2>
           {item.subtitle && <p className="mt-1 text-[15px] text-t-ink-2">{item.subtitle}</p>}
+          {item.titleRu && <p className="mt-1 text-[15px] text-t-ink-2">«{item.titleRu}»</p>}
           <p className="mt-1.5 text-[17px] font-medium text-t-ink-2">
             {item.author}
             {item.translator ? `, пер. ${item.translator}` : ""}

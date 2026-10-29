@@ -1,7 +1,7 @@
 # Boowie — offline e-book reader & audiobook player
 
 An installable iOS/Android PWA (Next.js App Router · TypeScript · Tailwind CSS v4, Capacitor-ready) that reads
-**EPUB, FB2 and PDF**, plays **MP3 / M4B / M4A audiobooks**, and ships with a built-in store of 76 public-domain
+**EPUB, FB2 and PDF**, plays **MP3 / M4B / M4A audiobooks**, and ships with a built-in store of 82 public-domain
 books and audiobooks that work out of the box — fully offline once downloaded.
 
 Design: **every book in its own colour.** Navigation is three big words at the top («Слушаю/Читаю · Книги ·
