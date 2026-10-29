@@ -1,14 +1,15 @@
 "use client";
 
-import { AudioLines } from "lucide-react";
+import { AudioLines, Headphones } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BookCover } from "@/components/ui/BookCover";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { toast } from "@/components/ui/Toaster";
 import { ELEVEN_MODELS, getQuota, useElevenPrefs, type ElevenQuota } from "@/lib/integrations/elevenlabs";
-import { planVoiceover, runVoiceover, unfinishedVoiceover, type VoiceoverPlan } from "@/lib/integrations/voiceover";
+import { listenToVoiceover, planVoiceover, runVoiceover, unfinishedVoiceover, type VoiceoverPlan } from "@/lib/integrations/voiceover";
 import type { BookRecord } from "@/lib/storage/types";
 
 const nf = new Intl.NumberFormat("ru-RU");
@@ -24,6 +25,7 @@ export function VoiceoverSheet({ book, onClose }: { book: BookRecord | null; onC
 
 function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
   const prefs = useElevenPrefs();
+  const router = useRouter();
   const [plan, setPlan] = useState<VoiceoverPlan | null>(null);
   const [quota, setQuota] = useState<ElevenQuota | null | undefined>(undefined);
   const ready = !!prefs.apiKey && !!prefs.voiceId;
@@ -41,6 +43,7 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
   const left = quota ? Math.max(0, quota.limit - quota.used) : undefined;
   const short = plan && left !== undefined && plan.credits > left;
   const resuming = plan && plan.remainingChars < plan.totalChars;
+  const voiced = plan?.chapters.filter((c) => c.done).length ?? 0;
 
   return (
     <div className="px-5 pb-3 pt-1">
@@ -65,7 +68,7 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
         <>
           <dl className="mt-5 grid grid-cols-2 gap-2">
             {[
-              ["Глав", String(plan.chapters.length)],
+              resuming ? ["Озвучено глав", `${voiced} из ${plan.chapters.length}`] : ["Глав", String(plan.chapters.length)],
               [resuming ? "Осталось озвучить" : "Символов", nf.format(plan.remainingChars)],
               ["Голос", prefs.voiceName ?? "—"],
               ["Кредитов", `≈ ${nf.format(plan.credits)}`],
@@ -79,7 +82,7 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
           <p className="mt-3 text-[13.5px] leading-snug text-ink-2">
             {ELEVEN_MODELS[prefs.model].hint}.{" "}
             {left !== undefined ? `На счёте ${nf.format(left)} символов.` : ""}{" "}
-            {resuming ? "Готовые главы из прошлого раза сохранены — оплачивать их снова не нужно." : earlier ? "Главы, озвученные раньше другим голосом, будут перезаписаны." : ""}
+            {resuming ? "Озвученное в прошлый раз сохранено — оплачивать его снова не нужно." : earlier ? "Главы, озвученные раньше другим голосом, будут перезаписаны." : ""}
           </p>
           {short && <p className="mt-2 text-[14px] font-semibold text-[#B3261E] dark:text-[#F2B8B5]">Символов на счёте не хватит на всю книгу: озвучка остановится, когда они закончатся, готовые главы сохранятся.</p>}
           <Button
@@ -93,7 +96,25 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
           >
             {resuming ? "Продолжить озвучку" : "Озвучить"}
           </Button>
-          <p className="mt-2 text-center text-[12.5px] text-ink-3">Озвучка идёт, пока приложение открыто. Её можно остановить и продолжить позже.</p>
+          {plan.started && (
+            <Button
+              variant="secondary"
+              size="lg"
+              className="mt-2 w-full"
+              icon={<Headphones size={19} strokeWidth={2} />}
+              onClick={() => {
+                onClose();
+                void listenToVoiceover(book.id)
+                  .then((id) => router.push(`/book/?id=${id}`))
+                  .catch((e: Error) => toast(e.message, "error"));
+              }}
+            >
+              Послушать готовое
+            </Button>
+          )}
+          <p className="mt-2 text-center text-[12.5px] text-ink-3">
+            Озвучка идёт, пока приложение открыто. Её можно остановить, послушать готовое и продолжить позже.
+          </p>
         </>
       )}
     </div>

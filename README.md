@@ -47,8 +47,10 @@ landscape the player and the store details go two-column and the reader shows a 
   API key (Settings → Сервисы; the key stays in this device's storage and is sent only to api.elevenlabs.io).
   Pick a voice and a model (Multilingual v2 or the cheaper Flash v2.5); the sheet shows the characters and credits
   before you start. Chapters are synthesised in ~2 400-character pieces with neighbouring text as context, joined
-  into one MP3 per chapter and saved as the book's companion edition, so «Читать / Слушать» works with it. Stop at
-  any time: finished chapters are kept and «Продолжить озвучку» picks up from there. It runs while the app is open.
+  into one MP3 per chapter and saved as the book's companion edition, so «Читать / Слушать» works with it. Every
+  voiced piece is saved as it arrives: stop at any time, «Послушать готовое» puts what is voiced so far together as
+  an audiobook, and «Продолжить озвучку» picks up from the next piece; the full audiobook later replaces the partial
+  one at the same listening position. Standard Ebooks licence pages are not voiced. It runs while the app is open.
 - **Librarr** — connect a [Librarr](https://github.com/JeremiahM37/librarr) server (HTTPS address + `API_KEY`) and
   its library appears as a store tab, read from its OPDS feed (`/opds/books`). Any EPUB/FB2/PDF/MP3/M4B there can be
   downloaded into Boowie and then works offline like a local file. Boowie only reads the library; searching and

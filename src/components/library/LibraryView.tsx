@@ -16,7 +16,8 @@ import { openAudioBook, toggle, unloadIfCurrent, usePlayer } from "@/lib/audio/p
 import { useToned } from "@/lib/covers/tone";
 import { FORMAT_LABELS, formatBytes, formatDuration } from "@/lib/format";
 import { useCurrentBook, type CurrentBook } from "@/lib/library/current";
-import { useAllProgress, useBooks, useChapterList } from "@/lib/library/hooks";
+import { useAllProgress, useBook, useBooks, useChapterList } from "@/lib/library/hooks";
+import { isPartialVoiceover, unfinishedVoiceover } from "@/lib/integrations/voiceover";
 import { deleteBook } from "@/lib/library/repository";
 import type { BookRecord, ProgressRecord } from "@/lib/storage/types";
 import { BookEditor } from "./BookEditor";
@@ -187,10 +188,15 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
   onEdit: (b: BookRecord) => void;
 }) {
   const [confirm, setConfirm] = useState(false);
+  const companion = useBook(book?.companionId);
   const close = () => {
     setConfirm(false);
     onClose();
   };
+  // Voicing goes on from the text, or from the audiobook put together from its voiced part.
+  const voiceText = !book || book.format === "pdf" ? undefined
+    : book.format !== "audio" ? (!book.companionId || isPartialVoiceover(book.id, book.companionId) ? book : undefined)
+    : companion && isPartialVoiceover(companion.id, book.id) ? companion : undefined;
   return (
     <Sheet open={!!book} onClose={close}>
       {book && (
@@ -223,9 +229,9 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
                 {book.format === "audio" ? "Слушать" : "Читать"}
               </Button>
             </Link>
-            {book.format !== "audio" && book.format !== "pdf" && !book.companionId && (
-              <Button variant="secondary" size="lg" className="w-full" icon={<AudioLines size={18} strokeWidth={1.9} />} onClick={() => onVoice(book)}>
-                Озвучить через ElevenLabs
+            {voiceText && (
+              <Button variant="secondary" size="lg" className="w-full" icon={<AudioLines size={18} strokeWidth={1.9} />} onClick={() => onVoice(voiceText)}>
+                {unfinishedVoiceover(voiceText.id) ? "Продолжить озвучку" : "Озвучить через ElevenLabs"}
               </Button>
             )}
             <Button variant="secondary" size="lg" className="w-full" icon={<PencilLine size={18} strokeWidth={1.9} />} onClick={() => onEdit(book)}>
