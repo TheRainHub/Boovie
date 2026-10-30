@@ -11,13 +11,13 @@ import { toast } from "@/components/ui/Toaster";
 import { ELEVEN_MODELS, getQuota, useElevenPrefs, type ElevenQuota } from "@/lib/integrations/elevenlabs";
 import { listenToVoiceover, planVoiceover, runVoiceover, unfinishedVoiceover, type VoiceoverPlan } from "@/lib/integrations/voiceover";
 import type { BookRecord } from "@/lib/storage/types";
+import { locale, t } from "@/lib/i18n";
 
-const nf = new Intl.NumberFormat("ru-RU");
 
 /** «Озвучить»: what it costs (characters, credits, what is left on the account) and one button to start. */
 export function VoiceoverSheet({ book, onClose }: { book: BookRecord | null; onClose: () => void }) {
   return (
-    <Sheet open={!!book} onClose={onClose} title="Озвучить книгу">
+    <Sheet open={!!book} onClose={onClose} title={t("Озвучить книгу")}>
       {book && <Body key={book.id} book={book} onClose={onClose} />}
     </Sheet>
   );
@@ -26,6 +26,7 @@ export function VoiceoverSheet({ book, onClose }: { book: BookRecord | null; onC
 function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
   const prefs = useElevenPrefs();
   const router = useRouter();
+  const nf = new Intl.NumberFormat(locale());
   const [plan, setPlan] = useState<VoiceoverPlan | null>(null);
   const [quota, setQuota] = useState<ElevenQuota | null | undefined>(undefined);
   const ready = !!prefs.apiKey && !!prefs.voiceId;
@@ -58,9 +59,9 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
       {!ready ? (
         <div className="mt-5">
           <p className="text-[15px] leading-relaxed text-ink-2">
-            Озвучка идёт через ElevenLabs по вашему ключу. Добавьте ключ и выберите голос в настройках — ключ останется только на этом устройстве.
+            {t("Озвучка идёт через ElevenLabs по вашему ключу. Добавьте ключ и выберите голос в настройках — ключ останется только на этом устройстве.")}
           </p>
-          <Link href="/settings/" onClick={onClose}><Button size="lg" className="mt-4 w-full">Открыть настройки</Button></Link>
+          <Link href="/settings/" onClick={onClose}><Button size="lg" className="mt-4 w-full">{t("Открыть настройки")}</Button></Link>
         </div>
       ) : !plan ? (
         <div className="flex justify-center py-10"><Spinner className="text-ink-2" /></div>
@@ -68,10 +69,10 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
         <>
           <dl className="mt-5 grid grid-cols-2 gap-2">
             {[
-              resuming ? ["Озвучено глав", `${voiced} из ${plan.chapters.length}`] : ["Глав", String(plan.chapters.length)],
-              [resuming ? "Осталось озвучить" : "Символов", nf.format(plan.remainingChars)],
-              ["Голос", prefs.voiceName ?? "—"],
-              ["Кредитов", `≈ ${nf.format(plan.credits)}`],
+              resuming ? [t("Озвучено глав"), t("{n} из {total}", { n: voiced, total: plan.chapters.length })] : [t("Глав"), String(plan.chapters.length)],
+              [resuming ? t("Осталось озвучить") : t("Символов"), nf.format(plan.remainingChars)],
+              [t("Голос"), prefs.voiceName ?? "—"],
+              [t("Кредитов"), `≈ ${nf.format(plan.credits)}`],
             ].map(([k, v]) => (
               <div key={k} className="min-w-0 rounded-[14px] bg-surface-2 px-3.5 py-2.5">
                 <dt className="text-[12px] font-medium text-ink-2">{k}</dt>
@@ -81,20 +82,20 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
           </dl>
           <p className="mt-3 text-[13.5px] leading-snug text-ink-2">
             {ELEVEN_MODELS[prefs.model].hint}.{" "}
-            {left !== undefined ? `На счёте ${nf.format(left)} символов.` : ""}{" "}
-            {resuming ? "Озвученное в прошлый раз сохранено — оплачивать его снова не нужно." : earlier ? "Главы, озвученные раньше другим голосом, будут перезаписаны." : ""}
+            {left !== undefined ? t("На счёте {n} символов.", { n: nf.format(left) }) : ""}{" "}
+            {resuming ? t("Озвученное в прошлый раз сохранено — оплачивать его снова не нужно.") : earlier ? t("Главы, озвученные раньше другим голосом, будут перезаписаны.") : ""}
           </p>
-          {short && <p className="mt-2 text-[14px] font-semibold text-[#B3261E] dark:text-[#F2B8B5]">Символов на счёте не хватит на всю книгу: озвучка остановится, когда они закончатся, готовые главы сохранятся.</p>}
+          {short && <p className="mt-2 text-[14px] font-semibold text-[#B3261E] dark:text-[#F2B8B5]">{t("Символов на счёте не хватит на всю книгу: озвучка остановится, когда они закончатся, готовые главы сохранятся.")}</p>}
           <Button
             size="lg"
             className="mt-4 w-full"
             icon={<AudioLines size={19} strokeWidth={2} />}
             onClick={() => {
               onClose();
-              void runVoiceover(book.id).then((id) => id && toast(`«${book.title}»: аудиоверсия готова`, "success")).catch((e: Error) => toast(e.message, "error"));
+              void runVoiceover(book.id).then((id) => id && toast(t("«{title}»: аудиоверсия готова", { title: book.title }), "success")).catch((e: Error) => toast(e.message, "error"));
             }}
           >
-            {resuming ? "Продолжить озвучку" : "Озвучить"}
+            {resuming ? t("Продолжить озвучку") : t("Озвучить")}
           </Button>
           {plan.started && (
             <Button
@@ -109,11 +110,11 @@ function Body({ book, onClose }: { book: BookRecord; onClose: () => void }) {
                   .catch((e: Error) => toast(e.message, "error"));
               }}
             >
-              Послушать готовое
+              {t("Послушать готовое")}
             </Button>
           )}
           <p className="mt-2 text-center text-[12.5px] text-ink-3">
-            Озвучка идёт, пока приложение открыто. Её можно остановить, послушать готовое и продолжить позже.
+            {t("Озвучка идёт, пока приложение открыто. Её можно остановить, послушать готовое и продолжить позже.")}
           </p>
         </>
       )}

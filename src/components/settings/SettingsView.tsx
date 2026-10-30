@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/Toaster";
 import { closePlayer } from "@/lib/audio/player";
 import { useCoverPrefs } from "@/lib/covers/auto";
 import { formatBytes } from "@/lib/format";
+import { setLang, t, useLang, type Lang } from "@/lib/i18n";
 import { useBooks } from "@/lib/library/hooks";
 import { deleteBook } from "@/lib/library/repository";
 import { requestPersistentStorage, storageEstimate } from "@/lib/storage/blobStore";
@@ -54,6 +55,7 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
 export function SettingsView() {
   const router = useRouter();
   const theme = useTheme();
+  const lang = useLang();
   const books = useBooks();
   const covers = useCoverPrefs();
   const [estimate, setEstimate] = useState<Awaited<ReturnType<typeof storageEstimate>>>(null);
@@ -72,53 +74,67 @@ export function SettingsView() {
   return (
     <main className="mx-auto max-w-[640px] px-5 pb-8 pt-[calc(var(--sat)+10px)]">
       <header className="flex items-center gap-1">
-        <IconButton label="Назад" className="-ml-2" onClick={() => (window.history.length > 1 ? router.back() : router.push("/library/"))}>
+        <IconButton label={t("Назад")} className="-ml-2" onClick={() => (window.history.length > 1 ? router.back() : router.push("/library/"))}>
           <ChevronLeft size={26} strokeWidth={2} />
         </IconButton>
-        <h1 className="display text-[30px]">Настройки</h1>
+        <h1 className="display text-[30px]">{t("Настройки")}</h1>
       </header>
 
-      <Group title="Оформление">
+      <Group title={t("Оформление")}>
         <div className="border-b border-line px-4 py-3.5">
-          <div className="text-[16px] font-semibold">Тема</div>
+          {/* Each language is named in itself, so either can be found whatever the interface speaks. */}
+          <div className="text-[16px] font-semibold">Язык · Language</div>{/* i18n-ignore: both names, so the switch can be found in either language */}
+          <Segmented<Lang>
+            className="mt-2.5 w-full"
+            layoutKey="lang"
+            value={lang}
+            onChange={setLang}
+            options={[
+              { value: "ru", label: "Русский" }, // i18n-ignore
+              { value: "en", label: "English" },
+            ]}
+          />
+        </div>
+        <div className="border-b border-line px-4 py-3.5">
+          <div className="text-[16px] font-semibold">{t("Тема")}</div>
           <Segmented<ThemePreference>
             className="mt-2.5 w-full"
             layoutKey="theme"
             value={theme.preference}
             onChange={(p) => theme.setPreference(p)}
             options={[
-              { value: "system", label: "Как в системе" },
-              { value: "light", label: "Светлая" },
-              { value: "dark", label: "Тёмная" },
+              { value: "system", label: t("Как в системе") },
+              { value: "light", label: t("Светлая") },
+              { value: "dark", label: t("Тёмная") },
             ]}
           />
         </div>
-        <Row label="Обложки из интернета" hint="Для книг без обложки — поиск по названию в Apple Books, Google Books и Open Library">
-          <Switch on={covers.online} onChange={covers.set} label="Искать обложки в интернете" />
+        <Row label={t("Обложки из интернета")} hint={t("Для книг без обложки — поиск по названию в Apple Books, Google Books и Open Library")}>
+          <Switch on={covers.online} onChange={covers.set} label={t("Искать обложки в интернете")} />
         </Row>
       </Group>
 
-      <Group title="Сервисы">
+      <Group title={t("Сервисы")}>
         <div className="border-b border-line"><ElevenLabsSettings /></div>
         <LibrarrSettings />
       </Group>
 
-      <Group title={`Хранилище · ${formatBytes(libraryBytes)}`}>
+      <Group title={`${t("Хранилище")} · ${formatBytes(libraryBytes)}`}>
         {estimate && estimate.quota > 0 && (
           <div className="border-b border-line px-4 py-3.5">
             <div className="tabular flex justify-between text-[14px] text-ink-2">
-              <span>Занято {formatBytes(estimate.usage)}</span>
-              <span>из {formatBytes(estimate.quota)}</span>
+              <span>{t("Занято {size}", { size: formatBytes(estimate.usage) })}</span>
+              <span>{t("из {size}", { size: formatBytes(estimate.quota) })}</span>
             </div>
             <ProgressBar value={estimate.usage / estimate.quota} className="mt-2" />
           </div>
         )}
         <Row
-          label="Не удалять книги"
-          hint={estimate?.persisted ? "Включено — система не удалит книги." : "Без этого браузер может очистить данные при нехватке места."}
+          label={t("Не удалять книги")}
+          hint={estimate?.persisted ? t("Включено — система не удалит книги.") : t("Без этого браузер может очистить данные при нехватке места.")}
         >
           {estimate?.persisted ? (
-            <span className="text-[14px] font-semibold text-ink-2">Включено</span>
+            <span className="text-[14px] font-semibold text-ink-2">{t("Включено")}</span>
           ) : (
             <Button
               size="sm"
@@ -126,17 +142,17 @@ export function SettingsView() {
               onClick={async () => {
                 const ok = await requestPersistentStorage();
                 setEstimate(await storageEstimate());
-                toast(ok ? "Хранилище закреплено" : "Браузер отклонил запрос — установите приложение на экран «Домой»", ok ? "success" : "info");
+                toast(ok ? t("Хранилище закреплено") : t("Браузер отклонил запрос — установите приложение на экран «Домой»"), ok ? "success" : "info");
               }}
             >
-              Включить
+              {t("Включить")}
             </Button>
           )}
         </Row>
         {(books?.length ?? 0) > 0 && (
-          <Row label="Очистить библиотеку" hint="Удалит все книги и прогресс с этого устройства">
+          <Row label={t("Очистить библиотеку")} hint={t("Удалит все книги и прогресс с этого устройства")}>
             {!confirm ? (
-              <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}>Удалить…</Button>
+              <Button variant="secondary" size="sm" onClick={() => setConfirm(true)}>{t("Удалить…")}</Button>
             ) : (
               <Button
                 size="sm"
@@ -145,30 +161,28 @@ export function SettingsView() {
                   closePlayer();
                   for (const b of books ?? []) await deleteBook(b.id);
                   setConfirm(false);
-                  toast("Библиотека очищена");
+                  toast(t("Библиотека очищена"));
                 }}
               >
-                Удалить {books?.length}
+                {t("Удалить {n}", { n: books?.length ?? 0 })}
               </Button>
             )}
           </Row>
         )}
       </Group>
 
-      <Group title="Установка на телефон">
+      <Group title={t("Установка на телефон")}>
         {[
-          ["iPhone", "Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера."],
-          ["Android", "Chrome → меню → «Установить приложение»."],
-          ["Папки на iPhone", "В «Файлах» удерживайте папку с аудиокнигой → «Сжать» и добавьте получившийся ZIP."],
+          ["iPhone", t("Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера.")],
+          ["Android", t("Chrome → меню → «Установить приложение».")],
+          [t("Папки на iPhone"), t("В «Файлах» удерживайте папку с аудиокнигой → «Сжать» и добавьте получившийся ZIP.")],
         ].map(([k, v]) => (
           <Row key={k} label={k} hint={v} />
         ))}
       </Group>
 
       <p className="mt-7 px-1 text-[13.5px] leading-[1.55] text-ink-2">
-        Все книги магазина — общественное достояние: авторы и переводчики умерли больше 70 лет назад, книги изданы до
-        1931 года. Русская классика взята из открытого корпуса RussianNovels,
-        английские издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.
+        {t("Все книги магазина — общественное достояние: авторы и переводчики умерли больше 70 лет назад, книги изданы до 1931 года. Русская классика взята из открытого корпуса RussianNovels, английские издания — из Standard Ebooks (CC0). Аудиокниги озвучены синтезатором речи RHVoice.")}
       </p>
     </main>
   );

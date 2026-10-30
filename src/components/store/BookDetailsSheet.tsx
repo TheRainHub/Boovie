@@ -6,11 +6,12 @@ import { BookCover } from "@/components/ui/BookCover";
 import { CoverBackdrop } from "@/components/ui/CoverBackdrop";
 import { Button, cn, ProgressBar } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
-import { CATEGORIES, storeItem, type StoreItem } from "@/data/catalog";
+import { authorOf, categoryName, creditOf, narratorOf, otherTitle, storeItem, synopsisOf, type StoreItem } from "@/data/catalog";
 import { stopPreview, togglePreview, usePreview } from "@/lib/audio/preview";
 import { useToned } from "@/lib/covers/tone";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { useStoreActions } from "./useStoreActions";
+import { t } from "@/lib/i18n";
 
 /** A store book on a sheet painted in its cover's colour. */
 export function BookDetailsSheet({ item, onClose, onSelect }: { item: StoreItem | null; onClose: () => void; onSelect: (i: StoreItem) => void }) {
@@ -54,13 +55,13 @@ function Details({
   const sampling = preview.itemId === sampleSource?.id;
 
   const facts: [string, string][] = [
-    ["Год", item.year > 1000 ? String(item.year) : `ок. ${item.year}`],
-    ["Формат", item.formatLabel],
-    ["Размер", formatBytes(item.fileSize)],
-    audio && item.duration ? ["Длительность", formatDuration(item.duration)] : ["Объём", item.pages ? `${item.pages} стр.` : "—"],
-    ["Главы", item.chapterCount ? String(item.chapterCount) : "по заголовкам"],
-    ["Язык", item.language === "ru" ? "русский" : "английский"],
-    ...(item.narrator ? ([["Голос", item.narrator]] as [string, string][]) : []),
+    [t("Год"), item.year > 1000 ? String(item.year) : t("ок. {year}", { year: item.year })],
+    [t("Формат"), item.formatLabel],
+    [t("Размер"), formatBytes(item.fileSize)],
+    audio && item.duration ? [t("Длительность"), formatDuration(item.duration)] : [t("Объём"), item.pages ? t("{n} стр.", { n: item.pages }) : "—"],
+    [t("Главы"), item.chapterCount ? String(item.chapterCount) : t("по заголовкам")],
+    [t("Язык"), item.language === "ru" ? t("русский") : t("английский")],
+    ...(narratorOf(item) ? ([[t("Голос"), narratorOf(item)!]] as [string, string][]) : []),
   ];
 
   return (
@@ -73,15 +74,15 @@ function Details({
         <div className="mt-8 text-center">
           <h2 className="display text-[30px]">{item.title}</h2>
           {item.subtitle && <p className="mt-1 text-[15px] text-t-ink-2">{item.subtitle}</p>}
-          {item.titleRu && <p className="mt-1 text-[15px] text-t-ink-2">«{item.titleRu}»</p>}
+          {otherTitle(item) && <p className="mt-1 text-[15px] text-t-ink-2">{t("«{title}»", { title: otherTitle(item)! })}</p>}
           <p className="mt-1.5 text-[17px] font-medium text-t-ink-2">
-            {item.author}
-            {item.translator ? `, пер. ${item.translator}` : ""}
+            {authorOf(item)}
+            {item.translator ? `, ${t("пер. {name}", { name: item.translator })}` : ""}
           </p>
           <div className="tabular mt-3 flex items-center justify-center gap-1.5 text-[14px] font-semibold text-t-ink-2">
             <Star size={15} fill="currentColor" strokeWidth={0} />
             <span>{item.rating.toFixed(1).replace(".", ",")}</span>
-            <span className="font-medium">· {item.categories.map((c) => CATEGORIES[c]).join(", ")}</span>
+            <span className="font-medium">· {item.categories.map(categoryName).join(", ")}</span>
           </div>
         </div>
       </div>
@@ -90,7 +91,7 @@ function Details({
         <div className="mt-7 grid gap-2 wide:mt-4">
           {owned ? (
             <Button variant="toned" size="lg" className="w-full" icon={audio ? <Headphones size={19} strokeWidth={2} /> : <BookOpen size={19} strokeWidth={2} />} onClick={onOpen}>
-              {audio ? "Слушать" : "Читать"}
+              {audio ? t("Слушать") : t("Читать")}
             </Button>
           ) : job ? (
             <div className="rounded-[18px] bg-t-chip px-4 py-3">
@@ -99,7 +100,7 @@ function Details({
             </div>
           ) : (
             <Button variant="toned" size="lg" className="w-full" icon={<Download size={19} strokeWidth={2} />} onClick={onDownload}>
-              Скачать в библиотеку
+              {t("Скачать в библиотеку")}
             </Button>
           )}
           {sampleSource && (
@@ -110,11 +111,11 @@ function Details({
               icon={sampling && preview.playing ? <Pause size={18} strokeWidth={2} /> : <Play size={18} strokeWidth={2} />}
               onClick={() => togglePreview(sampleSource.id, sampleSource.files[0].url)}
             >
-              <span>{sampling && preview.playing ? "Пауза" : "Слушать фрагмент"}</span>
+              <span>{sampling && preview.playing ? t("Пауза") : t("Слушать фрагмент")}</span>
               {sampling && <ProgressBar toned value={preview.progress} className="ml-2 w-16" />}
             </Button>
           )}
-          {owned && <p className="mt-1 text-center text-[13px] text-t-ink-2">Сохранено на устройстве — доступно без интернета</p>}
+          {owned && <p className="mt-1 text-center text-[13px] text-t-ink-2">{t("Сохранено на устройстве — доступно без интернета")}</p>}
         </div>
 
         {companion && (
@@ -123,14 +124,14 @@ function Details({
               <BookCover url={companion.coverUrl} title={companion.title} square={companion.kind === "audiobook"} sizes="sm" shadow={false} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[16px] font-bold">{companion.kind === "audiobook" ? "Есть аудиоверсия" : "Есть текст"}</div>
-              <div className="text-[14px] leading-snug text-t-ink-2">Скачайте обе — и переключайтесь «Читать / Слушать» с той же главы.</div>
+              <div className="text-[16px] font-bold">{companion.kind === "audiobook" ? t("Есть аудиоверсия") : t("Есть текст")}</div>
+              <div className="text-[14px] leading-snug text-t-ink-2">{t("Скачайте обе — и переключайтесь «Читать / Слушать» с той же главы.")}</div>
             </div>
             <ChevronRight size={20} className="shrink-0 text-t-ink-2" />
           </button>
         )}
 
-        <p className="mt-7 text-[16.5px] leading-[1.6] [text-wrap:pretty]">{item.synopsis}</p>
+        <p className="mt-7 text-[16.5px] leading-[1.6] [text-wrap:pretty]">{synopsisOf(item)}</p>
 
         <dl className="mt-7 grid grid-cols-2 gap-2">
           {facts.map(([k, v]) => (
@@ -141,9 +142,9 @@ function Details({
           ))}
         </dl>
         <p className="mt-5 text-[13px] leading-relaxed text-t-ink-2">
-          Общественное достояние. {item.language === "en" ? "Текст — Standard Ebooks (CC0)." : "Текст — открытый корпус русской прозы."}
-          {audio ? " Озвучено синтезатором речи RHVoice." : ""}
-          {item.coverCredit ? ` Обложка: ${item.coverCredit}.` : ""}
+          {t("Общественное достояние.")} {item.language === "en" ? t("Текст — Standard Ebooks (CC0).") : t("Текст — открытый корпус русской прозы.")}
+          {audio ? ` ${t("Озвучено синтезатором речи RHVoice.")}` : ""}
+          {creditOf(item) ? ` ${t("Обложка: {credit}.", { credit: creditOf(item)! })}` : ""}
         </p>
       </div>
     </div>

@@ -14,7 +14,8 @@ import { Sheet } from "@/components/ui/Sheet";
 import { toast } from "@/components/ui/Toaster";
 import { openAudioBook, toggle, unloadIfCurrent, usePlayer } from "@/lib/audio/player";
 import { useToned } from "@/lib/covers/tone";
-import { FORMAT_LABELS, formatBytes, formatDuration } from "@/lib/format";
+import { formatBytes, formatDuration, formatLabel } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import { useCurrentBook, type CurrentBook } from "@/lib/library/current";
 import { useAllProgress, useBook, useBooks, useChapterList } from "@/lib/library/hooks";
 import { isPartialVoiceover, unfinishedVoiceover } from "@/lib/integrations/voiceover";
@@ -64,17 +65,17 @@ export function LibraryView() {
             <div className="mt-4 flex items-center gap-2 pl-5 pr-3 sm:mt-5 sm:pl-8 sm:pr-6">
               <ChipTabs
                 className="min-w-0 flex-1"
-                label="Фильтр книг"
+                label={t("Фильтр книг")}
                 value={filter}
                 onChange={setFilter}
                 options={[
-                  { value: "all", label: "Все", count: list.length },
-                  { value: "reading", label: "Читаю" },
-                  { value: "listening", label: "Слушаю" },
-                  { value: "uploaded", label: "Файлы" },
+                  { value: "all", label: t("Все"), count: list.length },
+                  { value: "reading", label: t("Читаю") },
+                  { value: "listening", label: t("Слушаю") },
+                  { value: "uploaded", label: t("Файлы") },
                 ]}
               />
-              <Link href="/settings/" aria-label="Настройки" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5">
+              <Link href="/settings/" aria-label={t("Настройки")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5">
                 <Settings size={21} strokeWidth={1.9} />
               </Link>
             </div>
@@ -87,7 +88,7 @@ export function LibraryView() {
                 <GridItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} onMenu={() => setMenuFor(b)} />
               ))}
             </div>
-            {filtered.length === 0 && !loading && <p className="px-5 py-10 text-center text-[16px] text-ink-2">Здесь пока пусто.</p>}
+            {filtered.length === 0 && !loading && <p className="px-5 py-10 text-center text-[16px] text-ink-2">{t("Здесь пока пусто.")}</p>}
           </>
         )}
 
@@ -120,8 +121,8 @@ function ContinueCard({ current }: { current: CurrentBook }) {
   const pct = loaded && book.duration ? player.position / book.duration : (progress?.percentage ?? 0) / 100;
   const ci = loaded ? player.chapterIndex : progress?.currentChapterIndex ?? 0;
   const line = audio
-    ? [chapters?.[ci]?.title, book.duration ? `ещё ${formatDuration(book.duration * (1 - pct))}` : null]
-    : [book.totalChapters > 1 ? `глава ${ci + 1} из ${book.totalChapters}` : null, `${Math.round(pct * 100)}%`];
+    ? [chapters?.[ci]?.title, book.duration ? t("ещё {time}", { time: formatDuration(book.duration * (1 - pct)) }) : null]
+    : [book.totalChapters > 1 ? t("глава {n} из {total}", { n: ci + 1, total: book.totalChapters }) : null, `${Math.round(pct * 100)}%`];
 
   const act = () => {
     if (!audio) return router.push(`/book/?id=${book.id}`);
@@ -135,14 +136,14 @@ function ContinueCard({ current }: { current: CurrentBook }) {
         <BookCover fileId={book.coverFileId} url={book.coverUrl} title={book.title} author={book.author} square={audio} sizes="sm" className="shadow-[0_10px_20px_-8px_var(--t-shadow)]" shadow={false} />
       </Link>
       <Link prefetch={false} href={`/book/?id=${book.id}`} className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold text-t-ink-2">{pct > 0 ? (audio ? "Продолжить слушать" : "Продолжить чтение") : audio ? "Начать слушать" : "Начать читать"}</div>
+        <div className="text-[13px] font-semibold text-t-ink-2">{pct > 0 ? (audio ? t("Продолжить слушать") : t("Продолжить чтение")) : audio ? t("Начать слушать") : t("Начать читать")}</div>
         <div className="mt-0.5 truncate text-[21px] font-extrabold tracking-[-0.02em] sm:text-[26px]">{book.title}</div>
         <div className="truncate text-[14px] font-medium text-t-ink-2">{line.filter(Boolean).join(" · ")}</div>
       </Link>
       <button
         type="button"
         onClick={act}
-        aria-label={audio ? (loaded && player.isPlaying ? "Пауза" : "Слушать") : "Читать"}
+        aria-label={audio ? (loaded && player.isPlaying ? t("Пауза") : t("Слушать")) : t("Читать")}
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-t-btn text-t-btn-ink transition-transform active:scale-95"
       >
         {!audio ? <BookOpen size={21} strokeWidth={2.1} /> : loaded && player.isPlaying ? <PauseGlyph size={22} /> : <PlayGlyph size={22} />}
@@ -155,7 +156,7 @@ function AddTile({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="flex aspect-[2/3] flex-col items-center justify-center gap-2 self-start rounded-[8px] border-2 border-dashed border-ink/15 text-ink-2 transition-colors active:bg-ink/5">
       <Plus size={28} strokeWidth={2} />
-      <span className="px-2 text-center text-[13px] font-semibold leading-tight">Добавить<br />файлы</span>
+      <span className="px-2 text-center text-[13px] font-semibold leading-tight">{t("Добавить")}<br />{t("файлы")}</span>
     </button>
   );
 }
@@ -171,8 +172,8 @@ function GridItem({ book, progress, index, onMenu }: { book: BookRecord; progres
       </Link>
       <ProgressBar value={pct} className="mt-2" color={done ? "var(--ink)" : undefined} />
       <div className="mt-1 flex items-center justify-between">
-        <span className="tabular text-[12.5px] font-semibold text-ink-2">{done ? "Прочитано" : opened ? `${Math.round(pct * 100)}%` : "Новая"}</span>
-        <button type="button" aria-label={`Действия: ${book.title}`} onClick={onMenu} className="-mr-1.5 flex h-7 w-8 items-center justify-center rounded-full text-ink-3 active:bg-ink/5">
+        <span className="tabular text-[12.5px] font-semibold text-ink-2">{done ? t("Прочитано") : opened ? `${Math.round(pct * 100)}%` : t("Новая")}</span>
+        <button type="button" aria-label={t("Действия: {title}", { title: book.title })} onClick={onMenu} className="-mr-1.5 flex h-7 w-8 items-center justify-center rounded-full text-ink-3 active:bg-ink/5">
           <MoreHorizontal size={18} />
         </button>
       </div>
@@ -212,10 +213,10 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
           </div>
           <dl className="mt-5 grid grid-cols-2 gap-2">
             {[
-              ["Формат", FORMAT_LABELS[book.format]],
-              ["Размер", formatBytes(book.fileSize)],
-              ["Главы", String(book.totalChapters)],
-              [book.duration ? "Длительность" : "Страницы", book.duration ? formatDuration(book.duration) : book.pageCount ? String(book.pageCount) : "—"],
+              [t("Формат"), formatLabel(book.format)],
+              [t("Размер"), formatBytes(book.fileSize)],
+              [t("Главы"), String(book.totalChapters)],
+              [book.duration ? t("Длительность") : t("Страницы"), book.duration ? formatDuration(book.duration) : book.pageCount ? String(book.pageCount) : "—"],
             ].map(([k, v]) => (
               <div key={k} className="rounded-[14px] bg-surface-2 px-3.5 py-2.5">
                 <dt className="text-[12px] font-medium text-ink-2">{k}</dt>
@@ -226,23 +227,23 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
           <div className="mt-4 grid gap-2">
             <Link prefetch={false} href={`/book/?id=${book.id}`} onClick={close}>
               <Button size="lg" className="w-full" icon={book.format === "audio" ? <Headphones size={18} /> : <BookOpen size={18} />}>
-                {book.format === "audio" ? "Слушать" : "Читать"}
+                {book.format === "audio" ? t("Слушать") : t("Читать")}
               </Button>
             </Link>
             {voiceText && (
               <Button variant="secondary" size="lg" className="w-full" icon={<AudioLines size={18} strokeWidth={1.9} />} onClick={() => onVoice(voiceText)}>
-                {unfinishedVoiceover(voiceText.id) ? "Продолжить озвучку" : "Озвучить через ElevenLabs"}
+                {unfinishedVoiceover(voiceText.id) ? t("Продолжить озвучку") : t("Озвучить через ElevenLabs")}
               </Button>
             )}
             <Button variant="secondary" size="lg" className="w-full" icon={<PencilLine size={18} strokeWidth={1.9} />} onClick={() => onEdit(book)}>
-              Название и главы
+              {t("Название и главы")}
             </Button>
             <Button variant="secondary" size="lg" className="w-full" icon={<ImageIcon size={18} strokeWidth={1.9} />} onClick={() => onCover(book)}>
-              Обложка
+              {t("Обложка")}
             </Button>
             {!confirm ? (
               <Button variant="ghost" size="lg" className="w-full text-ink-2" icon={<Trash2 size={18} strokeWidth={1.9} />} onClick={() => setConfirm(true)}>
-                Удалить с устройства
+                {t("Удалить с устройства")}
               </Button>
             ) : (
               <Button
@@ -253,11 +254,11 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
                 onClick={async () => {
                   unloadIfCurrent(book.id);
                   await deleteBook(book.id);
-                  toast("Книга удалена");
+                  toast(t("Книга удалена"));
                   close();
                 }}
               >
-                Точно удалить
+                {t("Точно удалить")}
               </Button>
             )}
           </div>
@@ -270,14 +271,14 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
 function EmptyState({ onFiles, onFolder }: { onFiles: () => void; onFolder: () => void }) {
   return (
     <section className="px-5 pt-10 sm:px-8">
-      <p className="display text-[30px]">Книг пока нет</p>
+      <p className="display text-[30px]">{t("Книг пока нет")}</p>
       <p className="mt-3 max-w-[420px] text-[16px] leading-[1.5] text-ink-2">
-        Добавьте файлы или папку с аудиокнигой — или возьмите классику в магазине. Всё работает без интернета.
+        {t("Добавьте файлы или папку с аудиокнигой — или возьмите классику в магазине. Всё работает без интернета.")}
       </p>
       <div className="mt-7 grid max-w-[420px] gap-2.5">
-        <Button size="lg" icon={<FilePlus2 size={19} strokeWidth={2} />} onClick={onFiles}>Добавить файлы</Button>
-        <Button size="lg" variant="secondary" icon={<FolderPlus size={19} strokeWidth={2} />} onClick={onFolder}>Папку с аудиокнигой</Button>
-        <Link href="/store/" className="mt-1"><Button size="lg" variant="ghost" className="w-full">Открыть магазин</Button></Link>
+        <Button size="lg" icon={<FilePlus2 size={19} strokeWidth={2} />} onClick={onFiles}>{t("Добавить файлы")}</Button>
+        <Button size="lg" variant="secondary" icon={<FolderPlus size={19} strokeWidth={2} />} onClick={onFolder}>{t("Папку с аудиокнигой")}</Button>
+        <Link href="/store/" className="mt-1"><Button size="lg" variant="ghost" className="w-full">{t("Открыть магазин")}</Button></Link>
       </div>
     </section>
   );

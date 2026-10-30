@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * Offline cover for books without one: a typeset plate in the app's visual language
  * (warm earth ground, hairline frame, bold Golos title, an imprint line, a geometric mark).
@@ -134,7 +135,7 @@ export async function generateCover(opts: { title: string; author?: string; squa
   ctx.fillStyle = fg2;
   ctx.font = `600 15px ${sans}`;
   ctx.textBaseline = "top";
-  ctx.fillText((opts.label ?? (opts.square ? "АУДИОКНИГА" : "КНИГА")).toUpperCase(), m, H - m - 22);
+  ctx.fillText((opts.label ?? (opts.square ? t("АУДИОКНИГА") : t("КНИГА"))).toUpperCase(), m, H - m - 22);
   const id = `№ ${String(h % 10000).padStart(4, "0")}`;
   ctx.fillText(id, W - m - ctx.measureText(id).width, H - m - 22);
 

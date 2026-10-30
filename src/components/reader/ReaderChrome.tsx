@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { IconButton } from "@/components/ui/primitives";
+import { t } from "@/lib/i18n";
 
 /** Auto-hiding bars (top: back, title/toggle, actions; bottom: chapter and position) shared by both readers. */
 export function ReaderChrome({
@@ -34,7 +35,7 @@ export function ReaderChrome({
           >
             <header className="bg-bg/90 pt-[var(--sat)] shadow-[0_1px_0_var(--line)] backdrop-blur-xl">
               <div className="mx-auto flex h-[56px] max-w-[760px] items-center gap-1 px-2">
-                <IconButton label="Назад" onClick={back}>
+                <IconButton label={t("Назад")} onClick={back}>
                   <ChevronLeft size={26} strokeWidth={2} />
                 </IconButton>
                 <div className="flex min-w-0 flex-1 justify-center">{center}</div>

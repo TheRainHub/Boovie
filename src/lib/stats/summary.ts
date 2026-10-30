@@ -1,6 +1,7 @@
 /** Profile numbers from activity rows (this device's and, with an account, the other devices'). */
 import type { ActivityRecord } from "../storage/types";
 import { dayKey } from "./activity";
+import { getLang, locale } from "../i18n";
 
 export type Period = "week" | "month" | "all";
 
@@ -39,8 +40,13 @@ export interface Summary {
   top: BookTotal[];
 }
 
-const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+// Three-letter months for the Russian chart, which Intl abbreviates unevenly («февр.», «сент.»).
+const MONTHS_RU = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]; // i18n-ignore
+// Short names in the interface language: «Пн» / «Mon», «Jan».
+const short = (d: Date, opts: Intl.DateTimeFormatOptions) => {
+  const s = d.toLocaleDateString(locale(), opts).replace(/\.$/, "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
 const MIN_ACTIVE = 60;
 
 function addDays(d: Date, n: number): Date {
@@ -72,7 +78,7 @@ export function summarize(rows: ActivityRecord[], period: Period, now = new Date
     for (let i = count - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1, 12);
       const key = dayKey(d).slice(0, 7);
-      buckets.push({ key, label: MONTHS_SHORT[d.getMonth()], title: d.toLocaleDateString("ru-RU", { month: "long", year: "numeric" }), listen: 0, read: 0, today: i === 0 });
+      buckets.push({ key, label: getLang() === "ru" ? MONTHS_RU[d.getMonth()] : short(d, { month: "short" }), title: d.toLocaleDateString(locale(), { month: "long", year: "numeric" }), listen: 0, read: 0, today: i === 0 });
     }
   } else {
     const n = period === "week" ? 7 : 30;
@@ -81,8 +87,8 @@ export function summarize(rows: ActivityRecord[], period: Period, now = new Date
       const key = dayKey(d);
       buckets.push({
         key,
-        label: period === "week" ? WEEKDAYS[d.getDay()] : String(d.getDate()),
-        title: d.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" }),
+        label: period === "week" ? short(d, { weekday: "short" }) : String(d.getDate()),
+        title: d.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" }),
         listen: 0,
         read: 0,
         today: i === 0,

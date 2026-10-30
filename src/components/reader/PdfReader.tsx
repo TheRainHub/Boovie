@@ -15,6 +15,7 @@ import { getFileBlob } from "@/lib/storage/blobStore";
 import type { BookRecord } from "@/lib/storage/types";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
+import { t } from "@/lib/i18n";
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3];
 
@@ -89,8 +90,8 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
   // unless it is already being used.
   const hudTouched = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => !hudTouched.current && setHud(false), 3200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => !hudTouched.current && setHud(false), 3200);
+    return () => clearTimeout(timer);
   }, []);
 
   const paged = prefs.pdfMode === "paged";
@@ -104,7 +105,7 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
     void (async () => {
       try {
         const [lib, blob] = await Promise.all([loadPdfjs(), getFileBlob(sourceId)]);
-        if (!blob) throw new Error("Файл PDF не найден на устройстве");
+        if (!blob) throw new Error(t("Файл PDF не найден на устройстве"));
         task = lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
         const d = await task.promise;
         const first = await d.getPage(1);
@@ -201,12 +202,12 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
 
   useEffect(() => {
     if (!doc) return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       void updateProgress(book.id, { currentChapterIndex: chapterIndex, scrollOffsetOrPage: page, percentage: (page / numPages) * 100 });
       const done = chapters.filter((c) => (c.endPage ?? 0) < page || page === numPages).map((c) => c.index);
       if (done.length) void markChaptersComplete(book.id, done);
     }, 400);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [book.id, chapterIndex, chapters, doc, numPages, page]);
 
   const goTo = (p: number) => {
@@ -239,8 +240,8 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
   const toggleMark = async () => {
     if (currentMark) await removeBookmark(book.id, currentMark.id);
     else {
-      await addBookmark(book.id, { kind: "pdf", chapterIndex, position: page, snippet: `Страница ${page}` });
-      toast(`Закладка · стр. ${page}`, "success");
+      await addBookmark(book.id, { kind: "pdf", chapterIndex, position: page, snippet: t("Страница {n}", { n: page }) });
+      toast(`${t("Закладка")} · ${t("стр. {n}", { n: page })}`, "success");
     }
   };
 
@@ -286,34 +287,34 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
         center={toggle ?? <span className="truncate px-2 text-[14px] font-medium">{book.title}</span>}
         actions={
           <>
-            <IconButton label={currentMark ? "Убрать закладку" : "Закладка на странице"} className={currentMark ? "text-accent" : undefined} onClick={() => void toggleMark()}>
+            <IconButton label={currentMark ? t("Убрать закладку") : t("Закладка на странице")} className={currentMark ? "text-accent" : undefined} onClick={() => void toggleMark()}>
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
-            <IconButton label="Оглавление" onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
+            <IconButton label={t("Оглавление")} onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
           </>
         }
         bottom={
           <div>
             <div className="flex items-center gap-1">
-              <IconButton label={paged ? "Режим ленты" : "Постраничный режим"} size={34} onClick={() => prefs.set({ pdfMode: paged ? "scroll" : "paged" })}>
+              <IconButton label={paged ? t("Режим ленты") : t("Постраничный режим")} size={34} onClick={() => prefs.set({ pdfMode: paged ? "scroll" : "paged" })}>
                 {paged ? <ScrollText size={17} /> : <BookOpen size={17} />}
               </IconButton>
-              <IconButton label="Тёмный режим страницы" size={34} className={invert ? "text-accent" : undefined} onClick={() => prefs.set({ pdfInvert: !invert })}>
+              <IconButton label={t("Тёмный режим страницы")} size={34} className={invert ? "text-accent" : undefined} onClick={() => prefs.set({ pdfInvert: !invert })}>
                 <Contrast size={17} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
                 <div className="truncate text-[15px] font-bold leading-tight">{chapters[chapterIndex]?.title}</div>
-                <div className="tabular mt-0.5 text-[13px] text-ink-2">Стр. {page} из {numPages} · {Math.round((page / numPages) * 100)}%</div>
+                <div className="tabular mt-0.5 text-[13px] text-ink-2">{t("Стр. {n} из {total}", { n: page, total: numPages })} · {Math.round((page / numPages) * 100)}%</div>
               </div>
-              <IconButton label="Уменьшить" size={34} disabled={zoom <= ZOOMS[0]} onClick={() => setZoom(ZOOMS[Math.max(0, ZOOMS.indexOf(zoom) - 1)])}>
+              <IconButton label={t("Уменьшить")} size={34} disabled={zoom <= ZOOMS[0]} onClick={() => setZoom(ZOOMS[Math.max(0, ZOOMS.indexOf(zoom) - 1)])}>
                 <ZoomOut size={17} />
               </IconButton>
               <span className="tabular w-12 text-center text-[13px] font-semibold text-ink-2">{Math.round(zoom * 100)}%</span>
-              <IconButton label="Увеличить" size={34} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}>
+              <IconButton label={t("Увеличить")} size={34} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}>
                 <ZoomIn size={17} />
               </IconButton>
             </div>
-            <Slider label="Страница" min={1} max={numPages} step={1} value={page} onChange={(v) => setPage(Math.round(v))} onCommit={(v) => goTo(Math.round(v))} />
+            <Slider label={t("Страница")} min={1} max={numPages} step={1} value={page} onChange={(v) => setPage(Math.round(v))} onCommit={(v) => goTo(Math.round(v))} />
           </div>
         }
       />

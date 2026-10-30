@@ -14,6 +14,10 @@ landscape the player and the store details go two-column and the reader shows a 
 
 - **Слушаю / Читаю (home)** — the book you are on: a full player for audiobooks, the reading position and a
   «continue» button for texts, plus the other books you have started.
+- **Russian and English** — the interface speaks either (Settings → «Язык · Language»; the first choice follows the
+  phone's language). Strings are written in Russian where they are used and looked up in `src/lib/i18n/en.ts`;
+  `npm test` fails if one has no English. The store has English descriptions, titles and cover credits too, and
+  finds books by their names in both languages.
 - **Книги (library)** — filters Все / Читаю / Слушаю / Файлы, a «continue» card in the book's colour, a cover grid
   with progress, «Добавить»: files (PDF/FB2/EPUB/MP3/M4B/ZIP, any mix) or a whole folder (one audiobook per
   folder, one file per chapter, CD/Disc subfolders merged, cover from the folder or found by name). An audiobook

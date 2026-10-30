@@ -18,6 +18,7 @@ import { recordFinish, recordListen } from "../stats/activity";
 import { getFileUrl, revokeFileUrls } from "../storage/blobStore";
 import { getDB } from "../storage/db";
 import { installMediaHandlers, setMediaMetadata, setPlaybackState, setPositionState, SKIP_BACK, SKIP_FORWARD } from "./mediaSession";
+import { t } from "../i18n";
 
 export interface PlayerChapter {
   index: number;
@@ -153,7 +154,7 @@ function el(): HTMLAudioElement {
     if (currentFileId) revokeFileUrls([currentFileId]);
     currentFileId = null;
     arrived(a);
-    set({ error: "Не удалось воспроизвести файл, нажмите ещё раз", isLoading: false, isPlaying: false });
+    set({ error: t("Не удалось воспроизвести файл, нажмите ещё раз"), isLoading: false, isPlaying: false });
   });
   audio = a;
   installMediaHandlers({
@@ -241,7 +242,7 @@ function chasing(a: HTMLAudioElement): boolean {
     // The file won't go there: stop rather than carry on (and save) from the wrong place.
     arrived(a);
     a.pause();
-    set({ error: "Не получилось перейти к сохранённому месту, нажмите ещё раз" });
+    set({ error: t("Не получилось перейти к сохранённому месту, нажмите ещё раз") });
   } else if (!target.reloaded && now - target.since > 2000) {
     void reloadAtTarget(a);
   } else if (now - target.lastTry > 700) {
@@ -376,16 +377,16 @@ async function onEnded(): Promise<void> {
 export async function seek(global: number, opts: { autoplay?: boolean } = {}): Promise<void> {
   const s = get();
   if (!s.chapters.length) return;
-  const t = Math.max(0, Math.min(global, Math.max(0, s.duration - 0.25)));
-  const ch = chapterAtGlobal(t);
+  const at = Math.max(0, Math.min(global, Math.max(0, s.duration - 0.25)));
+  const ch = chapterAtGlobal(at);
   if (!ch) return;
   const a = el();
   const wasPlaying = !a.paused && !a.ended && a.src !== SILENT;
   const autoplay = opts.autoplay ?? wasPlaying;
-  const fileTime = ch.fileStart + (t - ch.startTime);
-  set({ position: t, chapterIndex: ch.index, error: undefined });
+  const fileTime = ch.fileStart + (at - ch.startTime);
+  set({ position: at, chapterIndex: ch.index, error: undefined });
   updateMediaMetadata();
-  setPositionState(ch.duration, t - ch.startTime, s.rate);
+  setPositionState(ch.duration, at - ch.startTime, s.rate);
 
   if (currentFileId === ch.fileId && a.src && !a.error && a.readyState > 0) {
     // A paused element that has to travel (e.g. reset by iOS while the app was away) stays quiet until it gets there.
@@ -406,7 +407,7 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
   const url = await getFileUrl(ch.fileId);
   if (token !== loadToken) return;
   if (!url) {
-    set({ error: "Файл аудиокниги не найден на устройстве", isLoading: false });
+    set({ error: t("Файл аудиокниги не найден на устройстве"), isLoading: false });
     return;
   }
   currentFileId = ch.fileId;

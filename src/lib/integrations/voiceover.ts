@@ -18,6 +18,7 @@ import { deleteFiles, getFileBlob, putFile } from "../storage/blobStore";
 import { getDB } from "../storage/db";
 import { ELEVEN_MODELS, ElevenError, synthesize, useElevenPrefs, type ElevenModel } from "./elevenlabs";
 import { chapterParagraphs, speechChunks } from "./speech";
+import { t } from "../i18n";
 
 const JOBS_KEY = "boowie-voiceover-jobs";
 
@@ -111,15 +112,15 @@ export async function planVoiceover(bookId: string, use: { voiceId?: string; mod
   };
 }
 
-const fileName = (n: number, title: string) => `${String(n + 1).padStart(3, "0")} ${title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Глава"}.mp3`;
+const fileName = (n: number, title: string) => `${String(n + 1).padStart(3, "0")} ${title.replace(/[\\/:*?"<>|]+/g, " ").trim() || t("Глава")}.mp3`;
 
 let running: string | null = null;
 
 /** Run (or resume) the voiceover in the background; progress and errors show in the import tray. */
 export async function runVoiceover(bookId: string): Promise<string | null> {
-  if (running) throw new ElevenError("Уже идёт озвучка другой книги — дождитесь её или остановите.");
+  if (running) throw new ElevenError(t("Уже идёт озвучка другой книги — дождитесь её или остановите."));
   const prefs = useElevenPrefs.getState();
-  if (!prefs.apiKey || !prefs.voiceId) throw new ElevenError("Сначала добавьте ключ ElevenLabs и выберите голос в настройках.");
+  if (!prefs.apiKey || !prefs.voiceId) throw new ElevenError(t("Сначала добавьте ключ ElevenLabs и выберите голос в настройках."));
   const book = await getDB().books.get(bookId);
   if (!book || book.format === "audio") return null;
 
@@ -128,11 +129,11 @@ export async function runVoiceover(bookId: string): Promise<string | null> {
   const controller = new AbortController();
   const stop = onCancel(jobId, () => controller.abort());
   running = bookId;
-  tray.upsert({ id: jobId, label: `Озвучка: ${book.title}`, stage: "Подготовка текста", progress: 0, status: "running", cancellable: true });
+  tray.upsert({ id: jobId, label: t("Озвучка: {title}", { title: book.title }), stage: t("Подготовка текста"), progress: 0, status: "running", cancellable: true });
 
   try {
     const plan = await planVoiceover(bookId);
-    if (!plan.chapters.length) throw new ElevenError("В книге не нашлось текста для озвучки.");
+    if (!plan.chapters.length) throw new ElevenError(t("В книге не нашлось текста для озвучки."));
     const saved = jobOf(bookId);
     const same = saved && saved.voiceId === prefs.voiceId && saved.model === prefs.model;
     // What was voiced earlier with another voice or model would not match: start over (the listening copy goes too).
@@ -158,7 +159,7 @@ export async function runVoiceover(bookId: string): Promise<string | null> {
       job.partial = { index: ch.index, files: pieces.slice(0, parts.length) };
       for (let k = parts.length; k < ch.chunks.length; k++) {
         const text = ch.chunks[k];
-        tray.upsert({ id: jobId, stage: `Глава ${n + 1} из ${plan.chapters.length}${ch.chunks.length > 1 ? ` · часть ${k + 1}/${ch.chunks.length}` : ""}`, progress: (doneChars / plan.totalChars) * 0.95 });
+        tray.upsert({ id: jobId, stage: `${t("Глава {n} из {total}", { n: n + 1, total: plan.chapters.length })}${ch.chunks.length > 1 ? ` · ${t("часть {n}", { n: `${k + 1}/${ch.chunks.length}` })}` : ""}`, progress: (doneChars / plan.totalChars) * 0.95 });
         const bytes = await synthesize(prefs.apiKey, prefs.voiceId, prefs.model, text, { previous: ch.chunks[k - 1]?.slice(-400), next: ch.chunks[k + 1]?.slice(0, 400) }, controller.signal);
         const frames = mp3Frames(bytes);
         const piece = await putFile(new Blob([frames as BlobPart], { type: "audio/mpeg" }), { bookId: jobId, name: `${fileName(n, ch.title)}.${k}`, role: "source", mime: "audio/mpeg" });
@@ -176,17 +177,17 @@ export async function runVoiceover(bookId: string): Promise<string | null> {
       await deleteFiles(done);
     }
 
-    tray.upsert({ id: jobId, stage: "Сборка аудиокниги", progress: 0.96 });
+    tray.upsert({ id: jobId, stage: t("Сборка аудиокниги"), progress: 0.96 });
     const audioId = await assemble(bookId, plan, job, true);
     live.delete(bookId);
     await deleteFiles(Object.values(job.files));
     saveJob(bookId, null);
-    tray.upsert({ id: jobId, stage: "Готово — аудиоверсия в ваших книгах", progress: 1, status: "done", bookId: audioId, cancellable: false });
+    tray.upsert({ id: jobId, stage: t("Готово — аудиоверсия в ваших книгах"), progress: 1, status: "done", bookId: audioId, cancellable: false });
     return audioId;
   } catch (e) {
     const aborted = (e as Error).name === "AbortError";
-    const kept = "Озвученное сохранено: его можно послушать или продолжить из меню книги.";
-    tray.upsert({ id: jobId, status: "error", cancellable: false, error: aborted ? `Остановлено. ${kept}` : `${(e as Error).message} ${kept}` });
+    const kept = t("Озвученное сохранено: его можно послушать или продолжить из меню книги.");
+    tray.upsert({ id: jobId, status: "error", cancellable: false, error: aborted ? `${t("Остановлено.")} ${kept}` : `${(e as Error).message} ${kept}` });
     return null;
   } finally {
     live.delete(bookId);
@@ -202,7 +203,7 @@ export async function runVoiceover(bookId: string): Promise<string | null> {
 async function assemble(bookId: string, plan: VoiceoverPlan, job: SavedJob, final: boolean): Promise<string> {
   const db = getDB();
   const book = await db.books.get(bookId);
-  if (!book) throw new ElevenError("Книга не найдена на устройстве.");
+  if (!book) throw new ElevenError(t("Книга не найдена на устройстве."));
   const inputs: { blob: Blob; name: string }[] = [];
   const used: VoiceoverChapter[] = [];
   for (const [n, ch] of plan.chapters.entries()) {
@@ -215,7 +216,7 @@ async function assemble(bookId: string, plan: VoiceoverPlan, job: SavedJob, fina
     inputs.push({ blob, name: fileName(n, ch.title) });
     used.push(ch);
   }
-  if (!inputs.length) throw new ElevenError("Пока не озвучено ни одной части.");
+  if (!inputs.length) throw new ElevenError(t("Пока не озвучено ни одной части."));
   const parsed = await parseAudio(inputs, undefined, { probeDuration, hint: { title: book.title, author: book.author } });
   // One file per text chapter, in order: keep the text's titles and parts so Read ↔ Listen maps 1:1.
   const metas = await getChapters(bookId);
@@ -224,13 +225,13 @@ async function assemble(bookId: string, plan: VoiceoverPlan, job: SavedJob, fina
     if (src) Object.assign(c, { title: src.title, group: src.group });
   });
   if (book.coverFileId) parsed.cover = (await getFileBlob(book.coverFileId)) ?? undefined;
-  const voice = `ElevenLabs · ${job.voiceName ?? useElevenPrefs.getState().voiceName ?? "голос"}`;
+  const voice = `ElevenLabs · ${job.voiceName ?? useElevenPrefs.getState().voiceName ?? t("голос")}`;
   const whole = used.filter((c) => job.files[c.index]).length;
   const audioId = await saveParsedBook(parsed, {
     title: book.title,
     author: book.author,
     language: book.language,
-    narrator: final ? voice : `${voice} · озвучено ${whole} из ${plan.chapters.length} глав`,
+    narrator: final ? voice : `${voice} · ${t("озвучено {n} из {total} глав", { n: whole, total: plan.chapters.length })}`,
     coverUrl: book.coverFileId ? undefined : book.coverUrl,
     coverSource: book.coverSource,
   });
@@ -254,7 +255,7 @@ async function assemble(bookId: string, plan: VoiceoverPlan, job: SavedJob, fina
 /** Put together what is voiced so far (also while the run goes on) and return the audiobook to open. */
 export async function listenToVoiceover(bookId: string): Promise<string> {
   const job = jobOf(bookId);
-  if (!job) throw new ElevenError("Пока не озвучено ни одной части.");
+  if (!job) throw new ElevenError(t("Пока не озвучено ни одной части."));
   // Planned for the voice the job used, so its finished parts are the ones counted.
   return assemble(bookId, await planVoiceover(bookId, job), job, false);
 }

@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * Streaming ZIP reader for large archives (e.g. an audiobook folder compressed in the iOS Files app).
  * Only the central directory is read up front; each entry is extracted on demand from a Blob slice
@@ -48,7 +49,7 @@ export async function listZip(blob: Blob): Promise<ZipEntry[]> {
       break;
     }
   }
-  if (eocd < 0) throw new Error("ZIP: не найден каталог архива");
+  if (eocd < 0) throw new Error(t("ZIP: не найден каталог архива"));
   let count = u16(tail, eocd + 10);
   let cdSize = u32(tail, eocd + 12);
   let cdOffset = u32(tail, eocd + 16);
@@ -99,11 +100,11 @@ export async function listZip(blob: Blob): Promise<ZipEntry[]> {
 
 export async function extractZipEntry(blob: Blob, entry: ZipEntry, type = ""): Promise<Blob> {
   const head = await slice(blob, entry.localHeaderOffset, entry.localHeaderOffset + 30);
-  if (u32(head, 0) !== 0x04034b50) throw new Error(`ZIP: повреждён заголовок ${entry.path}`);
+  if (u32(head, 0) !== 0x04034b50) throw new Error(t("ZIP: повреждён заголовок {path}", { path: entry.path }));
   const dataStart = entry.localHeaderOffset + 30 + u16(head, 26) + u16(head, 28);
   const raw = blob.slice(dataStart, dataStart + entry.compressedSize);
   if (entry.method === 0) return type ? new Blob([raw], { type }) : raw;
-  if (entry.method !== 8) throw new Error(`ZIP: неподдерживаемое сжатие (${entry.method}) в ${entry.path}`);
+  if (entry.method !== 8) throw new Error(t("ZIP: неподдерживаемое сжатие ({method}) в {path}", { method: entry.method, path: entry.path }));
   const stream = raw.stream().pipeThrough(new DecompressionStream("deflate-raw"));
   const out = await new Response(stream).blob();
   return type ? new Blob([out], { type }) : out;

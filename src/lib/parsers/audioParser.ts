@@ -8,6 +8,7 @@ import { splitAuthorTitle, surname, tidyName } from "../covers/names";
 import { readAudioMetadata, type AudioMetadata } from "./audioMetadata";
 import { mimeFromName, naturalCompare, stripExtension } from "./text";
 import { ParseError, type ParsedBook, type ParsedChapter, type ProgressFn } from "./types";
+import { t } from "../i18n";
 
 export const AUTO_CHAPTER_SECONDS = 20 * 60;
 
@@ -50,7 +51,7 @@ export function chapterTitleFromFile(name: string): string {
   return /\p{L}/u.test(stripped) ? stripped : base;
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // i18n-ignore
 /** "Часть 3", "Глава первая", "Track 07", "07": the name of a piece, not of a book. */
 const PIECE = /^(?:(?:часть|глава|том|книга|трек|запись|файл|диск|part|chapter|track|book|volume|disc|cd)(?:[\s._-]+\S+)?|[\divxlc\s._-]*)$/iu;
 
@@ -86,7 +87,7 @@ export function audioBookTitle(c: { album?: string; tag?: string; file?: string;
     if (tag && file && !PIECE.test(tag) && norm(tag) !== norm(album) && (norm(tag) === norm(file) || extendsName(file, tag))) return tag;
     return album;
   }
-  return named[0] || folder || tag || file || "Без названия";
+  return named[0] || folder || tag || file || t("Без названия");
 }
 
 export function autoChapters(duration: number, step = AUTO_CHAPTER_SECONDS): { title: string; start: number; duration: number }[] {
@@ -95,24 +96,24 @@ export function autoChapters(duration: number, step = AUTO_CHAPTER_SECONDS): { t
   for (let i = 0; i < count; i++) {
     const start = i * step;
     const end = i === count - 1 ? duration : Math.min(duration, start + step);
-    out.push({ title: `Часть ${i + 1}`, start, duration: end - start });
+    out.push({ title: t("Часть {n}", { n: i + 1 }), start, duration: end - start });
   }
   return out;
 }
 
 export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, opts: AudioParseOptions = {}): Promise<ParsedBook> {
-  if (inputs.length === 0) throw new ParseError("Не выбраны аудиофайлы");
+  if (inputs.length === 0) throw new ParseError(t("Не выбраны аудиофайлы"));
   const metas: { input: AudioInput; meta: AudioMetadata }[] = [];
   for (let i = 0; i < inputs.length; i++) {
-    onProgress?.(0.05 + 0.85 * (i / inputs.length), `Чтение тегов: ${inputs[i].name}`);
+    onProgress?.(0.05 + 0.85 * (i / inputs.length), t("Чтение тегов: {name}", { name: inputs[i].name }));
     const meta = await readAudioMetadata(inputs[i].blob).catch((): AudioMetadata => ({ container: "unknown", chapters: [] }));
     if (meta.encrypted) {
-      throw new ParseError(`«${inputs[i].name}» защищён DRM (Apple FairPlay) и воспроизводится только в Apple Books. Нужна версия без защиты.`);
+      throw new ParseError(t("«{name}» защищён DRM (Apple FairPlay) и воспроизводится только в Apple Books. Нужна версия без защиты.", { name: inputs[i].name }));
     }
     if (!meta.duration && opts.probeDuration) {
       meta.duration = await opts.probeDuration(inputs[i].blob).catch(() => undefined);
     }
-    if (!meta.duration || !isFinite(meta.duration)) throw new ParseError(`Не удалось определить длительность: ${inputs[i].name}`);
+    if (!meta.duration || !isFinite(meta.duration)) throw new ParseError(t("Не удалось определить длительность: {name}", { name: inputs[i].name }));
     metas.push({ input: inputs[i], meta });
   }
 
@@ -126,23 +127,23 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
   }
 
   const chapters: ParsedChapter[] = [];
-  let t = 0;
+  let elapsed = 0;
   metas.forEach(({ input, meta }, sourceIndex) => {
     const fileDuration = meta.duration!;
     const marks = meta.chapters.filter((c) => c.start < fileDuration);
     if (marks.length >= 2 || (marks.length === 1 && metas.length === 1 && marks[0].title)) {
       marks.forEach((m, i) => {
         const end = Math.min(fileDuration, marks[i + 1]?.start ?? m.end ?? fileDuration);
-        chapters.push({ title: m.title || `Глава ${chapters.length + 1}`, sourceIndex, fileStart: m.start, startTime: t + m.start, duration: end - m.start });
+        chapters.push({ title: m.title || t("Глава {n}", { n: chapters.length + 1 }), sourceIndex, fileStart: m.start, startTime: elapsed + m.start, duration: end - m.start });
       });
     } else if (metas.length === 1 && fileDuration > AUTO_CHAPTER_SECONDS) {
       for (const part of autoChapters(fileDuration)) {
-        chapters.push({ title: part.title, sourceIndex, fileStart: part.start, startTime: t + part.start, duration: part.duration });
+        chapters.push({ title: part.title, sourceIndex, fileStart: part.start, startTime: elapsed + part.start, duration: part.duration });
       }
     } else {
-      chapters.push({ title: meta.title || chapterTitleFromFile(input.name), sourceIndex, fileStart: 0, startTime: t, duration: fileDuration });
+      chapters.push({ title: meta.title || chapterTitleFromFile(input.name), sourceIndex, fileStart: 0, startTime: elapsed, duration: fileDuration });
     }
-    t += fileDuration;
+    elapsed += fileDuration;
   });
 
   const first = metas[0].meta;
@@ -151,7 +152,7 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
   const albums = [...new Set(metas.map((m) => m.meta.album).filter(Boolean))];
   // A loose untagged file follows the folder convention too: "Автор - Название.mp3".
   const named = single && !hint.author && !first.albumArtist && !first.artist ? splitAuthorTitle(metas[0].input.name, true) : null;
-  const author = first.albumArtist || first.artist || hint.author || named?.author || "Неизвестный автор";
+  const author = first.albumArtist || first.artist || hint.author || named?.author || t("Неизвестный автор");
   const title = audioBookTitle({
     album: albums.length === 1 ? albums[0] : undefined,
     tag: single ? first.title : undefined,
@@ -170,6 +171,6 @@ export async function parseAudio(inputs: AudioInput[], onProgress?: ProgressFn, 
     chapters,
     assets: [],
     sources: metas.map(({ input }) => ({ blob: input.blob, name: input.name, mime: playableMime(input) })),
-    duration: t,
+    duration: elapsed,
   };
 }

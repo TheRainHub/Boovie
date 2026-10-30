@@ -6,6 +6,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Button, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { prepareAccount, sendPasswordReset, setNewPassword, signIn, signUp } from "@/lib/account/session";
+import { t } from "@/lib/i18n";
 
 export type AuthMode = "signin" | "signup" | "reset" | "newPassword";
 
@@ -40,13 +41,13 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
     try {
       if (mode === "signin") {
         await signIn(email.trim(), password);
-        toast("Вы вошли", "success");
+        toast(t("Вы вошли"), "success");
         close();
       } else if (mode === "signup") {
         const res = await signUp(name.trim(), email.trim(), password);
         if (res === "confirm") setSent("confirm");
         else {
-          toast("Аккаунт создан", "success");
+          toast(t("Аккаунт создан"), "success");
           close();
         }
       } else if (mode === "reset") {
@@ -54,7 +55,7 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
         setSent("reset");
       } else if (mode === "newPassword") {
         await setNewPassword(password);
-        toast("Пароль изменён", "success");
+        toast(t("Пароль изменён"), "success");
         close();
       }
     } catch (e) {
@@ -64,7 +65,7 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
     }
   };
 
-  const title = { signin: "Вход", signup: "Новый аккаунт", reset: "Сброс пароля", newPassword: "Новый пароль" }[mode ?? "signin"];
+  const title = { signin: t("Вход"), signup: t("Новый аккаунт"), reset: t("Сброс пароля"), newPassword: t("Новый пароль") }[mode ?? "signin"];
   const ready =
     mode === "signup" ? name.trim() && /\S+@\S+\.\S+/.test(email) && password.length >= 6
     : mode === "signin" ? /\S+@\S+\.\S+/.test(email) && password.length > 0
@@ -77,13 +78,13 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
         {sent ? (
           <div className="py-4 text-center">
             <MailCheck size={40} strokeWidth={1.6} className="mx-auto text-ink-2" />
-            <p className="mt-3 text-[17px] font-semibold">Проверьте почту</p>
+            <p className="mt-3 text-[17px] font-semibold">{t("Проверьте почту")}</p>
             <p className="mx-auto mt-1.5 max-w-[340px] text-[15px] leading-relaxed text-ink-2">
               {sent === "confirm"
-                ? `Мы отправили письмо на ${email.trim()}. Откройте ссылку из него, чтобы подтвердить адрес, затем войдите здесь.`
-                : `Если на ${email.trim()} есть аккаунт, придёт письмо со ссылкой для нового пароля.`}
+                ? t("Мы отправили письмо на {email}. Откройте ссылку из него, чтобы подтвердить адрес, затем войдите здесь.", { email: email.trim() })
+                : t("Если на {email} есть аккаунт, придёт письмо со ссылкой для нового пароля.", { email: email.trim() })}
             </p>
-            <Button className="mt-5" variant="secondary" onClick={() => go("signin")}>Ко входу</Button>
+            <Button className="mt-5" variant="secondary" onClick={() => go("signin")}>{t("Ко входу")}</Button>
           </div>
         ) : (
           <form
@@ -94,10 +95,10 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
             }}
           >
             {mode === "signup" && (
-              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="Имя" aria-label="Имя" className={field} />
+              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder={t("Имя")} aria-label={t("Имя")} className={field} />
             )}
             {mode !== "newPassword" && (
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="Почта" aria-label="Почта" className={field} />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder={t("Почта")} aria-label={t("Почта")} className={field} />
             )}
             {mode !== "reset" && (
               <input
@@ -105,27 +106,27 @@ export function AuthSheet({ mode, onMode, onClose }: { mode: AuthMode | null; on
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                placeholder={mode === "signin" ? "Пароль" : "Пароль, не меньше 6 символов"}
-                aria-label="Пароль"
+                placeholder={mode === "signin" ? t("Пароль") : t("Пароль, не меньше 6 символов")}
+                aria-label={t("Пароль")}
                 className={field}
               />
             )}
             {error && <p className="px-1 text-[14px] font-medium text-[#B3261E] dark:text-[#F2B8B5]" role="alert">{error}</p>}
             <Button type="submit" size="lg" className="mt-1.5 w-full" disabled={!ready || busy}>
-              {busy ? <Spinner size={20} /> : { signin: "Войти", signup: "Создать аккаунт", reset: "Прислать ссылку", newPassword: "Сохранить пароль" }[mode ?? "signin"]}
+              {busy ? <Spinner size={20} /> : { signin: t("Войти"), signup: t("Создать аккаунт"), reset: t("Прислать ссылку"), newPassword: t("Сохранить пароль") }[mode ?? "signin"]}
             </Button>
             <div className="mt-1 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[14.5px] font-semibold text-ink-2">
               {mode === "signin" && (
                 <>
-                  <button type="button" onClick={() => go("signup")}>Создать аккаунт</button>
-                  <button type="button" onClick={() => go("reset")}>Забыли пароль?</button>
+                  <button type="button" onClick={() => go("signup")}>{t("Создать аккаунт")}</button>
+                  <button type="button" onClick={() => go("reset")}>{t("Забыли пароль?")}</button>
                 </>
               )}
-              {(mode === "signup" || mode === "reset") && <button type="button" onClick={() => go("signin")}>У меня есть аккаунт</button>}
+              {(mode === "signup" || mode === "reset") && <button type="button" onClick={() => go("signin")}>{t("У меня есть аккаунт")}</button>}
             </div>
             {mode === "signup" && (
               <p className="mt-1 text-center text-[12.5px] leading-snug text-ink-3">
-                Время, проведённое с книгами на этом устройстве до входа, перейдёт в аккаунт.
+                {t("Время, проведённое с книгами на этом устройстве до входа, перейдёт в аккаунт.")}
               </p>
             )}
           </form>

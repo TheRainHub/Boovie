@@ -6,14 +6,15 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { t } from "../i18n";
 
 export const ELEVEN_API = "https://api.elevenlabs.io";
 
 export type ElevenModel = "eleven_multilingual_v2" | "eleven_flash_v2_5";
 
 export const ELEVEN_MODELS: Record<ElevenModel, { label: string; hint: string; creditsPerChar: number }> = {
-  eleven_multilingual_v2: { label: "Качество", hint: "Multilingual v2 — самый естественный русский", creditsPerChar: 1 },
-  eleven_flash_v2_5: { label: "Дешевле", hint: "Flash v2.5 — вдвое меньше кредитов, чуть проще интонации", creditsPerChar: 0.5 },
+  eleven_multilingual_v2: { get label() { return t("Качество"); }, get hint() { return t("Multilingual v2 — самый естественный русский"); }, creditsPerChar: 1 },
+  eleven_flash_v2_5: { get label() { return t("Дешевле"); }, get hint() { return t("Flash v2.5 — вдвое меньше кредитов, чуть проще интонации"); }, creditsPerChar: 0.5 },
 };
 
 interface ElevenPrefs {
@@ -40,7 +41,7 @@ async function call(path: string, key: string, init: RequestInit = {}): Promise<
     res = await fetch(ELEVEN_API + path, { ...init, headers: { "xi-api-key": key, ...(init.headers ?? {}) } });
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
-    throw new ElevenError("Не удалось связаться с ElevenLabs. Проверьте интернет — или браузер не разрешил запрос с этого сайта.");
+    throw new ElevenError(t("Не удалось связаться с ElevenLabs. Проверьте интернет — или браузер не разрешил запрос с этого сайта."));
   }
   if (res.ok) return res;
   let detail = "";
@@ -50,10 +51,10 @@ async function call(path: string, key: string, init: RequestInit = {}): Promise<
   } catch {
     /* not JSON */
   }
-  if (res.status === 401) throw new ElevenError("ElevenLabs не принял ключ. Проверьте его в настройках.", 401);
-  if (res.status === 402 || /quota|credits/i.test(detail)) throw new ElevenError("На счёте ElevenLabs не хватает символов.", res.status);
-  if (res.status === 429) throw new ElevenError("ElevenLabs просит подождать: слишком много запросов подряд.", 429);
-  throw new ElevenError(`ElevenLabs: ${detail || `ошибка ${res.status}`}`, res.status);
+  if (res.status === 401) throw new ElevenError(t("ElevenLabs не принял ключ. Проверьте его в настройках."), 401);
+  if (res.status === 402 || /quota|credits/i.test(detail)) throw new ElevenError(t("На счёте ElevenLabs не хватает символов."), res.status);
+  if (res.status === 429) throw new ElevenError(t("ElevenLabs просит подождать: слишком много запросов подряд."), 429);
+  throw new ElevenError(`ElevenLabs: ${detail || t("ошибка {status}", { status: res.status })}`, res.status);
 }
 
 export interface ElevenVoice {

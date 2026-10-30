@@ -33,36 +33,37 @@ export function useCurrentBook(): CurrentBook | null | undefined {
   }, [playing]);
 }
 
+export type Activity = "home" | "listening" | "reading";
+
 /** First navigation word: what you are doing right now. */
-export function activityLabel(current: CurrentBook | null | undefined): string {
-  if (!current) return "Главная";
-  return current.book.format === "audio" ? "Слушаю" : "Читаю";
+export function activityOf(current: CurrentBook | null | undefined): Activity {
+  if (!current) return "home";
+  return current.book.format === "audio" ? "listening" : "reading";
 }
 
 const LABEL_KEY = "boowie-activity-label";
 let lastLabel: string | null = null;
 
-function storedLabel(): string {
+function storedLabel(): Activity {
   if (lastLabel === null) {
     try {
       lastLabel = localStorage.getItem(LABEL_KEY);
     } catch {
       /* no storage */
     }
-    lastLabel ??= "Главная";
   }
-  return lastLabel;
+  return lastLabel === "listening" || lastLabel === "reading" ? lastLabel : "home";
 }
 
 /**
- * `activityLabel` for the navigation. Every page mounts its own navigation, and the current book takes a moment
+ * `activityOf` for the navigation. Every page mounts its own navigation, and the current book takes a moment
  * to load: until then the word it showed last is kept (also across launches), so it doesn't flash «Главная».
  */
-export function useActivityLabel(): string {
+export function useActivity(): Activity {
   const current = useCurrentBook();
   // The static export is prerendered without storage: the first client render must say what the HTML says.
-  const remembered = useSyncExternalStore(noSubscribe, storedLabel, () => "Главная");
-  const label = current === undefined ? remembered : activityLabel(current);
+  const remembered = useSyncExternalStore(noSubscribe, storedLabel, (): Activity => "home");
+  const label = current === undefined ? remembered : activityOf(current);
   useEffect(() => {
     if (current === undefined || label === lastLabel) return;
     lastLabel = label;

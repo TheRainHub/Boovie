@@ -7,6 +7,7 @@ import JSZip from "jszip";
 import { compactHtml, escapeAttr, escapeText, textLength } from "./sanitize";
 import { base64ToBytes, childElements, decodeXml, descendants, firstChild, localName, normalizeSpace, parseXml, stripExtension } from "./text";
 import { ParseError, type ParsedAsset, type ParsedBook, type ParsedChapter, type ProgressFn } from "./types";
+import { t } from "../i18n";
 
 /** Split oversized flat bodies into readable parts of roughly this many characters. */
 const FLAT_CHUNK = 14000;
@@ -107,7 +108,7 @@ function splitFlat(nodes: Element[], ctx: Ctx, baseTitle: string, group: string 
   let part = 1;
   const flush = () => {
     if (!buf) return;
-    out.push(chapterFrom(`${baseTitle} · часть ${part++}`, group, buf));
+    out.push(chapterFrom(`${baseTitle} · ${t("часть {n}", { n: part++ })}`, group, buf));
     buf = "";
     size = 0;
   };
@@ -125,7 +126,7 @@ function splitFlat(nodes: Element[], ctx: Ctx, baseTitle: string, group: string 
 }
 
 function walkSection(section: Element, ctx: Ctx, group: string | undefined, out: ParsedChapter[], prefix = "") {
-  const title = titleText(section) || `Глава ${out.length + 1}`;
+  const title = titleText(section) || t("Глава {n}", { n: out.length + 1 });
   const children = childElements(section);
   const subsections = children.filter((c) => localName(c) === "section");
   if (subsections.length === 0) {
@@ -163,7 +164,7 @@ function walkSection(section: Element, ctx: Ctx, group: string | undefined, out:
 export function parseFb2Text(text: string, fileName = "book.fb2"): ParsedBook {
   const doc = parseXml(text);
   const root = descendants(doc, "fictionbook")[0] ?? doc.documentElement;
-  if (!root || !/fictionbook/i.test(root.nodeName)) throw new ParseError("Файл не похож на FictionBook (FB2)");
+  if (!root || !/fictionbook/i.test(root.nodeName)) throw new ParseError(t("Файл не похож на FictionBook (FB2)"));
 
   const ctx: Ctx = { binaries: new Map(), assets: new Map() };
   for (const bin of descendants(root, "binary")) {
@@ -193,7 +194,7 @@ export function parseFb2Text(text: string, fileName = "book.fb2"): ParsedBook {
 
   const bodies = childElements(root, "body");
   const main = bodies.find((b) => !b.getAttribute("name")) ?? bodies[0];
-  if (!main) throw new ParseError("В FB2 нет элемента <body>");
+  if (!main) throw new ParseError(t("В FB2 нет элемента <body>"));
 
   const chapters: ParsedChapter[] = [];
   const topSections = childElements(main, "section");
@@ -212,17 +213,17 @@ export function parseFb2Text(text: string, fileName = "book.fb2"): ParsedBook {
     chapters[0].charCount = textLength(chapters[0].html);
   }
 
-  // Footnotes / comments bodies become a trailing "Примечания" chapter so note links stay reachable.
+  // Footnotes / comments bodies become a trailing t("Примечания") chapter so note links stay reachable.
   for (const extra of bodies.filter((b) => b !== main)) {
     const html = childElements(extra).map((c) => convert(c, ctx)).join("");
-    if (textLength(html) > 0) chapters.push(chapterFrom(extra.getAttribute("name") === "comments" ? "Комментарии" : "Примечания", undefined, html));
+    if (textLength(html) > 0) chapters.push(chapterFrom(extra.getAttribute("name") === "comments" ? t("Комментарии") : t("Примечания"), undefined, html));
   }
-  if (chapters.length === 0) throw new ParseError("В книге не найдено текста");
+  if (chapters.length === 0) throw new ParseError(t("В книге не найдено текста"));
 
   return {
     format: "fb2",
     title,
-    author: authors.join(", ") || "Неизвестный автор",
+    author: authors.join(", ") || t("Неизвестный автор"),
     annotation,
     language,
     cover,
@@ -233,17 +234,17 @@ export function parseFb2Text(text: string, fileName = "book.fb2"): ParsedBook {
 }
 
 export async function parseFb2(file: Blob, fileName: string, onProgress?: ProgressFn): Promise<ParsedBook> {
-  onProgress?.(0.05, "Чтение файла");
+  onProgress?.(0.05, t("Чтение файла"));
   let bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
     const zip = await JSZip.loadAsync(bytes);
     const entry = Object.values(zip.files).find((f) => !f.dir && /\.fb2$/i.test(f.name));
-    if (!entry) throw new ParseError("В архиве нет файла .fb2");
+    if (!entry) throw new ParseError(t("В архиве нет файла .fb2"));
     bytes = (await entry.async("uint8array")) as Uint8Array<ArrayBuffer>;
   }
-  onProgress?.(0.3, "Определение кодировки");
+  onProgress?.(0.3, t("Определение кодировки"));
   const { text } = decodeXml(bytes);
-  onProgress?.(0.5, "Разбор глав");
+  onProgress?.(0.5, t("Разбор глав"));
   const book = parseFb2Text(text, fileName);
   book.sources = [{ blob: file, name: fileName, mime: "application/x-fictionbook+xml" }];
   onProgress?.(1);

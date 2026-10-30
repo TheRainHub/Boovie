@@ -37,6 +37,8 @@ def main() -> None:
         item["coverUrl"] = f"/store/covers/{it['id']}.jpg"
         if it["cover"].get("credit"):
             item["coverCredit"] = it["cover"]["credit"]
+        if it["cover"].get("creditEn"):
+            item["coverCreditEn"] = it["cover"]["creditEn"]
         item["formatLabel"] = FORMAT[it["format"]]
         work = works[it["work"]]
         if it["kind"] == "audiobook":

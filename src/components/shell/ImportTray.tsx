@@ -5,6 +5,7 @@ import { CircleAlert, CircleCheck, X } from "lucide-react";
 import { useEffect } from "react";
 import { ProgressBar, Spinner } from "@/components/ui/primitives";
 import { cancelJob, useImports } from "@/lib/library/importer";
+import { t } from "@/lib/i18n";
 
 /** Floating progress cards for file imports and store downloads. */
 export function ImportTray() {
@@ -39,11 +40,11 @@ export function ImportTray() {
               </div>
               {j.status === "running" && j.cancellable && (
                 <button type="button" className="rounded-full bg-surface-2 px-3 py-1.5 text-[13px] font-semibold" onClick={() => cancelJob(j.id)}>
-                  Стоп
+                  {t("Стоп")}
                 </button>
               )}
               {j.status !== "running" && (
-                <button aria-label="Скрыть" className="text-ink-3" onClick={clear}>
+                <button aria-label={t("Скрыть")} className="text-ink-3" onClick={clear}>
                   <X size={16} />
                 </button>
               )}

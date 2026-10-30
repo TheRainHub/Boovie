@@ -14,6 +14,7 @@ import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
 import { TypographyDrawer } from "./TypographyDrawer";
+import { t } from "@/lib/i18n";
 
 const HEAD = 46; // running header height (px, below the safe area)
 const FOOT = 40; // running footer height
@@ -73,8 +74,8 @@ export function TextReader({
   // unless it is already being used.
   const hudTouched = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => !hudTouched.current && setHud(false), 3200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => !hudTouched.current && setHud(false), 3200);
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Load chapter HTML ──────────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ export function TextReader({
     fractionRef.current = fraction;
     anchorRef.current = anchor ?? null;
     setChapterIndex(index);
-    setHtml(rec?.contentOrBlobRef ?? "<p>Глава не найдена.</p>");
+    setHtml(rec?.contentOrBlobRef ?? `<p>${t("Глава не найдена.")}</p>`);
   }, [book.id]);
 
   useEffect(() => {
@@ -159,7 +160,7 @@ export function TextReader({
   useEffect(() => {
     if (html === null) return;
     fractionRef.current = paged ? (pages > 1 ? page / (pages - 1) : 0) : scrollFrac;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       const pct = textPercentage(chapters, chapterIndex, fractionRef.current);
       void updateProgress(book.id, { currentChapterIndex: chapterIndex, scrollOffsetOrPage: fractionRef.current, percentage: pct });
       if (fraction >= 0.98) void markChaptersComplete(book.id, [chapterIndex]);
@@ -168,7 +169,7 @@ export function TextReader({
         recordFinish(book.id, "read");
       }
     }, 350);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [book.id, chapterIndex, chapters, fraction, html, page, pages, paged, scrollFrac]);
 
   // Leaving the app right after a page turn must not lose it: save at once when the page is hidden.
@@ -217,7 +218,7 @@ export function TextReader({
       void updateProgress(book.id, { percentage: 100 });
       finishedRef.current = true;
       recordFinish(book.id, "read");
-      toast("Книга прочитана до конца", "success");
+      toast(t("Книга прочитана до конца"), "success");
     }
     setHud(false);
   }, [book.id, chapterIndex, chapters.length, cols, goChapter, page, paged, pages]);
@@ -299,7 +300,7 @@ export function TextReader({
       snippet = (first?.textContent ?? "").trim().slice(0, 120);
     }
     await addBookmark(book.id, { kind: "text", chapterIndex, position: fraction, snippet });
-    toast("Закладка добавлена", "success");
+    toast(t("Закладка добавлена"), "success");
   };
 
   const openBookmark = (b: BookmarkRecord) => {
@@ -375,7 +376,7 @@ export function TextReader({
             <div ref={content} className="book-content" dangerouslySetInnerHTML={{ __html: html }} />
             {chapterIndex < chapters.length - 1 && (
               <button type="button" onClick={(e) => { e.stopPropagation(); goChapter(chapterIndex + 1, 0); }} className="mx-auto mt-10 flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[15px] font-semibold" style={{ color: paper.heading, border: `1px solid ${paper.rule}` }}>
-                Следующая глава <ChevronRight size={16} />
+                {t("Следующая глава")} <ChevronRight size={16} />
               </button>
             )}
           </div>
@@ -397,33 +398,33 @@ export function TextReader({
         center={toggle ?? <span className="truncate px-2 text-[14px] font-medium">{book.title}</span>}
         actions={
           <>
-            <IconButton label={currentMark ? "Убрать закладку" : "Добавить закладку"} onClick={() => void toggleBookmark()} className={currentMark ? "text-accent" : undefined}>
+            <IconButton label={currentMark ? t("Убрать закладку") : t("Добавить закладку")} onClick={() => void toggleBookmark()} className={currentMark ? "text-accent" : undefined}>
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
-            <IconButton label="Оглавление" onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
-            <IconButton label="Оформление" onClick={() => setTypoOpen(true)}><Type size={19} /></IconButton>
+            <IconButton label={t("Оглавление")} onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
+            <IconButton label={t("Оформление")} onClick={() => setTypoOpen(true)}><Type size={19} /></IconButton>
           </>
         }
         bottom={
           <div>
             <div className="flex items-center gap-2">
-              <IconButton label="Предыдущая глава" size={32} disabled={chapterIndex === 0} onClick={() => goChapter(chapterIndex - 1, 0)}>
+              <IconButton label={t("Предыдущая глава")} size={32} disabled={chapterIndex === 0} onClick={() => goChapter(chapterIndex - 1, 0)}>
                 <ChevronLeft size={18} strokeWidth={1.5} />
               </IconButton>
               <div className="min-w-0 flex-1 text-center">
                 <div className="truncate text-[15px] font-bold leading-tight">{chapter?.group ? `${chapter.group} · ` : ""}{chapter?.title}</div>
                 <div className="tabular mt-0.5 text-[13px] text-ink-2">
-                  Глава {chapterIndex + 1} из {chapters.length} · {paged ? `стр. ${page + 1} из ${pages}` : `${Math.round(scrollFrac * 100)}%`} · книга {Math.round(percent)}%
+                  {t("Глава {n} из {total}", { n: chapterIndex + 1, total: chapters.length })} · {paged ? t("стр. {n} из {total}", { n: page + 1, total: pages }) : `${Math.round(scrollFrac * 100)}%`} · {t("книга {n}%", { n: Math.round(percent) })}
                 </div>
               </div>
-              <IconButton label="Следующая глава" size={32} disabled={chapterIndex >= chapters.length - 1} onClick={() => goChapter(chapterIndex + 1, 0)}>
+              <IconButton label={t("Следующая глава")} size={32} disabled={chapterIndex >= chapters.length - 1} onClick={() => goChapter(chapterIndex + 1, 0)}>
                 <ChevronRight size={18} strokeWidth={1.5} />
               </IconButton>
             </div>
             {paged ? (
-              pages > 1 && <Slider label="Страница главы" min={0} max={pages - 1} step={1} value={page} onChange={(v) => setPage(Math.round(v))} />
+              pages > 1 && <Slider label={t("Страница главы")} min={0} max={pages - 1} step={1} value={page} onChange={(v) => setPage(Math.round(v))} />
             ) : (
-              <Slider label="Позиция в главе" value={scrollFrac} onChange={(v) => {
+              <Slider label={t("Позиция в главе")} value={scrollFrac} onChange={(v) => {
                 const sc = viewport.current;
                 if (sc) sc.scrollTop = v * (sc.scrollHeight - sc.clientHeight);
               }} />

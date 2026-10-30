@@ -15,6 +15,7 @@ import { flushActivity, forgetMovedBookKeys, movedBookKeys, onActivityWritten, r
 import { getDB } from "../storage/db";
 import type { ActivityRecord } from "../storage/types";
 import { deviceId, GUEST, useIdentity, type AccountUser } from "./identity";
+import { t } from "../i18n";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -79,19 +80,19 @@ function redirectUrl(): string {
   return `${location.origin}${withBase("/profile/")}`;
 }
 
-/** Russian text for an auth error. */
+/** Interface text for an auth error. */
 function message(error: AuthError | Error): string {
   const code = "code" in error ? String(error.code ?? "") : "";
   const text = error.message ?? "";
-  if (code === "invalid_credentials" || /invalid login credentials/i.test(text)) return "Неверная почта или пароль";
-  if (code === "email_not_confirmed") return "Сначала подтвердите почту: откройте ссылку из письма";
-  if (code === "user_already_exists" || code === "email_exists" || /already registered/i.test(text)) return "Этот адрес уже зарегистрирован — войдите";
-  if (code === "weak_password" || /password should be/i.test(text)) return "Пароль слишком простой: нужно не меньше 6 символов";
-  if (code.startsWith("over_") || /rate limit/i.test(text)) return "Слишком много попыток, подождите минуту";
-  if (code === "email_address_invalid" || code === "validation_failed") return "Проверьте адрес почты";
-  if (code === "signup_disabled") return "Регистрация на сервере выключена";
-  if (error.name === "AuthRetryableFetchError" || /fetch|network/i.test(text)) return "Нет связи с сервером аккаунтов";
-  return text || "Что-то пошло не так";
+  if (code === "invalid_credentials" || /invalid login credentials/i.test(text)) return t("Неверная почта или пароль");
+  if (code === "email_not_confirmed") return t("Сначала подтвердите почту: откройте ссылку из письма");
+  if (code === "user_already_exists" || code === "email_exists" || /already registered/i.test(text)) return t("Этот адрес уже зарегистрирован — войдите");
+  if (code === "weak_password" || /password should be/i.test(text)) return t("Пароль слишком простой: нужно не меньше 6 символов");
+  if (code.startsWith("over_") || /rate limit/i.test(text)) return t("Слишком много попыток, подождите минуту");
+  if (code === "email_address_invalid" || code === "validation_failed") return t("Проверьте адрес почты");
+  if (code === "signup_disabled") return t("Регистрация на сервере выключена");
+  if (error.name === "AuthRetryableFetchError" || /fetch|network/i.test(text)) return t("Нет связи с сервером аккаунтов");
+  return text || t("Что-то пошло не так");
 }
 
 /** Run an auth call; its error becomes an Error with Russian text, its data is returned. */
@@ -110,7 +111,7 @@ async function run<R extends { data: unknown; error: AuthError | null }>(fn: (c:
 export async function signUp(name: string, email: string, password: string): Promise<"signedIn" | "confirm"> {
   const data = await run((c) => c.auth.signUp({ email, password, options: { data: { name }, emailRedirectTo: redirectUrl() } }));
   // With confirmations on, an address that already has an account gets a stand-in user without identities.
-  if (data.user && !data.session && data.user.identities?.length === 0) throw new Error("Этот адрес уже зарегистрирован — войдите");
+  if (data.user && !data.session && data.user.identities?.length === 0) throw new Error(t("Этот адрес уже зарегистрирован — войдите"));
   return data.session ? "signedIn" : "confirm";
 }
 
@@ -281,7 +282,7 @@ export function syncNow(opts: { pull?: boolean } = {}): Promise<void> {
       useIdentity.setState({ sync: { state: "idle", at: Date.now() } });
     } catch (e) {
       const text = e instanceof Error ? e.message : String(e);
-      useIdentity.setState({ sync: { state: "error", at: useIdentity.getState().sync.at, error: /fetch|network/i.test(text) ? "нет связи с сервером" : text } });
+      useIdentity.setState({ sync: { state: "error", at: useIdentity.getState().sync.at, error: /fetch|network/i.test(text) ? t("нет связи с сервером") : text } });
       throw e;
     } finally {
       syncing = null;

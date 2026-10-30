@@ -8,9 +8,10 @@ import { Button, ChipTabs, cn, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { downloadEntry, fetchFeed, libraryFeedUrl, ownedEntries, useLibrarr } from "@/lib/integrations/librarr";
 import { formatLabel, isSupportedType, type OpdsEntry } from "@/lib/integrations/opds";
+import { t } from "@/lib/i18n";
 
 type Kind = "all" | "ebook" | "audiobook";
-const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е"); // i18n-ignore
 
 /** The store's «Librarr» section: the server's library, page by page, with a download button per book. */
 export function LibrarrShelf() {
@@ -46,9 +47,9 @@ export function LibrarrShelf() {
   if (!configured) {
     return (
       <section className="px-5 pt-8 sm:px-8">
-        <p className="display text-[24px]">Librarr не подключён</p>
-        <p className="mt-2 max-w-[460px] text-[15px] leading-relaxed text-ink-2">Укажите адрес сервера и ключ в настройках — и ваша библиотека Librarr появится здесь.</p>
-        <Link href="/settings/"><Button className="mt-5">Открыть настройки</Button></Link>
+        <p className="display text-[24px]">{t("Librarr не подключён")}</p>
+        <p className="mt-2 max-w-[460px] text-[15px] leading-relaxed text-ink-2">{t("Укажите адрес сервера и ключ в настройках — и ваша библиотека Librarr появится здесь.")}</p>
+        <Link href="/settings/"><Button className="mt-5">{t("Открыть настройки")}</Button></Link>
       </section>
     );
   }
@@ -59,7 +60,7 @@ export function LibrarrShelf() {
       const id = await downloadEntry(e);
       if (id) {
         setOwned(await ownedEntries());
-        toast(`«${e.title}» в ваших книгах`, "success");
+        toast(t("«{title}» в ваших книгах", { title: e.title }), "success");
       }
     } catch (err) {
       toast((err as Error).message, "error");
@@ -75,13 +76,13 @@ export function LibrarrShelf() {
   return (
     <section className="px-5 pt-4 sm:px-8">
       <div className="flex flex-wrap items-center gap-2">
-        <ChipTabs label="Тип" value={kind} onChange={setKind} options={[{ value: "all", label: "Всё" }, { value: "ebook", label: "Книги" }, { value: "audiobook", label: "Аудио" }]} />
+        <ChipTabs label={t("Тип")} value={kind} onChange={setKind} options={[{ value: "all", label: t("Всё") }, { value: "ebook", label: t("Книги") }, { value: "audiobook", label: t("Аудио") }]} />
         <label className="flex h-9 min-w-[180px] flex-1 items-center gap-2 rounded-full bg-surface-2 px-3.5 sm:max-w-[320px]">
           <Search size={16} className="shrink-0 text-ink-2" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Найти в загруженном" aria-label="Поиск по библиотеке Librarr" className="min-w-0 flex-1 bg-transparent text-[14.5px] font-medium outline-none placeholder:text-ink-3" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Найти в загруженном")} aria-label={t("Поиск по библиотеке Librarr")} className="min-w-0 flex-1 bg-transparent text-[14.5px] font-medium outline-none placeholder:text-ink-3" />
         </label>
       </div>
-      {state.total !== undefined && <p className="tabular mt-3 text-[13.5px] text-ink-2">В библиотеке Librarr: {state.total}</p>}
+      {state.total !== undefined && <p className="tabular mt-3 text-[13.5px] text-ink-2">{t("В библиотеке Librarr: {n}", { n: state.total })}</p>}
       {state.error && <p className="mt-4 rounded-[16px] bg-surface-2 p-4 text-[14.5px] leading-relaxed">{state.error}</p>}
 
       <ul className="mt-3 grid grid-cols-1 gap-x-8 md:grid-cols-2">
@@ -99,15 +100,15 @@ export function LibrarrShelf() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[16px] font-bold">{e.title}</div>
-                <div className="truncate text-[14px] text-ink-2">{[e.author, shownType ? formatLabel(shownType) : null, supported ? null : "не открывается в Boowie"].filter(Boolean).join(" · ")}</div>
+                <div className="truncate text-[14px] text-ink-2">{[e.author, shownType ? formatLabel(shownType) : null, supported ? null : t("не открывается в Boowie")].filter(Boolean).join(" · ")}</div>
               </div>
               {mine ? (
                 <Link prefetch={false} href={`/book/?id=${mine}`} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3.5 text-[14px] font-semibold">
-                  <Check size={15} /> Открыть
+                  <Check size={15} /> {t("Открыть")}
                 </Link>
               ) : supported ? (
-                <Button size="sm" variant="secondary" className="shrink-0" disabled={busy.has(e.id)} onClick={() => void get(e)} icon={busy.has(e.id) ? <Spinner size={15} /> : <Download size={15} strokeWidth={2.2} />} aria-label={`Скачать: ${e.title}`}>
-                  Скачать
+                <Button size="sm" variant="secondary" className="shrink-0" disabled={busy.has(e.id)} onClick={() => void get(e)} icon={busy.has(e.id) ? <Spinner size={15} /> : <Download size={15} strokeWidth={2.2} />} aria-label={t("Скачать: {title}", { title: e.title })}>
+                  {t("Скачать")}
                 </Button>
               ) : null}
             </li>
@@ -116,9 +117,9 @@ export function LibrarrShelf() {
       </ul>
       {state.loading && <div className="flex justify-center py-8"><Spinner className="text-ink-2" /></div>}
       {!state.loading && state.next && (
-        <Button variant="secondary" className="mt-4" onClick={() => void load(state.next!, true)}>Показать ещё</Button>
+        <Button variant="secondary" className="mt-4" onClick={() => void load(state.next!, true)}>{t("Показать ещё")}</Button>
       )}
-      {!state.loading && !state.error && !shown.length && <p className="py-10 text-center text-[15px] text-ink-2">{query ? "Ничего не найдено" : "В библиотеке Librarr пока пусто"}</p>}
+      {!state.loading && !state.error && !shown.length && <p className="py-10 text-center text-[15px] text-ink-2">{query ? t("Ничего не найдено") : t("В библиотеке Librarr пока пусто")}</p>}
     </section>
   );
 }

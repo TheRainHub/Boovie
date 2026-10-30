@@ -22,6 +22,7 @@ import { PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
 import { mapChapterIndex } from "@/lib/reader/sync";
 import type { BookRecord } from "@/lib/storage/types";
 import { useTheme } from "@/lib/theme";
+import { t } from "@/lib/i18n";
 
 type Mode = "read" | "listen";
 const LOOKUPS = 4;
@@ -71,7 +72,7 @@ export function BookScreen() {
           const frac = textBook.format === "pdf" ? 0 : tp.scrollOffsetOrPage;
           const time = (ch?.startTime ?? 0) + frac * (ch?.duration ?? 0);
           await openAudioBook(audioBook.id, { time, autoplay: false });
-          toast(`Синхронизировано: ${ch?.title ?? ""} · ${formatClock(time - (ch?.startTime ?? 0))}`, "success");
+          toast(t("Синхронизировано: {where}", { where: `${ch?.title ?? ""} · ${formatClock(time - (ch?.startTime ?? 0))}` }), "success");
         } else if (next === "listen") {
           await openAudioBook(audioBook.id, { autoplay: false });
         } else if (next === "read" && ap.updatedAt > tp.updatedAt) {
@@ -85,7 +86,7 @@ export function BookScreen() {
             await updateProgress(textBook.id, { currentChapterIndex: ti, scrollOffsetOrPage: frac });
           }
           setReaderKey((k) => k + 1);
-          toast(`Синхронизировано: ${textChapters[ti]?.title ?? ""}`, "success");
+          toast(t("Синхронизировано: {where}", { where: textChapters[ti]?.title ?? "" }), "success");
         }
       } else if (next === "listen" && audioBook) {
         await openAudioBook(audioBook.id, { autoplay: false });
@@ -108,10 +109,10 @@ export function BookScreen() {
   if (book === null) {
     return (
       <Center>
-        <p className="text-[16px] text-ink-2">Книга не найдена на устройстве.</p>
+        <p className="text-[16px] text-ink-2">{t("Книга не найдена на устройстве.")}</p>
         <div className="mt-4 flex gap-2">
-          <Button onClick={() => setAttempt((a) => a + 1)}>Попробовать ещё раз</Button>
-          <Button variant="secondary" onClick={() => router.push("/library/")}>К книгам</Button>
+          <Button onClick={() => setAttempt((a) => a + 1)}>{t("Попробовать ещё раз")}</Button>
+          <Button variant="secondary" onClick={() => router.push("/library/")}>{t("К книгам")}</Button>
         </div>
       </Center>
     );
@@ -127,8 +128,8 @@ export function BookScreen() {
       value={mode}
       onChange={(m) => void setMode(m)}
       options={[
-        { value: "read", label: "Читать", icon: <BookOpen size={15} strokeWidth={2.1} /> },
-        { value: "listen", label: "Слушать", icon: <Headphones size={15} strokeWidth={2.1} /> },
+        { value: "read", label: t("Читать"), icon: <BookOpen size={15} strokeWidth={2.1} /> },
+        { value: "listen", label: t("Слушать"), icon: <Headphones size={15} strokeWidth={2.1} /> },
       ]}
     />
   );
@@ -179,7 +180,7 @@ function TopBar({ toggle, toned }: { toggle: React.ReactNode; toned?: boolean })
   return (
     <header className="fixed inset-x-0 top-0 z-30 pt-[var(--sat)]">
       <div className="mx-auto flex h-[56px] max-w-[760px] items-center gap-1 px-2">
-        <IconButton label="Назад" variant={toned ? "tonedGhost" : "ghost"} onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
+        <IconButton label={t("Назад")} variant={toned ? "tonedGhost" : "ghost"} onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
           <ChevronLeft size={26} strokeWidth={2} />
         </IconButton>
         <div className="flex flex-1 justify-center">{toggle}</div>
@@ -207,16 +208,16 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
           <BookCover fileId={book.coverFileId} url={companion?.coverUrl ?? book.coverUrl} title={book.title} author={book.author} square={want === "audio"} />
         </div>
         <h2 className="display mt-8 text-[26px]">
-          {want === "audio" ? "Аудиоверсия" : "Электронная версия"} {companion ? "есть в магазине" : "недоступна"}
+          {want === "audio" ? (companion ? t("Аудиоверсия есть в магазине") : t("Аудиоверсия недоступна")) : companion ? t("Электронная версия есть в магазине") : t("Электронная версия недоступна")}
         </h2>
         <p className="mt-2 text-[16px] leading-relaxed text-ink-2">
           {companion
-            ? "Скачайте её — и переключайтесь между чтением и прослушиванием с синхронизацией по главам."
+            ? t("Скачайте её — и переключайтесь между чтением и прослушиванием с синхронизацией по главам.")
             : canVoice
-              ? "Её можно сделать: ElevenLabs озвучит книгу глава за главой, и чтение с прослушиванием будут переключаться с той же главы."
+              ? t("Её можно сделать: ElevenLabs озвучит книгу глава за главой, и чтение с прослушиванием будут переключаться с той же главы.")
               : want === "audio"
-                ? "Для этой книги нет связанной аудиокниги. Загрузите MP3/M4B на полку, чтобы слушать."
-                : "Для этой аудиокниги нет связанного текста."}
+                ? t("Для этой книги нет связанной аудиокниги. Загрузите MP3/M4B на полку, чтобы слушать.")
+                : t("Для этой аудиокниги нет связанного текста.")}
         </p>
         {canVoice && (voicing ? (
           <div className="mt-6 w-full">
@@ -225,7 +226,7 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
           </div>
         ) : (
           <Button size="lg" className="mt-6" icon={<AudioLines size={18} strokeWidth={2} />} onClick={() => setVoiceSheet(true)}>
-            Озвучить через ElevenLabs
+            {t("Озвучить через ElevenLabs")}
           </Button>
         ))}
         <VoiceoverSheet book={voiceSheet ? book : null} onClose={() => setVoiceSheet(false)} />
@@ -243,18 +244,18 @@ function MissingEdition({ book, want, toggle }: { book: BookRecord; want: "text"
               onClick={async () => {
                 try {
                   await downloadStoreItem(companion);
-                  toast("Готово — можно переключаться", "success");
+                  toast(t("Готово — можно переключаться"), "success");
                 } catch {
-                  toast("Не удалось скачать", "error");
+                  toast(t("Не удалось скачать"), "error");
                 }
               }}
             >
-              Скачать {want === "audio" ? "аудиоверсию" : "текст"}
+              {want === "audio" ? t("Скачать аудиоверсию") : t("Скачать текст")}
             </Button>
           )
         )}
         {!toggle && !companion && (
-          <Button variant="secondary" className="mt-6" onClick={() => router.push("/library/")}>К книгам</Button>
+          <Button variant="secondary" className="mt-6" onClick={() => router.push("/library/")}>{t("К книгам")}</Button>
         )}
       </div>
     </div>

@@ -8,6 +8,7 @@ import { openAudioBook, usePlayer } from "@/lib/audio/player";
 import { stopPreview } from "@/lib/audio/preview";
 import { useStoreIdsInLibrary } from "@/lib/library/hooks";
 import { downloadStoreItem, useImports } from "@/lib/library/importer";
+import { t } from "@/lib/i18n";
 
 /** Shared download / open logic for store cards and the details sheet. */
 export function useStoreActions() {
@@ -20,9 +21,9 @@ export function useStoreActions() {
   const download = useCallback(async (item: StoreItem) => {
     try {
       await downloadStoreItem(item);
-      toast(`«${item.title}» в ваших книгах`, "success");
+      toast(t("«{title}» в ваших книгах", { title: item.title }), "success");
     } catch {
-      toast("Не удалось скачать книгу. Проверьте подключение.", "error");
+      toast(t("Не удалось скачать книгу. Проверьте подключение."), "error");
     }
   }, []);
 

@@ -8,6 +8,7 @@ import { getDB } from "../storage/db";
 import type { BookRecord } from "../storage/types";
 import { generateCover } from "./generate";
 import { downloadCover, searchCovers } from "./lookup";
+import { t } from "../i18n";
 
 interface CoverPrefs {
   online: boolean;
@@ -24,7 +25,7 @@ export const AUTO_APPLY_SCORE = 0.75;
 async function drawCover(book: BookRecord): Promise<void> {
   const square = book.format === "audio";
   try {
-    const blob = await generateCover({ title: book.title, author: book.author, square, label: square ? "Аудиокнига" : book.format.toUpperCase() });
+    const blob = await generateCover({ title: book.title, author: book.author, square, label: square ? t("Аудиокнига") : book.format.toUpperCase() });
     await setBookCover(book.id, { blob }, "generated");
   } catch {
     /* canvas unavailable — the UI falls back to a typographic plate */

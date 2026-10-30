@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * OPDS 1.2 catalog feeds (Atom): navigation entries, acquisition links, covers and paging. Used for Librarr, and
  * works for any OPDS server that allows the request. Takes a DOMParser so tests can pass linkedom's.
@@ -58,7 +59,7 @@ function links(el: Element, base: string): OpdsLink[] {
 export function parseOpds(xml: string, base: string, parser: DOMParser = new DOMParser()): OpdsFeed {
   const doc = parser.parseFromString(xml, "application/xml");
   const feed = doc.documentElement;
-  if (!feed || feed.localName !== "feed") throw new Error("Это не каталог OPDS");
+  if (!feed || feed.localName !== "feed") throw new Error(t("Это не каталог OPDS"));
   const entries = children(feed, "entry").map((e, i): OpdsEntry => {
     const ls = links(e, base);
     const acquisitions = ls.filter((l) => l.rel?.startsWith(ACQ));
@@ -68,7 +69,7 @@ export function parseOpds(xml: string, base: string, parser: DOMParser = new DOM
     const formats = [...new Set([...(format ? [format] : []), ...acquisitions.map((a) => a.type ?? "")].filter(Boolean))];
     return {
       id: text(e, "id") ?? `entry-${i}`,
-      title: text(e, "title") ?? "Без названия",
+      title: text(e, "title") ?? t("Без названия"),
       author,
       summary: text(e, "summary") ?? text(e, "content"),
       formats,
@@ -79,21 +80,21 @@ export function parseOpds(xml: string, base: string, parser: DOMParser = new DOM
   });
   const next = links(feed, base).find((l) => l.rel === "next")?.href;
   const total = Number(text(feed, "totalResults")) || undefined;
-  return { title: text(feed, "title") ?? "Каталог", entries, next, total };
+  return { title: text(feed, "title") ?? t("Каталог"), entries, next, total };
 }
 
 /** «EPUB», «MP3»… for a MIME type or a Librarr `dc:format`. */
 export function formatLabel(type: string): string {
-  const t = type.toLowerCase();
-  if (t.includes("epub")) return "EPUB";
-  if (t.includes("fictionbook") || t.includes("fb2")) return "FB2";
-  if (t.includes("pdf")) return "PDF";
-  if (t.includes("mpeg") || t === "mp3") return "MP3";
-  if (t.includes("mp4") || t.includes("m4b") || t.includes("m4a")) return "M4B";
-  if (t.includes("zip")) return "ZIP";
-  if (t.includes("mobi")) return "MOBI";
-  if (t.includes("cbz") || t.includes("cbr")) return "Комикс";
-  return t.split("/").pop()?.toUpperCase() ?? t;
+  const mime = type.toLowerCase();
+  if (mime.includes("epub")) return "EPUB";
+  if (mime.includes("fictionbook") || mime.includes("fb2")) return "FB2";
+  if (mime.includes("pdf")) return "PDF";
+  if (mime.includes("mpeg") || mime === "mp3") return "MP3";
+  if (mime.includes("mp4") || mime.includes("m4b") || mime.includes("m4a")) return "M4B";
+  if (mime.includes("zip")) return "ZIP";
+  if (mime.includes("mobi")) return "MOBI";
+  if (mime.includes("cbz") || mime.includes("cbr")) return t("Комикс");
+  return mime.split("/").pop()?.toUpperCase() ?? mime;
 }
 
 /** Formats Boowie can open (MOBI/AZW3 and comics are listed but not downloadable). */

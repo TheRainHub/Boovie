@@ -10,7 +10,8 @@ import { getDB } from "../storage/db";
 import { requestPersistentStorage } from "../storage/blobStore";
 import { isImageName, planImport, type PickedFile } from "./grouping";
 import { linkCompanions, saveParsedBook } from "./repository";
-import type { StoreItem } from "@/data/catalog";
+import { narratorOf, synopsisOf, type StoreItem } from "@/data/catalog";
+import { pl, t } from "../i18n";
 
 export interface ImportJob {
   id: string;
@@ -108,7 +109,7 @@ async function expandArchives(files: PickedFile[], report: (stage: string) => vo
     const base = f.path ? f.path.replace(/\.zip$/i, "") : stripExtension(f.name);
     for (let i = 0; i < media.length; i++) {
       const e = media[i];
-      report(`Распаковка ${i + 1} из ${media.length}`);
+      report(t("Распаковка {n} из {total}", { n: i + 1, total: media.length }));
       const name = e.path.split("/").pop()!;
       const blob = await extractZipEntry(f.blob, e, mimeFromName(name));
       out.push({ blob, name, path: `${base}/${e.path}` });
@@ -129,14 +130,14 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
 
   const run = async (label: string, work: (report: (p: number, stage?: string) => void) => Promise<string>) => {
     const id = `job-${++jobSeq}`;
-    upsert({ id, label, progress: 0, stage: "Подготовка", status: "running" });
+    upsert({ id, label, progress: 0, stage: t("Подготовка"), status: "running" });
     try {
       const bookId = await work((p, stage) => upsert({ id, progress: p, ...(stage ? { stage } : {}) }));
-      upsert({ id, progress: 1, stage: "Готово", status: "done", bookId });
+      upsert({ id, progress: 1, stage: t("Готово"), status: "done", bookId });
       ids.push(bookId);
       void ensureCover(bookId).catch(() => undefined);
     } catch (e) {
-      upsert({ id, status: "error", error: (e as Error).message || "Ошибка импорта" });
+      upsert({ id, status: "error", error: (e as Error).message || t("Ошибка импорта") });
     }
   };
 
@@ -149,7 +150,7 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
   const expanded = hasArchive
     ? await (async () => {
         const id = `job-${++jobSeq}`;
-        upsert({ id, label: "Архив", progress: 0, stage: "Чтение архива", status: "running" });
+        upsert({ id, label: t("Архив"), progress: 0, stage: t("Чтение архива"), status: "running" });
         try {
           return await expandArchives(picked, (stage) => upsert({ id, stage }));
         } finally {
@@ -160,12 +161,12 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
 
   const plan = planImport(expanded);
   if (!plan.audioGroups.length && !plan.documents.length) {
-    upsert({ id: `job-${++jobSeq}`, label: files[0]?.name ?? "Файлы", status: "error", error: "Нет поддерживаемых файлов: PDF, FB2, EPUB, MP3, M4B, M4A, ZIP" });
+    upsert({ id: `job-${++jobSeq}`, label: files[0]?.name ?? t("Файлы"), status: "error", error: t("Нет поддерживаемых файлов: PDF, FB2, EPUB, MP3, M4B, M4A, ZIP") });
     return ids;
   }
 
   for (const g of plan.audioGroups) {
-    const label = g.folderName ?? (g.audio.length === 1 ? g.audio[0].name : `${g.audio.length} аудиофайлов`);
+    const label = g.folderName ?? (g.audio.length === 1 ? g.audio[0].name : `${g.audio.length} ${pl(g.audio.length, "аудиофайл|аудиофайла|аудиофайлов")}`);
     await run(label, async (report) => {
       const parsed = await parseAudio(g.audio.map((f) => ({ blob: f.blob, name: f.name, path: f.path })), (p, s) => report(p * 0.8, s), { probeDuration, hint: g.hint });
       let coverSource: "embedded" | "folder" = "embedded";
@@ -173,14 +174,14 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
         parsed.cover = g.cover.blob;
         coverSource = "folder";
       }
-      report(0.85, "Сохранение на устройство");
+      report(0.85, t("Сохранение на устройство"));
       return saveParsedBook(parsed, { coverSource });
     });
   }
   for (const f of plan.documents) {
     await run(f.name, async (report) => {
       const parsed = await parseBookFile(f.blob, f.name, (p, s) => report(p * 0.85, s), { probeDuration });
-      report(0.9, "Сохранение на устройство");
+      report(0.9, t("Сохранение на устройство"));
       return saveParsedBook(parsed);
     });
   }
@@ -189,7 +190,7 @@ export async function importLocalFiles(files: File[]): Promise<string[]> {
 
 async function fetchWithProgress(url: string, onBytes: (loaded: number) => void): Promise<Blob> {
   const res = await fetch(url);
-  if (!res.ok || !res.body) throw new Error(`Сеть: ${res.status}`);
+  if (!res.ok || !res.body) throw new Error(t("Сеть: {status}", { status: res.status }));
   const type = res.headers.get("content-type") ?? "";
   const reader = res.body.getReader();
   const chunks: Uint8Array<ArrayBuffer>[] = [];
@@ -213,13 +214,13 @@ export async function downloadStoreItem(item: StoreItem): Promise<string> {
 
   const { upsert } = useImports.getState();
   const id = `store-${item.id}`;
-  upsert({ id, label: item.title, progress: 0, stage: "Загрузка", status: "running", storeId: item.id });
+  upsert({ id, label: item.title, progress: 0, stage: t("Загрузка"), status: "running", storeId: item.id });
   try {
     const total = item.files.reduce((s, f) => s + f.size, 0);
     let done = 0;
     const blobs: { blob: Blob; name: string }[] = [];
     for (const f of item.files) {
-      const blob = await fetchWithProgress(f.url, (loaded) => upsert({ id, progress: ((done + loaded) / total) * 0.7, stage: "Загрузка" }));
+      const blob = await fetchWithProgress(f.url, (loaded) => upsert({ id, progress: ((done + loaded) / total) * 0.7, stage: t("Загрузка") }));
       done += f.size;
       blobs.push({ blob, name: f.name });
     }
@@ -230,25 +231,25 @@ export async function downloadStoreItem(item: StoreItem): Promise<string> {
     // The catalog cover is canonical for store editions (PDF first pages are often plain title pages).
     const cover = await fetch(item.coverUrl).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
     if (cover && cover.size > 0) parsed.cover = cover;
-    upsert({ id, progress: 0.96, stage: "Сохранение" });
+    upsert({ id, progress: 0.96, stage: t("Сохранение") });
     const bookId = await saveParsedBook(parsed, {
       isStoreBook: true,
       storeId: item.id,
       coverUrl: item.coverUrl,
       title: item.title,
       author: item.author,
-      annotation: item.synopsis,
-      narrator: item.narrator,
+      annotation: synopsisOf(item),
+      narrator: narratorOf(item),
       language: item.language,
     });
     if (item.companion) {
       const companion = await db.books.where("storeId").equals(item.companion).first();
       if (companion) await linkCompanions(bookId, companion.id);
     }
-    upsert({ id, progress: 1, stage: "В библиотеке", status: "done", bookId });
+    upsert({ id, progress: 1, stage: t("В библиотеке"), status: "done", bookId });
     return bookId;
   } catch (e) {
-    upsert({ id, status: "error", error: (e as Error).message || "Не удалось загрузить" });
+    upsert({ id, status: "error", error: (e as Error).message || t("Не удалось загрузить") });
     throw e;
   }
 }

@@ -7,6 +7,7 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 import { loadPdfjs, type PdfLib } from "../pdf/pdfjs";
 import { normalizeSpace, stripExtension } from "./text";
 import { ParseError, type ParsedBook, type ParsedChapter, type ProgressFn } from "./types";
+import { t } from "../i18n";
 
 export const PAGES_PER_SECTION = 15;
 const HEADING_SCAN_LIMIT = 600;
@@ -50,7 +51,7 @@ async function outlineChapters(doc: PDFDocumentProxy): Promise<ParsedChapter[]> 
 
 function toRanges(starts: { title: string; group?: string; page: number }[], numPages: number): ParsedChapter[] {
   const out: ParsedChapter[] = [];
-  if (starts.length && starts[0].page > 1) out.push({ title: "Начало", startPage: 1, endPage: starts[0].page - 1 });
+  if (starts.length && starts[0].page > 1) out.push({ title: t("Начало"), startPage: 1, endPage: starts[0].page - 1 });
   starts.forEach((s, i) => {
     const end = i + 1 < starts.length ? Math.max(s.page, starts[i + 1].page - 1) : numPages;
     out.push({ title: s.title, group: s.group, startPage: s.page, endPage: end });
@@ -68,7 +69,7 @@ async function headingChapters(doc: PDFDocumentProxy, onProgress?: ProgressFn): 
   const perPage: { size: number; text: string; y: number }[][] = [];
   const sizeWeight = new Map<number, number>();
   for (let p = 1; p <= pages; p++) {
-    if (p % 10 === 0) onProgress?.(0.2 + 0.7 * (p / pages), `Анализ страниц: ${p} из ${pages}`);
+    if (p % 10 === 0) onProgress?.(0.2 + 0.7 * (p / pages), t("Анализ страниц: {n} из {total}", { n: p, total: pages }));
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
     const items = (content.items as TextItemLike[])
@@ -109,7 +110,7 @@ export function fixedSections(numPages: number): ParsedChapter[] {
   const out: ParsedChapter[] = [];
   for (let start = 1; start <= numPages; start += PAGES_PER_SECTION) {
     const end = Math.min(numPages, start + PAGES_PER_SECTION - 1);
-    out.push({ title: start === end ? `Страница ${start}` : `Страницы ${start}–${end}`, startPage: start, endPage: end });
+    out.push({ title: start === end ? t("Страница {n}", { n: start }) : t("Страницы {from}–{to}", { from: start, to: end }), startPage: start, endPage: end });
   }
   return out;
 }
@@ -131,27 +132,27 @@ async function renderCover(doc: PDFDocumentProxy): Promise<Blob | undefined> {
 }
 
 export async function parsePdf(file: Blob, fileName: string, onProgress?: ProgressFn, pdfjs?: PdfLib): Promise<ParsedBook> {
-  onProgress?.(0.02, "Открытие PDF");
+  onProgress?.(0.02, t("Открытие PDF"));
   const lib = pdfjs ?? (await loadPdfjs());
   let doc: PDFDocumentProxy;
   const task = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
   try {
     doc = await task.promise;
   } catch (e) {
-    throw new ParseError(`Не удалось открыть PDF: ${(e as Error).message}`);
+    throw new ParseError(t("Не удалось открыть PDF: {error}", { error: (e as Error).message }));
   }
   try {
     const meta = await doc.getMetadata().catch(() => null);
     const info = (meta?.info ?? {}) as Record<string, unknown>;
     const title = normalizeSpace(String(info.Title ?? "")) || stripExtension(fileName);
-    const author = normalizeSpace(String(info.Author ?? "")) || "Неизвестный автор";
+    const author = normalizeSpace(String(info.Author ?? "")) || t("Неизвестный автор");
 
-    onProgress?.(0.1, "Оглавление");
+    onProgress?.(0.1, t("Оглавление"));
     let chapters = await outlineChapters(doc);
     if (chapters.length < 2) chapters = await headingChapters(doc, onProgress);
     if (chapters.length < 2) chapters = fixedSections(doc.numPages);
 
-    onProgress?.(0.95, "Обложка");
+    onProgress?.(0.95, t("Обложка"));
     const cover = await renderCover(doc);
     onProgress?.(1);
     return {

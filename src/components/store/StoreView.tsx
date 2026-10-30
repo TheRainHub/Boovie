@@ -6,13 +6,14 @@ import { LibrarrShelf } from "@/components/integrations/LibrarrShelf";
 import { TopNav } from "@/components/shell/TopNav";
 import { BookCover } from "@/components/ui/BookCover";
 import { ChipTabs, cn, SectionTitle } from "@/components/ui/primitives";
-import { CATEGORIES, STORE_ITEMS, storeItem, type CategoryId, type StoreItem } from "@/data/catalog";
+import { authorOf, categoryName, searchText, STORE_ITEMS, storeItem, type CategoryId, type StoreItem } from "@/data/catalog";
 import { useToned } from "@/lib/covers/tone";
 import { useLibrarr } from "@/lib/integrations/librarr";
 import { formatDuration } from "@/lib/format";
 import { BookDetailsSheet } from "./BookDetailsSheet";
 import { StoreCard } from "./StoreCard";
 import { useStoreActions } from "./useStoreActions";
+import { t } from "@/lib/i18n";
 
 type Tab = "overview" | "librarr" | "audio" | "ebooks" | "top" | "new" | `cat:${CategoryId}`;
 const CHIP_ORDER: CategoryId[] = ["classics", "scifi", "detective", "adventure", "psychology", "science", "bio", "design", "tech"];
@@ -20,7 +21,7 @@ const FEATURED = ["anna-karenina", "viy-audio", "bratya-karamazovy", "sherlock-h
 const FRESH = 12;
 
 // Letters and digits only: «о генри» finds «О. Генри», «доктор джекил» finds «Dr. Jekyll».
-const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // i18n-ignore
 
 export function StoreView() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -41,8 +42,8 @@ export function StoreView() {
   const q = norm(query.trim());
   const searching = q.length > 0;
   const list = useMemo(() => {
-    // English books are found by their Russian names too: «Гэтсби», «Конан Дойл».
-    const found = STORE_ITEMS.filter((i) => !q || norm(`${i.title} ${i.author} ${i.subtitle ?? ""} ${i.titleRu ?? ""} ${i.authorRu ?? ""}`).includes(q));
+    // Books are found by their names in either language: «Гэтсби», «Конан Дойл», «Anna Karenina».
+    const found = STORE_ITEMS.filter((i) => !q || norm(searchText(i)).includes(q));
     if (tab.startsWith("cat:")) return found.filter((i) => i.categories.includes(tab.slice(4) as CategoryId));
     switch (tab) {
       case "audio": return found.filter((i) => i.kind === "audiobook");
@@ -63,13 +64,13 @@ export function StoreView() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Название или автор"
-            aria-label="Поиск по каталогу"
+            placeholder={t("Название или автор")}
+            aria-label={t("Поиск по каталогу")}
             className="h-full min-w-0 flex-1 bg-transparent text-[16px] font-medium outline-none placeholder:text-ink-3"
             enterKeyHint="search"
           />
           {query && (
-            <button type="button" aria-label="Очистить" onClick={() => setQuery("")} className="text-ink-2">
+            <button type="button" aria-label={t("Очистить")} onClick={() => setQuery("")} className="text-ink-2">
               <X size={18} />
             </button>
           )}
@@ -78,17 +79,17 @@ export function StoreView() {
 
       <ChipTabs
         className="mt-3 px-5 sm:px-8"
-        label="Разделы магазина"
+        label={t("Разделы магазина")}
         value={tab}
         onChange={setTab}
         options={[
-          { value: "overview", label: "Обзор" },
+          { value: "overview", label: t("Обзор") },
           ...(librarr ? [{ value: "librarr" as Tab, label: "Librarr" }] : []),
-          { value: "audio", label: "Аудиокниги" },
-          { value: "ebooks", label: "Электронные" },
-          { value: "top", label: "Топ" },
-          { value: "new", label: "Новинки" },
-          ...CHIP_ORDER.map((c) => ({ value: `cat:${c}` as Tab, label: CATEGORIES[c] })),
+          { value: "audio", label: t("Аудиокниги") },
+          { value: "ebooks", label: t("Электронные") },
+          { value: "top", label: t("Топ") },
+          { value: "new", label: t("Новинки") },
+          ...CHIP_ORDER.map((c) => ({ value: `cat:${c}` as Tab, label: categoryName(c) })),
         ]}
       />
 
@@ -100,8 +101,8 @@ export function StoreView() {
         <TopChart items={list} onSelect={setSelected} className="mt-4 px-5 sm:px-8 md:grid md:grid-cols-2 md:gap-x-10" />
       ) : (
         <section className="px-5 pt-5 sm:px-8">
-          {searching && <SectionTitle title="Найдено" action={list.length} />}
-          {list.length === 0 && <p className="py-12 text-center text-[16px] text-ink-2">Ничего не найдено</p>}
+          {searching && <SectionTitle title={t("Найдено")} action={list.length} />}
+          {list.length === 0 && <p className="py-12 text-center text-[16px] text-ink-2">{t("Ничего не найдено")}</p>}
           <div className="mt-3 grid grid-cols-3 items-start gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
             {list.map((i, n) => (
               <StoreCard key={i.id} item={i} owned={owned?.has(i.id)} onOpen={() => setSelected(i)} index={n} />
@@ -132,8 +133,8 @@ function Overview({ onSelect, owned, onNew }: { onSelect: (i: StoreItem) => void
         ))}
       </div>
 
-      <Rail title="Новые поступления" items={fresh} onSelect={onSelect} owned={owned} onAll={onNew} />
-      <Rail title="Аудиокниги" items={audio} onSelect={onSelect} owned={owned} />
+      <Rail title={t("Новые поступления")} items={fresh} onSelect={onSelect} owned={owned} onAll={onNew} />
+      <Rail title={t("Аудиокниги")} items={audio} onSelect={onSelect} owned={owned} />
 
       <button type="button" onClick={() => onSelect(pair[0])} className="mx-5 mt-9 flex w-[calc(100%-40px)] items-center gap-4 rounded-[22px] bg-surface-2 p-4 text-left active:opacity-85 sm:mx-8 sm:w-[calc(100%-64px)] sm:max-w-[640px]">
         <div className="flex shrink-0 items-end">
@@ -141,20 +142,20 @@ function Overview({ onSelect, owned, onNew }: { onSelect: (i: StoreItem) => void
           <div className="-ml-3 w-[66px]"><BookCover url={pair[1].coverUrl} title={pair[1].title} square sizes="sm" /></div>
         </div>
         <div className="min-w-0">
-          <div className="text-[18px] font-extrabold tracking-[-0.015em]">Читать и слушать</div>
-          <p className="mt-1 text-[14px] leading-snug text-ink-2">Текст и аудиокнига одной книги: переключайтесь с той же главы.</p>
+          <div className="text-[18px] font-extrabold tracking-[-0.015em]">{t("Читать и слушать")}</div>
+          <p className="mt-1 text-[14px] leading-snug text-ink-2">{t("Текст и аудиокнига одной книги: переключайтесь с той же главы.")}</p>
         </div>
       </button>
 
       <section className="mt-9 px-5 sm:px-8">
-        <SectionTitle title="Топ" action={5} />
+        <SectionTitle title={t("Топ")} action={5} />
         <TopChart items={top} onSelect={onSelect} className="mt-2 md:grid md:grid-cols-2 md:gap-x-10" />
       </section>
 
-      <Rail title="Русская классика" items={ru} onSelect={onSelect} owned={owned} />
-      <Rail title="На английском" items={en} onSelect={onSelect} owned={owned} />
+      <Rail title={t("Русская классика")} items={ru} onSelect={onSelect} owned={owned} />
+      <Rail title={t("На английском")} items={en} onSelect={onSelect} owned={owned} />
       <p className="px-5 pb-4 pt-10 text-[13px] leading-relaxed text-ink-3 sm:px-8">
-        Все книги — общественное достояние: авторы и переводчики умерли больше 70 лет назад, книги изданы до 1931 года. Русская классика — из открытого корпуса русской прозы, английские издания — Standard Ebooks (CC0). Аудиокниги озвучены RHVoice.
+        {t("Все книги — общественное достояние: авторы и переводчики умерли больше 70 лет назад, книги изданы до 1931 года. Русская классика — из открытого корпуса русской прозы, английские издания — Standard Ebooks (CC0). Аудиокниги озвучены RHVoice.")}
       </p>
     </div>
   );
@@ -168,19 +169,19 @@ function FeaturedCard({ item, owned, onOpen }: { item: StoreItem; owned?: boolea
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${audio ? "Аудиокнига недели" : "Выбор редакции"}: ${item.title}`}
+      aria-label={`${audio ? t("Аудиокнига недели") : t("Выбор редакции")}: ${item.title}`}
       className="relative isolate flex h-[212px] w-[86%] shrink-0 snap-start items-center gap-4 overflow-hidden rounded-[24px] px-5 text-left text-t-ink active:opacity-90 sm:h-[240px] sm:w-[62%] md:w-[47%] xl:w-[32.4%]"
       style={{ ...style, background: "var(--t-bg)" } as CSSProperties}
     >
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold text-t-ink-2">{audio ? "Аудиокнига недели" : "Выбор редакции"}</div>
+        <div className="text-[13px] font-semibold text-t-ink-2">{audio ? t("Аудиокнига недели") : t("Выбор редакции")}</div>
         <div className="display mt-1.5 line-clamp-3 text-[25px]">{item.title}</div>
         <div className="mt-1 truncate text-[14px] font-medium text-t-ink-2">
-          {item.author} · {audio && item.duration ? formatDuration(item.duration) : item.formatLabel}
+          {authorOf(item)} · {audio && item.duration ? formatDuration(item.duration) : item.formatLabel}
         </div>
         <span className="mt-3.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-t-btn px-4 text-[14px] font-semibold text-t-btn-ink">
           {owned ? (audio ? <Headphones size={15} strokeWidth={2.2} /> : <BookOpen size={15} strokeWidth={2.2} />) : <Download size={15} strokeWidth={2.2} />}
-          {owned ? (audio ? "Слушать" : "Читать") : "Скачать"}
+          {owned ? (audio ? t("Слушать") : t("Читать")) : t("Скачать")}
         </span>
       </div>
       <div className={cn("shrink-0 rotate-[3deg]", audio ? "w-[128px]" : "w-[108px]")}>
@@ -197,7 +198,7 @@ function Rail({ title, items, onSelect, owned, onAll }: { title: string; items: 
       <SectionTitle
         className="px-5 sm:px-8"
         title={title}
-        action={onAll ? <button type="button" onClick={onAll} className="underline-offset-2 hover:underline">Все</button> : `Все ${items.length}`}
+        action={onAll ? <button type="button" onClick={onAll} className="underline-offset-2 hover:underline">{t("Все")}</button> : `${t("Все")} ${items.length}`}
       />
       <div className="no-scrollbar mt-3 flex snap-x items-start gap-3.5 overflow-x-auto scroll-px-5 px-5 sm:scroll-px-8 sm:gap-5 sm:px-8">
         {items.map((i) => (
@@ -220,7 +221,7 @@ function TopChart({ items, onSelect, className }: { items: StoreItem[]; onSelect
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[16px] font-bold">{i.title}</div>
-              <div className="truncate text-[14px] text-ink-2">{i.author}</div>
+              <div className="truncate text-[14px] text-ink-2">{authorOf(i)}</div>
             </div>
             <div className="tabular shrink-0 text-right text-[13px] text-ink-2">
               {i.kind === "audiobook" && i.duration ? formatDuration(i.duration) : i.formatLabel}

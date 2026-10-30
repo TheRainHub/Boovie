@@ -3,8 +3,9 @@
 import type { CSSProperties } from "react";
 import { BookCover } from "@/components/ui/BookCover";
 import { cn } from "@/components/ui/primitives";
-import type { StoreItem } from "@/data/catalog";
+import { authorOf, type StoreItem } from "@/data/catalog";
 import { formatDuration } from "@/lib/format";
+import { t } from "@/lib/i18n";
 
 /** A catalogue entry: the cover, then title and one line of facts (duration or format; «На полке» when owned). */
 export function StoreCard({ item, owned, onOpen, rail, index }: { item: StoreItem; owned?: boolean; onOpen: () => void; rail?: boolean; index?: number }) {
@@ -25,7 +26,7 @@ export function StoreCard({ item, owned, onOpen, rail, index }: { item: StoreIte
       </div>
       <div className="mt-2 line-clamp-2 text-[14px] font-bold leading-[1.2]">{item.title}</div>
       <div className="mt-0.5 truncate text-[13px] text-ink-2">
-        {owned ? "На полке" : audio && item.duration ? formatDuration(item.duration) : `${item.author.split(" ").slice(-1)[0]} · ${item.formatLabel}`}
+        {owned ? t("На полке") : audio && item.duration ? formatDuration(item.duration) : `${authorOf(item).split(" ").slice(-1)[0]} · ${item.formatLabel}`}
       </div>
     </button>
   );

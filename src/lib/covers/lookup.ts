@@ -119,7 +119,7 @@ export function scoreCandidate(c: Pick<CoverCandidate, "title" | "author" | "sou
   let s = similarity(cleanTitle(c.title), title);
   const sn = surname(author);
   if (sn && c.author && surname(c.author) === sn) s += 0.35;
-  else if (sn && c.author?.toLowerCase().replace(/ё/g, "е").includes(sn)) s += 0.25;
+  else if (sn && c.author?.toLowerCase().replace(/ё/g, "е").includes(sn)) s += 0.25; // i18n-ignore
   if (kind === "audio" && c.source === "Apple Books") s += 0.05;
   return Math.round(s * 100) / 100;
 }

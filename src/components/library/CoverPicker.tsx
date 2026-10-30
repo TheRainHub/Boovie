@@ -11,11 +11,12 @@ import { downloadCover, searchCovers, type CoverCandidate } from "@/lib/covers/l
 import { cleanTitle } from "@/lib/covers/names";
 import { setBookCover } from "@/lib/library/repository";
 import type { BookRecord } from "@/lib/storage/types";
+import { isUnknownAuthor, t } from "@/lib/i18n";
 
 /** Pick a cover: search Apple Books / Google Books / Open Library by name, use your own image, or generate one. */
 export function CoverPicker({ book, onClose }: { book: BookRecord | null; onClose: () => void }) {
   return (
-    <Sheet open={!!book} onClose={onClose} title="Обложка" full>
+    <Sheet open={!!book} onClose={onClose} title={t("Обложка")} full>
       {book && <Picker key={book.id} book={book} onDone={onClose} />}
     </Sheet>
   );
@@ -23,7 +24,7 @@ export function CoverPicker({ book, onClose }: { book: BookRecord | null; onClos
 
 function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
   const square = book.format === "audio";
-  const initial = [cleanTitle(book.title), /неизвестн/i.test(book.author) ? "" : book.author].filter(Boolean).join(" — ");
+  const initial = [cleanTitle(book.title), isUnknownAuthor(book.author) ? "" : book.author].filter(Boolean).join(" — ");
   const [query, setQuery] = useState(initial);
   const [state, setState] = useState<{ loading: boolean; results: CoverCandidate[]; searched: boolean }>({ loading: false, results: [], searched: false });
   const [applying, setApplying] = useState<string | null>(null);
@@ -47,11 +48,11 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
     const blob = (await downloadCover(c.full)) ?? (await downloadCover(c.thumb));
     if (blob) {
       await setBookCover(book.id, { blob }, "user");
-      toast("Обложка сохранена на устройстве", "success");
+      toast(t("Обложка сохранена на устройстве"), "success");
     } else {
       // The host does not allow cross-origin reads: keep it as a linked image (shown when online).
       await setBookCover(book.id, { url: c.full }, "user");
-      toast("Обложка подключена по ссылке — без интернета будет показана заглушка", "info");
+      toast(t("Обложка подключена по ссылке — без интернета будет показана заглушка"), "info");
     }
     setApplying(null);
     onDone();
@@ -66,7 +67,7 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
         <div className="min-w-0 pb-1">
           <div className="text-[19px] font-extrabold leading-tight tracking-[-0.015em]">{book.title}</div>
           <div className="mt-0.5 text-[14px] text-ink-2">{book.author}</div>
-          <div className="mt-1.5 text-[13px] text-ink-3">Сейчас: {sourceLabel(book.coverSource)}</div>
+          <div className="mt-1.5 text-[13px] text-ink-3">{t("Сейчас: {source}", { source: sourceLabel(book.coverSource) })}</div>
         </div>
       </div>
 
@@ -79,17 +80,17 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
       >
         <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-[14px] bg-surface-2 px-3.5">
           <Search size={17} strokeWidth={2.1} className="shrink-0 text-ink-2" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Название и автор" placeholder="Название — автор" className="h-full min-w-0 flex-1 bg-transparent text-[16px] font-medium outline-none placeholder:text-ink-3" enterKeyHint="search" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t("Название и автор")} placeholder={t("Название — автор")} className="h-full min-w-0 flex-1 bg-transparent text-[16px] font-medium outline-none placeholder:text-ink-3" enterKeyHint="search" />
         </label>
-        <Button type="submit">Найти</Button>
+        <Button type="submit">{t("Найти")}</Button>
       </form>
 
-      <SectionTitle className="mt-6" title="Найдено" action={state.loading ? "поиск…" : state.results.length} as="h3" />
+      <SectionTitle className="mt-6" title={t("Найдено")} action={state.loading ? t("поиск…") : state.results.length} as="h3" />
       {state.loading ? (
         <div className="flex justify-center py-10"><Spinner className="text-ink-2" /></div>
       ) : state.results.length === 0 ? (
         <p className="py-6 text-[15px] leading-relaxed text-ink-2">
-          {state.searched ? "Ничего не нашлось. Уточните название или проверьте подключение к интернету." : "Поиск по Apple Books, Google Books и Open Library."}
+          {state.searched ? t("Ничего не нашлось. Уточните название или проверьте подключение к интернету.") : t("Поиск по Apple Books, Google Books и Open Library.")}
         </p>
       ) : (
         <ul className={cn("mt-4 grid gap-x-3 gap-y-5", square ? "grid-cols-3" : "grid-cols-4")}>
@@ -111,18 +112,18 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
 
       <div className="mt-7 grid grid-cols-2 gap-2">
         <Button variant="secondary" icon={<ImageUp size={17} strokeWidth={2} />} onClick={() => fileInput.current?.click()}>
-          Свой файл
+          {t("Свой файл")}
         </Button>
         <Button
           variant="secondary"
           icon={<RefreshCw size={16} strokeWidth={2} />}
           onClick={async () => {
-            const blob = await generateCover({ title: book.title, author: book.author, square, label: square ? "Аудиокнига" : book.format.toUpperCase() });
+            const blob = await generateCover({ title: book.title, author: book.author, square, label: square ? t("Аудиокнига") : book.format.toUpperCase() });
             await setBookCover(book.id, { blob }, "generated");
             onDone();
           }}
         >
-          Сгенерировать
+          {t("Сгенерировать")}
         </Button>
       </div>
       <input
@@ -135,7 +136,7 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
           e.target.value = "";
           if (!f) return;
           await setBookCover(book.id, { blob: f }, "user");
-          toast("Обложка обновлена", "success");
+          toast(t("Обложка обновлена"), "success");
           onDone();
         }}
       />
@@ -144,5 +145,5 @@ function Picker({ book, onDone }: { book: BookRecord; onDone: () => void }) {
 }
 
 function sourceLabel(s: BookRecord["coverSource"]): string {
-  return { embedded: "из файла", folder: "из папки", store: "магазин", online: "найдена по названию", generated: "сгенерирована", user: "выбрана вами" }[s ?? "embedded"] ?? "—";
+  return { embedded: t("из файла"), folder: t("из папки"), store: t("магазин"), online: t("найдена по названию"), generated: t("сгенерирована"), user: t("выбрана вами") }[s ?? "embedded"] ?? "—";
 }

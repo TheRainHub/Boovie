@@ -1,5 +1,6 @@
 import type { AudioParseOptions } from "./audioParser";
 import { ParseError, type ParsedBook, type ProgressFn } from "./types";
+import { t } from "../i18n";
 
 export type DetectedKind = "epub" | "fb2" | "pdf" | "audio" | "unknown";
 
@@ -35,7 +36,7 @@ export async function parseBookFile(file: Blob, name: string, onProgress?: Progr
     case "fb2": return (await import("./fb2Parser")).parseFb2(file, name, onProgress);
     case "pdf": return (await import("./pdfParser")).parsePdf(file, name, onProgress);
     case "audio": return (await import("./audioParser")).parseAudio([{ blob: file, name }], onProgress, audioOpts);
-    default: throw new ParseError(`Формат не поддерживается: ${name}`);
+    default: throw new ParseError(t("Формат не поддерживается: {name}", { name }));
   }
 }
 

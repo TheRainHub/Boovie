@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/components/ui/primitives";
 import { formatDuration } from "@/lib/format";
 import type { Bucket } from "@/lib/stats/summary";
+import { t } from "@/lib/i18n";
 
 const PLOT_H = 148;
 const STEPS_MIN = [5, 10, 15, 20, 30, 60, 90, 120, 180, 240, 360, 480, 600, 900, 1200, 1800, 2400, 3600];
@@ -14,7 +15,7 @@ function niceStep(maxSeconds: number): number {
   return STEPS_MIN.find((s) => maxMin / s <= 3) ?? Math.ceil(maxMin / 3 / 60) * 60;
 }
 
-const tick = (min: number) => (min < 60 ? `${min} мин` : `${min / 60} ч`);
+const tick = (min: number) => (min < 60 ? t("{n} мин", { n: min }) : t("{n} ч", { n: min / 60 }));
 
 /**
  * Listening and reading per day (or month) as stacked columns: listening at the base, reading on top, a 2px
@@ -35,10 +36,10 @@ export function ActivityChart({ buckets, unit }: { buckets: Bucket[]; unit: "day
   return (
     <div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-medium text-ink-2">
-        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-listen)]" />Слушали</span>
-        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-read)]" />Читали</span>
+        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-listen)]" />{t("Слушали")}</span>
+        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-read)]" />{t("Читали")}</span>
         <button type="button" className="ml-auto font-semibold text-ink-2 underline-offset-2 hover:underline" onClick={() => setTable((v) => !v)}>
-          {table ? "Графиком" : "Таблицей"}
+          {table ? t("Графиком") : t("Таблицей")}
         </button>
       </div>
 
@@ -46,9 +47,9 @@ export function ActivityChart({ buckets, unit }: { buckets: Bucket[]; unit: "day
         <table className="mt-3 w-full text-[14px]">
           <thead>
             <tr className="text-left text-[12.5px] text-ink-2">
-              <th className="py-1.5 font-medium">{unit === "day" ? "День" : "Месяц"}</th>
-              <th className="py-1.5 text-right font-medium">Слушали</th>
-              <th className="py-1.5 text-right font-medium">Читали</th>
+              <th className="py-1.5 font-medium">{unit === "day" ? t("День") : t("Месяц")}</th>
+              <th className="py-1.5 text-right font-medium">{t("Слушали")}</th>
+              <th className="py-1.5 text-right font-medium">{t("Читали")}</th>
             </tr>
           </thead>
           <tbody className="tabular">
@@ -64,9 +65,9 @@ export function ActivityChart({ buckets, unit }: { buckets: Bucket[]; unit: "day
       ) : (
         <>
           <p className="mt-3 min-h-[40px] text-[14px] leading-snug" aria-live="polite">
-            <span className="font-semibold first-letter:uppercase">{shown?.today ? (unit === "day" ? "Сегодня" : "Этот месяц") : shown?.title}</span>
+            <span className="font-semibold first-letter:uppercase">{shown?.today ? (unit === "day" ? t("Сегодня") : t("Этот месяц")) : shown?.title}</span>
             <span className="block text-ink-2">
-              {empty ? "Пока пусто — начните читать или слушать" : `Слушали ${formatDuration(shown?.listen ?? 0)} · читали ${formatDuration(shown?.read ?? 0)}`}
+              {empty ? t("Пока пусто — начните читать или слушать") : t("Слушали {listen} · читали {read}", { listen: formatDuration(shown?.listen ?? 0), read: formatDuration(shown?.read ?? 0) })}
             </span>
           </p>
           <div className="relative mt-5 pl-[52px]" style={{ height: PLOT_H + 22 }}>
@@ -89,7 +90,7 @@ export function ActivityChart({ buckets, unit }: { buckets: Bucket[]; unit: "day
                     key={b.key}
                     type="button"
                     className="group relative flex min-w-0 flex-1 flex-col items-center justify-end outline-none"
-                    aria-label={`${b.title}: слушали ${formatDuration(b.listen)}, читали ${formatDuration(b.read)}`}
+                    aria-label={t("{day}: слушали {listen}, читали {read}", { day: b.title, listen: formatDuration(b.listen), read: formatDuration(b.read) })}
                     aria-pressed={active}
                     onClick={() => setSelected(i)}
                     onMouseEnter={() => setSelected(i)}

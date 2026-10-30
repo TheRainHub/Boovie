@@ -10,6 +10,7 @@ import { persist } from "zustand/middleware";
 import { importLocalFiles } from "../library/importer";
 import { getDB } from "../storage/db";
 import { formatLabel, parseOpds, resolveHref, type OpdsEntry, type OpdsFeed } from "./opds";
+import { t } from "../i18n";
 
 interface LibrarrPrefs {
   url: string;
@@ -42,16 +43,16 @@ function withKey(href: string, key: string): string {
 
 async function get(href: string, key: string): Promise<Response> {
   if (typeof location !== "undefined" && location.protocol === "https:" && href.startsWith("http:")) {
-    throw new LibrarrError("Браузер не пустит приложение с https-сайта к серверу по http. Откройте Librarr по HTTPS (например, через Tailscale или Cloudflare Tunnel) и укажите https-адрес.");
+    throw new LibrarrError(t("Браузер не пустит приложение с https-сайта к серверу по http. Откройте Librarr по HTTPS (например, через Tailscale или Cloudflare Tunnel) и укажите https-адрес."));
   }
   let res: Response;
   try {
     res = await fetch(withKey(href, key), { headers: { accept: "application/atom+xml, application/xml, */*" } });
   } catch {
-    throw new LibrarrError("Не удалось подключиться к Librarr. Проверьте адрес и что сервер доступен с этого устройства (HTTPS, тот же Wi-Fi или VPN).");
+    throw new LibrarrError(t("Не удалось подключиться к Librarr. Проверьте адрес и что сервер доступен с этого устройства (HTTPS, тот же Wi-Fi или VPN)."));
   }
-  if (res.status === 401 || res.status === 403) throw new LibrarrError("Librarr не принял ключ. Нужен API_KEY из настроек сервера.");
-  if (!res.ok) throw new LibrarrError(`Librarr ответил ошибкой ${res.status}.`);
+  if (res.status === 401 || res.status === 403) throw new LibrarrError(t("Librarr не принял ключ. Нужен API_KEY из настроек сервера."));
+  if (!res.ok) throw new LibrarrError(t("Librarr ответил ошибкой {status}.", { status: res.status }));
   return res;
 }
 
@@ -100,10 +101,10 @@ function fileNameFor(entry: OpdsEntry, res: Response, type: string): string {
 export async function downloadEntry(entry: OpdsEntry): Promise<string | null> {
   const { apiKey, owned, set } = useLibrarr.getState();
   const link = entry.acquisitions[0];
-  if (!link) throw new LibrarrError("У этой книги нет файла для скачивания.");
+  if (!link) throw new LibrarrError(t("У этой книги нет файла для скачивания."));
   const res = await get(link.href, apiKey);
   const type = realType(entry, res.headers.get("content-type") ?? link.type ?? "");
-  if (/text\/html/i.test(type)) throw new LibrarrError("Librarr отдал папку, а не файл. Аудиокниги из нескольких файлов скачивайте одним M4B или ZIP.");
+  if (/text\/html/i.test(type)) throw new LibrarrError(t("Librarr отдал папку, а не файл. Аудиокниги из нескольких файлов скачивайте одним M4B или ZIP."));
   const blob = await res.blob();
   const file = new File([blob], fileNameFor(entry, res, type), { type: type.includes("/") ? type : blob.type });
   const [id] = await importLocalFiles([file]);

@@ -17,8 +17,9 @@ const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://boovie-kappa.vercel.app")
 ).replace(/\/$/, "");
-const TITLE = "Boowie — книги и аудиокниги";
-const DESCRIPTION = "Читалка PDF, FB2 и EPUB и плеер аудиокниг MP3 и M4B. Книги хранятся в телефоне и открываются без интернета, а в магазине ждёт бесплатная классика.";
+// The static HTML and link previews are Russian; the app shell retitles the page in the chosen language.
+const TITLE = "Boowie — книги и аудиокниги"; // i18n-ignore
+const DESCRIPTION = /* i18n-ignore */ "Читалка PDF, FB2 и EPUB и плеер аудиокниг MP3 и M4B. Книги хранятся в телефоне и открываются без интернета, а в магазине ждёт бесплатная классика.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(`${SITE_URL}${BASE_PATH}/`),
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Boowie — книги и аудиокниги" }],
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: TITLE }],
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/og.jpg"] },
   manifest: withBase("/manifest.webmanifest"),

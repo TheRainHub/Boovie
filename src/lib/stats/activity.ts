@@ -33,7 +33,7 @@ export function onActivityWritten(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // i18n-ignore
 
 /** The same book on any device: store books by their catalog id, files by title, author and medium. */
 export function bookKey(book: Pick<BookRecord, "storeId" | "title" | "author" | "format">): string {

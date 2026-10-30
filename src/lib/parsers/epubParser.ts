@@ -8,6 +8,7 @@ import JSZip from "jszip";
 import { compactHtml, serializeNode, textLength, type SanitizeContext } from "./sanitize";
 import { allElements, childElements, descendants, firstChild, localName, mimeFromName, normalizeSpace, parseXml, stripExtension } from "./text";
 import { ParseError, type ParsedAsset, type ParsedBook, type ParsedChapter, type ProgressFn } from "./types";
+import { t } from "../i18n";
 
 interface ManifestItem {
   id: string;
@@ -112,24 +113,24 @@ function splitAtAnchors(body: Element, anchors: string[]): { anchor?: string; no
 }
 
 export async function parseEpub(file: Blob, fileName: string, onProgress?: ProgressFn): Promise<ParsedBook> {
-  onProgress?.(0.02, "Распаковка EPUB");
+  onProgress?.(0.02, t("Распаковка EPUB"));
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(await file.arrayBuffer());
   } catch {
-    throw new ParseError("Не удалось открыть архив EPUB");
+    throw new ParseError(t("Не удалось открыть архив EPUB"));
   }
   const container = await readText(zip, "META-INF/container.xml");
   let opfPath = container ? descendants(parseXml(container), "rootfile")[0]?.getAttribute("full-path") ?? "" : "";
   if (!opfPath) opfPath = Object.keys(zip.files).find((n) => n.endsWith(".opf")) ?? "";
   const opfText = opfPath ? await readText(zip, opfPath) : null;
-  if (!opfText) throw new ParseError("В EPUB не найден файл пакета (.opf)");
+  if (!opfText) throw new ParseError(t("В EPUB не найден файл пакета (.opf)"));
   const opf = parseXml(opfText);
 
   const meta = descendants(opf, "metadata")[0];
   const dc = (name: string) => (meta ? descendants(meta, name).map((e) => normalizeSpace(e.textContent)).filter(Boolean) : []);
   const title = dc("title")[0] || stripExtension(fileName);
-  const author = dc("creator").join(", ") || "Неизвестный автор";
+  const author = dc("creator").join(", ") || t("Неизвестный автор");
   const language = dc("language")[0];
   const description = dc("description")[0]?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
@@ -147,7 +148,7 @@ export async function parseEpub(file: Blob, fileName: string, onProgress?: Progr
     .filter((r) => r.getAttribute("linear") !== "no")
     .map((r) => manifest.get(r.getAttribute("idref") ?? ""))
     .filter((x): x is ManifestItem => !!x && /html|xml/.test(x.type));
-  if (spine.length === 0) throw new ParseError("Пустой spine: в EPUB нет читаемых документов");
+  if (spine.length === 0) throw new ParseError(t("Пустой spine: в EPUB нет читаемых документов"));
 
   // Table of contents.
   let toc: TocEntry[] = [];
@@ -187,7 +188,7 @@ export async function parseEpub(file: Blob, fileName: string, onProgress?: Progr
 
   for (let si = 0; si < spine.length; si++) {
     const item = spine[si];
-    onProgress?.(0.05 + 0.9 * (si / spine.length), `Глава ${si + 1} из ${spine.length}`);
+    onProgress?.(0.05 + 0.9 * (si / spine.length), t("Глава {n} из {total}", { n: si + 1, total: spine.length }));
     const raw = await readText(zip, item.href);
     if (!raw) continue;
     let doc = new DOMParser().parseFromString(raw, "application/xhtml+xml");
@@ -233,7 +234,7 @@ export async function parseEpub(file: Blob, fileName: string, onProgress?: Progr
         : ri === 0 ? entries.filter((e) => !e.fragment).at(-1) ?? (fragments.length < 2 ? entries[0] : undefined) : undefined;
       const heading = descendants(body, "h1")[0] ?? descendants(body, "h2")[0] ?? descendants(body, "h3")[0];
       const docTitle = normalizeSpace(descendants(doc, "title")[0]?.textContent);
-      const fallback = (ri === 0 && normalizeSpace(heading?.textContent)) || docTitle || (chapters.length === 0 ? "Начало" : `Раздел ${chapters.length + 1}`);
+      const fallback = (ri === 0 && normalizeSpace(heading?.textContent)) || docTitle || (chapters.length === 0 ? t("Начало") : t("Раздел {n}", { n: chapters.length + 1 }));
       if (!chapterIndexByPath.has(item.href)) chapterIndexByPath.set(item.href, chapters.length);
       chapters.push({ title: entry?.title ?? fallback, group: entry?.group, html, charCount: chars });
       if (html.includes("data-link")) pendingLinks.push({ chapter: chapters.length - 1 });
@@ -249,7 +250,7 @@ export async function parseEpub(file: Blob, fileName: string, onProgress?: Progr
       return idx === undefined ? "" : `data-link="ch:${idx}${frag}"`;
     });
   }
-  if (chapters.length === 0) throw new ParseError("В EPUB не найдено текста");
+  if (chapters.length === 0) throw new ParseError(t("В EPUB не найдено текста"));
   onProgress?.(1);
 
   return {

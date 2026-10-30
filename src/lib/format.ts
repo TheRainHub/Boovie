@@ -1,12 +1,5 @@
-/** Russian-locale formatting helpers. */
-
-export function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
-}
+/** Formatting in the interface language (see lib/i18n). */
+import { getLang, locale, t } from "./i18n";
 
 /** 0:42 · 12:05 · 1:02:33 */
 export function formatClock(seconds: number): string {
@@ -18,22 +11,23 @@ export function formatClock(seconds: number): string {
   return `${h ? `${h}:` : ""}${mm}:${String(sec).padStart(2, "0")}`;
 }
 
-/** "2 ч 15 мин" · "48 мин" · "< 1 мин" */
+/** "2 ч 15 мин" · "48 мин" · "< 1 мин" (2 h 15 min) */
 export function formatDuration(seconds: number): string {
   const total = Math.round((seconds || 0) / 60);
-  if (total < 1) return "< 1 мин";
+  const [hr, min] = getLang() === "en" ? ["h", "min"] : ["ч", "мин"]; // i18n-ignore
+  if (total < 1) return `< 1 ${min}`;
   const h = Math.floor(total / 60);
   const m = total % 60;
-  if (!h) return `${m} мин`;
-  return m ? `${h} ч ${m} мин` : `${h} ч`;
+  if (!h) return `${m} ${min}`;
+  return m ? `${h} ${hr} ${m} ${min}` : `${h} ${hr}`;
 }
 
 export function formatBytes(bytes: number): string {
-  if (!bytes) return "0 Б";
-  const units = ["Б", "КБ", "МБ", "ГБ"];
+  const units = getLang() === "en" ? ["B", "KB", "MB", "GB"] : ["Б", "КБ", "МБ", "ГБ"]; // i18n-ignore
+  if (!bytes) return `0 ${units[0]}`;
   const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
   const v = bytes / 1024 ** i;
-  return `${v.toLocaleString("ru-RU", { maximumFractionDigits: v < 10 && i > 0 ? 1 : 0 })} ${units[i]}`;
+  return `${v.toLocaleString(locale(), { maximumFractionDigits: v < 10 && i > 0 ? 1 : 0 })} ${units[i]}`;
 }
 
 export function formatPercent(fraction: number): string {
@@ -41,7 +35,9 @@ export function formatPercent(fraction: number): string {
 }
 
 export function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  return new Date(ts).toLocaleDateString(locale(), { day: "numeric", month: "long" });
 }
 
-export const FORMAT_LABELS: Record<string, string> = { epub: "EPUB", fb2: "FB2", pdf: "PDF", audio: "Аудио" };
+export function formatLabel(format: string): string {
+  return { epub: "EPUB", fb2: "FB2", pdf: "PDF", audio: t("Аудио") }[format] ?? format.toUpperCase();
+}

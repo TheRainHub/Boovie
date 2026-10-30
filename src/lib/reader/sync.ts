@@ -1,6 +1,6 @@
 /** Chapter mapping between the text and audio editions of the same work (Read ↔ Listen). */
 
-const normalize = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+const normalize = (s: string) => s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // i18n-ignore
 
 export function mapChapterIndex(
   from: { title: string; group?: string }[],

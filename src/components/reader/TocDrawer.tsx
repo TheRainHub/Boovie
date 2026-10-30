@@ -6,6 +6,7 @@ import { cn, IconButton, Segmented } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import type { ChapterMeta } from "@/lib/library/hooks";
 import type { Bookmark } from "@/lib/storage/types";
+import { t } from "@/lib/i18n";
 
 /** Table of contents (with completion marks and part groups) + bookmarks. */
 export function TocDrawer({
@@ -34,8 +35,8 @@ export function TocDrawer({
           value={tab}
           onChange={setTab}
           options={[
-            { value: "toc", label: `Оглавление · ${chapters.length}` },
-            { value: "marks", label: `Закладки · ${bookmarks.length}` },
+            { value: "toc", label: `${t("Оглавление")} · ${chapters.length}` },
+            { value: "marks", label: `${t("Закладки")} · ${bookmarks.length}` },
           ]}
         />
       }
@@ -58,7 +59,7 @@ export function TocDrawer({
                   <span className={cn("min-w-0 flex-1 truncate text-[16px]", isCurrent ? "font-bold text-ink" : done ? "text-ink-2" : "font-medium text-ink")}>
                     {c.title}
                   </span>
-                  {pageLabel?.(c) && <span className="tabular shrink-0 text-[13px] text-ink-3">с. {pageLabel(c)}</span>}
+                  {pageLabel?.(c) && <span className="tabular shrink-0 text-[13px] text-ink-3">{t("с. {n}", { n: pageLabel(c) ?? "" })}</span>}
                   <span className="flex w-5 shrink-0 justify-end">{done ? <Check size={16} strokeWidth={2.2} className="text-ink-2" /> : null}</span>
                 </button>
               </li>
@@ -66,7 +67,7 @@ export function TocDrawer({
           })}
         </ol>
       ) : bookmarks.length === 0 ? (
-        <p className="px-6 py-10 text-center text-[16px] text-ink-2">Закладок пока нет — отметьте страницу значком в верхней панели.</p>
+        <p className="px-6 py-10 text-center text-[16px] text-ink-2">{t("Закладок пока нет — отметьте страницу значком в верхней панели.")}</p>
       ) : (
         <ul className="px-5 pb-4">
           {bookmarks.map((b) => (
@@ -74,9 +75,9 @@ export function TocDrawer({
               <BookmarkIcon size={17} className="mt-0.5 shrink-0 text-accent" />
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onBookmark(b)}>
                 <div className="text-[13px] text-ink-2">{chapters[b.chapterIndex]?.title}</div>
-                <div className="mt-0.5 line-clamp-2 text-[16px] font-medium leading-snug">{b.note || b.snippet || "Закладка"}</div>
+                <div className="mt-0.5 line-clamp-2 text-[16px] font-medium leading-snug">{b.note || b.snippet || t("Закладка")}</div>
               </button>
-              <IconButton label="Удалить закладку" size={30} className="text-ink-3" onClick={() => onDeleteBookmark(b)}>
+              <IconButton label={t("Удалить закладку")} size={30} className="text-ink-3" onClick={() => onDeleteBookmark(b)}>
                 <Trash2 size={15} />
               </IconButton>
             </li>

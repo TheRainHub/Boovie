@@ -10,11 +10,12 @@ const E = "(?![\\p{L}\\p{N}])";
 const NOISE = [
   /\[[^\]]*\]/gu, // [MP3 128kbps], [Читает Иванов]
   /\((?:\d{4}|[^)]*(?:kbps|кбит|mp3|m4b|aac|flac|аудиокниг|audiobook|читает|чит\.|reads?)[^)]*)\)/giu,
-  new RegExp(`${B}\\d{2,3}\\s*(?:kbps|кбит/?с?)${E}`, "giu"),
+  new RegExp(`${B}\\d{2,3}\\s*(?:kbps|кбит/?с?)${E}`, "giu"), // i18n-ignore: words in file names
   new RegExp(`${B}(?:mp3|m4b|m4a|aac|flac|ogg|opus)${E}`, "giu"),
-  new RegExp(`${B}(?:аудиокнига|audiobook|unabridged)${E}`, "giu"),
+  new RegExp(`${B}(?:аудиокнига|audiobook|unabridged)${E}`, "giu"), // i18n-ignore
 ];
 const PART = new RegExp(
+  // i18n-ignore: part words in file names
   `[,.\\s_-]*${B}(?:часть|част\\.|ч\\.|part|pt\\.?|том|т\\.|vol\\.?|volume|книга|book|cd|disc|disk|диск)[\\s_-]*[\\divxlc]+${E}.*$`,
   "iu",
 );
@@ -54,7 +55,7 @@ export function splitAuthorTitle(raw: string, keepParts = false, file = true): {
 }
 
 const normalizeForMatch = (s: string) =>
-  s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  s.toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim(); // i18n-ignore
 
 /** Token overlap in [0, 1] — used to rank cover search results against the book. */
 export function similarity(a: string, b: string): number {

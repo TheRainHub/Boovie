@@ -8,7 +8,7 @@
     "start": "npx --yes serve@14 out -l 3000",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test-parsers.ts",
+    "test": "tsx scripts/test-parsers.ts && tsx scripts/test-i18n.ts",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "cap:sync": "npm run build && cap sync"
   },

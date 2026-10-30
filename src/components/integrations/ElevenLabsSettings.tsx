@@ -6,12 +6,13 @@ import { Button, cn, Segmented, Spinner } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { toast } from "@/components/ui/Toaster";
 import { ELEVEN_MODELS, getQuota, listVoices, useElevenPrefs, type ElevenModel, type ElevenQuota, type ElevenVoice } from "@/lib/integrations/elevenlabs";
+import { locale, t } from "@/lib/i18n";
 
-const nf = new Intl.NumberFormat("ru-RU");
 
 /** Settings block: API key (kept on the device), voice with previews, model, characters left this month. */
 export function ElevenLabsSettings() {
   const prefs = useElevenPrefs();
+  const nf = new Intl.NumberFormat(locale());
   const [draft, setDraft] = useState("");
   const [state, setState] = useState<{ loading: boolean; voices?: ElevenVoice[]; quota?: ElevenQuota | null; error?: string }>({ loading: false });
   const [picking, setPicking] = useState(false);
@@ -51,10 +52,10 @@ export function ElevenLabsSettings() {
         <div className="min-w-0">
           <div className="text-[16px] font-semibold">ElevenLabs</div>
           <div className="mt-0.5 text-[13.5px] leading-snug text-ink-2">
-            Озвучивает ваши электронные книги живым голосом. Ключ хранится только на этом устройстве: elevenlabs.io → Developers → API Keys.
+            {t("Озвучивает ваши электронные книги живым голосом. Ключ хранится только на этом устройстве: elevenlabs.io → Developers → API Keys.")}
           </div>
         </div>
-        {connected && <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-ink-2"><Check size={15} /> Подключено</span>}
+        {connected && <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-ink-2"><Check size={15} /> {t("Подключено")}</span>}
       </div>
 
       {!connected ? (
@@ -71,20 +72,20 @@ export function ElevenLabsSettings() {
             type="password"
             autoComplete="off"
             spellCheck={false}
-            placeholder="API-ключ ElevenLabs"
-            aria-label="API-ключ ElevenLabs"
+            placeholder={t("API-ключ ElevenLabs")}
+            aria-label={t("API-ключ ElevenLabs")}
             className="h-11 min-w-0 flex-1 rounded-[14px] bg-surface-2 px-3.5 text-[15px] font-medium outline-none placeholder:text-ink-3"
           />
-          <Button type="submit" disabled={!draft.trim() || state.loading}>{state.loading ? <Spinner size={18} /> : "Подключить"}</Button>
+          <Button type="submit" disabled={!draft.trim() || state.loading}>{state.loading ? <Spinner size={18} /> : t("Подключить")}</Button>
         </form>
       ) : (
         <div className="mt-3 grid gap-2.5">
           <button type="button" onClick={() => setPicking(true)} className="flex items-center justify-between gap-3 rounded-[14px] bg-surface-2 px-3.5 py-3 text-left">
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-ink-2">Голос</span>
-              <span className="block truncate text-[15.5px] font-semibold">{prefs.voiceName ?? "Выберите голос"}</span>
+              <span className="block text-[13px] font-medium text-ink-2">{t("Голос")}</span>
+              <span className="block truncate text-[15.5px] font-semibold">{prefs.voiceName ?? t("Выберите голос")}</span>
             </span>
-            <span className="shrink-0 text-[14px] font-semibold text-ink-2">Изменить</span>
+            <span className="shrink-0 text-[14px] font-semibold text-ink-2">{t("Изменить")}</span>
           </button>
           <Segmented<ElevenModel>
             className="w-full"
@@ -96,11 +97,11 @@ export function ElevenLabsSettings() {
           <p className="text-[13px] leading-snug text-ink-2">{ELEVEN_MODELS[prefs.model].hint}.</p>
           {state.quota && (
             <p className="tabular text-[13.5px] font-medium">
-              Осталось {nf.format(Math.max(0, state.quota.limit - state.quota.used))} из {nf.format(state.quota.limit)} символов в этом месяце
+              {t("Осталось {left} из {limit} символов в этом месяце", { left: nf.format(Math.max(0, state.quota.limit - state.quota.used)), limit: nf.format(state.quota.limit) })}
             </p>
           )}
-          <Button variant="ghost" size="sm" className="justify-self-start text-ink-2" onClick={() => { prefs.set({ apiKey: "", voiceId: undefined, voiceName: undefined }); setState({ loading: false }); toast("Ключ ElevenLabs удалён с устройства"); }}>
-            Отключить
+          <Button variant="ghost" size="sm" className="justify-self-start text-ink-2" onClick={() => { prefs.set({ apiKey: "", voiceId: undefined, voiceName: undefined }); setState({ loading: false }); toast(t("Ключ ElevenLabs удалён с устройства")); }}>
+            {t("Отключить")}
           </Button>
         </div>
       )}
@@ -127,7 +128,7 @@ function VoicePicker({ open, onClose, voices }: { open: boolean; onClose: () => 
     void audio.current.play().then(() => setPlaying(v.voice_id)).catch(() => setPlaying(null));
   };
   return (
-    <Sheet open={open} onClose={() => { stop(); onClose(); }} title="Голос">
+    <Sheet open={open} onClose={() => { stop(); onClose(); }} title={t("Голос")}>
       {!voices ? (
         <div className="flex justify-center py-10"><Spinner className="text-ink-2" /></div>
       ) : (
@@ -137,7 +138,7 @@ function VoicePicker({ open, onClose, voices }: { open: boolean; onClose: () => 
             const labels = Object.values(v.labels ?? {}).filter(Boolean).slice(0, 3).join(" · ");
             return (
               <li key={v.voice_id} className={cn("flex items-center gap-3 rounded-[14px] px-3 py-2.5", on && "bg-surface-2")}>
-                <button type="button" aria-label={`Прослушать: ${v.name}`} disabled={!v.preview_url} onClick={() => preview(v)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 disabled:opacity-40">
+                <button type="button" aria-label={t("Прослушать: {name}", { name: v.name })} disabled={!v.preview_url} onClick={() => preview(v)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 disabled:opacity-40">
                   {playing === v.voice_id ? <Pause size={17} /> : <Play size={17} />}
                 </button>
                 <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { prefs.set({ voiceId: v.voice_id, voiceName: v.name }); stop(); onClose(); }}>
