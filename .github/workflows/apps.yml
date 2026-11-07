@@ -1,0 +1,110 @@
+name: Apps
+
+# Builds the iOS and Android apps from the static export: an Android debug APK to install on a phone (download it
+# from the run's artifacts) and an iOS build for the simulator, which checks that the native code compiles (a build
+# for an iPhone needs signing with an Apple developer account). Compile errors are shown as annotations on the run.
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "public/**", "native/**", "android/**", "ios/**", "package.json", "package-lock.json", "capacitor.config.ts", ".github/workflows/apps.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apps-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  # Accounts in the apps: set these as repository variables (Settings → Secrets and variables → Actions → Variables).
+  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: out
+          retention-days: 2
+
+  android:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: out
+      - run: npx cap sync android
+      - name: Build the APK
+        working-directory: android
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+      - name: Show compile errors
+        if: failure()
+        working-directory: android
+        run: |
+          grep -E "(error:|e: |FAILURE|What went wrong)" -A2 build.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk boowie-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: boowie-android-debug
+          path: boowie-debug.apk
+          retention-days: 14
+
+  ios:
+    needs: web
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Use the newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: out
+      - run: npx cap sync ios
+      - name: Build for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|warning: .*BoowiePlayer|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+      - name: Show compile errors
+        if: failure()
+        run: |
+          grep -E "error:" build.log | sort -u | head -40 | while IFS= read -r line; do echo "::error::${line}"; done

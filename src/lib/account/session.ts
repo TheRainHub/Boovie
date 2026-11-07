@@ -16,6 +16,7 @@ import { getDB } from "../storage/db";
 import type { ActivityRecord } from "../storage/types";
 import { deviceId, GUEST, useIdentity, type AccountUser } from "./identity";
 import { t } from "../i18n";
+import { isNative } from "../native";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
@@ -77,6 +78,8 @@ export async function startAccount(): Promise<void> {
 }
 
 function redirectUrl(): string {
+  // In the apps the page's own address (https://localhost) means nothing to a mail app: the link opens the website.
+  if (isNative()) return `${(process.env.NEXT_PUBLIC_SITE_URL ?? "https://boovie-kappa.vercel.app").replace(/\/$/, "")}/profile/`;
   return `${location.origin}${withBase("/profile/")}`;
 }
 

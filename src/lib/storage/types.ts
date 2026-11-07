@@ -118,8 +118,11 @@ export interface FileRecord {
   mime: string;
   size: number;
   role: "source" | "asset" | "cover";
-  storage: "opfs" | "idb";
+  /** "native": a file in the iOS/Android app's own files, which the native player can read. */
+  storage: "opfs" | "idb" | "native";
   /** Present when storage === "idb". */
   blob?: Blob;
+  /** storage === "native": path inside the app's data directory (the directory itself moves between app updates). */
+  path?: string;
   createdAt: number;
 }

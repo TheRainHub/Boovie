@@ -9,6 +9,7 @@ import { startAccount, syncSoon } from "@/lib/account/session";
 import { persistNow, restoreLastSession, unlockAudio } from "@/lib/audio/player";
 import { withBase } from "@/lib/basePath";
 import { markHydrated, t, useLang } from "@/lib/i18n";
+import { isNative } from "@/lib/native";
 import { flushJournal } from "@/lib/library/repository";
 import { backfillFinished, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
 import { useTheme } from "@/lib/theme";
@@ -66,10 +67,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     restoreStashedActivity();
     void startAccount().then(() => backfillFinished()).catch(() => undefined);
 
-    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+    // The apps carry their files with them: the offline cache is for the web version.
+    if (!isNative() && "serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => undefined);
     }
+    const stopBackButton = isNative() ? listenBackButton() : undefined;
     return () => {
+      stopBackButton?.();
       mq.removeEventListener("change", onScheme);
       window.removeEventListener("pointerup", unlock);
       window.removeEventListener("keydown", unlock);
@@ -89,4 +93,32 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </Fragment>
   );
+}
+
+/**
+ * Android's back button: closes an open sheet (the player, a menu) first, then goes back a page; on the first page
+ * the app goes to the background instead of closing, so a playing book goes on.
+ */
+function listenBackButton(): () => void {
+  let stopped = false;
+  let remove: (() => void) | undefined;
+  void import("@capacitor/app").then(({ App }) =>
+    App.addListener("backButton", ({ canGoBack }) => {
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+        // The sheets close on Escape.
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      } else if (canGoBack && window.history.length > 1) {
+        window.history.back();
+      } else {
+        void App.minimizeApp();
+      }
+    }).then((handle) => {
+      if (stopped) void handle.remove();
+      else remove = () => void handle.remove();
+    }),
+  ).catch(() => undefined);
+  return () => {
+    stopped = true;
+    remove?.();
+  };
 }

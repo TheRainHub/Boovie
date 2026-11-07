@@ -1,6 +1,7 @@
 # Boowie — offline e-book reader & audiobook player
 
-An installable iOS/Android PWA (Next.js App Router · TypeScript · Tailwind CSS v4, Capacitor-ready) that reads
+An installable iOS/Android PWA and native iOS/Android apps (Next.js App Router · TypeScript · Tailwind CSS v4 ·
+Capacitor) that reads
 **EPUB, FB2 and PDF**, plays **MP3 / M4B / M4A audiobooks**, and ships with a built-in store of 82 public-domain
 books and audiobooks that work out of the box — fully offline once downloaded.
 
@@ -80,8 +81,31 @@ npm run build        # static export to out/ + service worker generation
 npm start            # serve out/ locally
 npm test             # parser tests against the bundled store files (Node + linkedom)
 npm run lint && npm run typecheck
-npm run cap:sync     # after `npx cap add ios|android`
+npm run cap:sync     # build, then copy the export and the plugins into android/ and ios/
 ```
+
+## Apps (iOS and Android)
+
+The same static export runs in Capacitor shells (`android/`, `ios/`, `capacitor.config.ts`). What differs in the
+apps:
+
+- **Native book player** — `native/boowie-player`, a local Capacitor plugin: Media3/ExoPlayer in a
+  `MediaSessionService` on Android, AVPlayer with `MPNowPlayingInfoCenter` / `MPRemoteCommandCenter` on iOS. It
+  plays the book's files as one timeline and keeps going with the screen locked or the app in the background:
+  moving on to the next file, lock-screen and notification controls (−15 s, play/pause, +30 s, chapters on iOS),
+  pausing for calls and unplugged headphones, the sleep timer with its fade-out, the saved place and the counters
+  for the statistics. `src/lib/audio/player.ts` drives it in place of the `<audio>` element; the UI is the same.
+- **Files** — audio and other large files go to the app's own files (`src/lib/storage/nativeFiles.ts`), where the
+  native player can read them; the WebView loads them through Capacitor's local server.
+- No service worker; Android's back button closes sheets, goes back, and on the first page sends the app to the
+  background (a playing book goes on). Confirmation and password-reset mails link to the website.
+
+Build: `npm run cap:sync`, then `cd android && ./gradlew assembleDebug` (JDK 21, Android SDK 36) or open
+`ios/App/App.xcodeproj` in Xcode. The **Apps** workflow (`.github/workflows/apps.yml`) builds both on every push that
+touches the app: an Android debug APK in the run's artifacts, and an iOS simulator build that checks the native
+code compiles (running on an iPhone needs an Apple developer account for signing). For accounts in the apps, add
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as repository *variables* (Settings → Secrets and
+variables → Actions → Variables).
 
 ## Deploy
 
@@ -123,10 +147,12 @@ src/components/reader    TextReader, PdfReader, TocDrawer, TypographyDrawer, Rea
 src/components/player    MiniPlayer, FullPlayer, PlayerPanel
 src/components/book      BookScreen (dual mode)
 src/lib/parsers          fb2Parser, epubParser, pdfParser, audioParser, audioMetadata, sanitize
-src/lib/storage          Dexie schema, OPFS/IndexedDB blob store
+src/lib/storage          Dexie schema, OPFS/IndexedDB blob store, app files (nativeFiles)
+native/boowie-player     the apps' native book player (Capacitor plugin: Android Java, iOS Swift)
+android/, ios/           Capacitor shells
 src/lib/library          repository (books, progress, bookmarks), importer, folder grouping, live-query hooks
 src/lib/covers           cover tone (colour), online lookup, generated covers
-src/lib/audio            player engine, Media Session, store previews
+src/lib/audio            player engine (web <audio> or the native plugin), Media Session, store previews
 src/lib/integrations     ElevenLabs API, speech chunking, voiceover jobs, OPDS parser, Librarr client
 src/components/integrations  ElevenLabsSettings, VoiceoverSheet, LibrarrSettings, LibrarrShelf
 scripts/content          store content pipeline (see its README for sources and licenses)

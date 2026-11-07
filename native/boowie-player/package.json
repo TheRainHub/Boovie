@@ -1,0 +1,12 @@
+{
+  "name": "boowie-player",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Boowie's native audiobook player: Media3 on Android, AVPlayer on iOS, with the lock screen and background playback.",
+  "main": "index.js",
+  "files": ["android/src/main/", "android/build.gradle", "ios/Sources", "Package.swift", "index.js"],
+  "capacitor": {
+    "ios": { "src": "ios" },
+    "android": { "src": "android" }
+  }
+}

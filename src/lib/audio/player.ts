@@ -11,14 +11,22 @@
  * done and then lost when playback begins. So every jump is a target that counts as reached only once playback
  * has run from there; until then the position isn't taken from the element (or saved), and a jump the app
  * didn't ask for (the element rolling back to 0:00) is undone instead of becoming the new position.
+ *
+ * In the iOS/Android apps the native player plays instead of the element (see "Native player" below): the store
+ * is the same, the commands go to the plugin and its state events come back into the store.
  */
 import { create } from "zustand";
 import { getChapters, getProgress, journaledPosition, journalPosition, markChaptersComplete, updateProgress } from "../library/repository";
 import { recordFinish, recordListen } from "../stats/activity";
-import { getFileUrl, revokeFileUrls } from "../storage/blobStore";
+import { getFileUrl, nativeFilePath, revokeFileUrls } from "../storage/blobStore";
+import { cacheNativeCopy } from "../storage/nativeFiles";
 import { getDB } from "../storage/db";
+import type { BookRecord } from "../storage/types";
 import { installMediaHandlers, setMediaMetadata, setPlaybackState, setPositionState, SKIP_BACK, SKIP_FORWARD } from "./mediaSession";
+import { BoowiePlayer, type NativeState } from "./native";
 import { t } from "../i18n";
+import { withBase } from "../basePath";
+import { isNative } from "../native";
 
 export interface PlayerChapter {
   index: number;
@@ -174,6 +182,8 @@ function el(): HTMLAudioElement {
 
 /** Call from the first user gesture so later programmatic play() calls are allowed on iOS. */
 export function unlockAudio(): void {
+  // The app's native player needs no unlocking, and a sound from the WebView would take the audio focus from it.
+  if (isNative()) return;
   const a = el();
   if (a.src) return;
   a.src = SILENT;
@@ -251,14 +261,17 @@ function chasing(a: HTMLAudioElement): boolean {
   return true;
 }
 
-function chapterAtGlobal(t: number): PlayerChapter | undefined {
-  const chs = get().chapters;
+function chapterAt(chs: PlayerChapter[], t: number): PlayerChapter | undefined {
   let found = chs[0];
   for (const c of chs) {
     if (c.startTime <= t + 0.001) found = c;
     else break;
   }
   return found;
+}
+
+function chapterAtGlobal(t: number): PlayerChapter | undefined {
+  return chapterAt(get().chapters, t);
 }
 
 function chapterAtFileTime(fileId: string, t: number): PlayerChapter | undefined {
@@ -272,6 +285,7 @@ function chapterAtFileTime(fileId: string, t: number): PlayerChapter | undefined
 }
 
 function updateMediaMetadata(): void {
+  if (isNative()) return;
   const s = get();
   const ch = s.chapters[s.chapterIndex];
   setMediaMetadata({
@@ -380,6 +394,7 @@ export async function seek(global: number, opts: { autoplay?: boolean } = {}): P
   const at = Math.max(0, Math.min(global, Math.max(0, s.duration - 0.25)));
   const ch = chapterAtGlobal(at);
   if (!ch) return;
+  if (isNative()) return nativeSeek(at, ch, opts.autoplay);
   const a = el();
   const wasPlaying = !a.paused && !a.ended && a.src !== SILENT;
   const autoplay = opts.autoplay ?? wasPlaying;
@@ -446,13 +461,18 @@ export async function refreshPlayerInfo(bookId: string): Promise<void> {
     chapters: get().chapters.map((c) => ({ ...c, title: titles.get(c.index) ?? c.title })),
   });
   updateMediaMetadata();
+  // The lock screen shows what the native player was given: give it the book again, at the same place.
+  if (isNative() && nativeBook === bookId) void nativeLoad(get().position, get().isPlaying);
 }
 
 export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; chapterIndex?: number; time?: number; touch?: boolean } = {}): Promise<void> {
-  const a = el();
+  const native = isNative();
+  const a = native ? null : el();
   const s = get();
+  let adopted = false;
   if (s.bookId !== bookId) {
-    a.pause();
+    a?.pause();
+    if (native && nativeBook && nativeBook !== bookId) void BoowiePlayer.pause().catch(() => undefined);
     const [book, rows, progress] = await Promise.all([getDB().books.get(bookId), getChapters(bookId), getProgress(bookId)]);
     if (!book || book.format !== "audio") return;
     const chapters: PlayerChapter[] = rows.map((r) => ({
@@ -466,7 +486,27 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
     }));
     const cover = book.coverFileId ? (await getFileUrl(book.coverFileId)) ?? book.coverUrl : book.coverUrl;
     currentFileId = null;
-    arrived(a);
+    if (a) arrived(a);
+    const journaled = journaledPosition(bookId, progress);
+    let position = journaled?.audioTimestamp ?? progress.audioTimestamp;
+    let chapterIndex = journaled?.currentChapterIndex ?? progress.currentChapterIndex;
+    let isPlaying = false;
+    if (native) {
+      await nativeInit();
+      // The native player may have gone on while the WebView slept or was closed: it knows the latest place.
+      const [state, last] = await Promise.all([BoowiePlayer.getState().catch(() => null), BoowiePlayer.lastSession().catch(() => null)]);
+      if (state?.loaded && state.bookId === bookId) {
+        adopted = true;
+        nativeBook = bookId;
+        position = state.position;
+        isPlaying = state.playing;
+      } else if (last?.bookId === bookId && last.position !== undefined && (last.updatedAt ?? 0) > Math.max(progress.updatedAt ?? 0, journaled?.at ?? 0)) {
+        position = last.position;
+      }
+      if (adopted || position !== (journaled?.audioTimestamp ?? progress.audioTimestamp)) {
+        chapterIndex = chapterAt(chapters, position)?.index ?? chapterIndex;
+      }
+    }
     set({
       bookId,
       title: book.title,
@@ -476,8 +516,10 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
       artwork: book.coverUrl,
       chapters,
       duration: book.duration ?? chapters.reduce((m, c) => Math.max(m, c.startTime + c.duration), 0),
-      position: journaledPosition(bookId, progress)?.audioTimestamp ?? progress.audioTimestamp,
-      chapterIndex: journaledPosition(bookId, progress)?.currentChapterIndex ?? progress.currentChapterIndex,
+      position,
+      chapterIndex,
+      isPlaying,
+      isLoading: false,
       rate: storedRate(),
       error: undefined,
     });
@@ -491,6 +533,11 @@ export async function openAudioBook(bookId: string, opts: { autoplay?: boolean; 
   }
   const st = get();
   const at = opts.time ?? (opts.chapterIndex !== undefined ? st.chapters[opts.chapterIndex]?.startTime : undefined);
+  // The native player already has the book and its place: moving it there again would only make it skip.
+  if (native && at === undefined && (adopted || nativeBook === bookId)) {
+    if (opts.autoplay) await play();
+    return;
+  }
   // Restart a finished book from the beginning.
   const start = at ?? (st.position >= st.duration - 1 ? 0 : st.position);
   await seek(start, { autoplay: opts.autoplay ?? false });
@@ -505,6 +552,12 @@ export async function restoreLastSession(): Promise<void> {
   } catch {
     /* ignore */
   }
+  if (isNative()) {
+    await nativeInit();
+    // A book the native player still has (it played on while the app's screen was closed) comes first.
+    const state = await BoowiePlayer.getState().catch(() => null);
+    if (state?.loaded && state.bookId) id = state.bookId;
+  }
   if (!id) return;
   const book = await getDB().books.get(id);
   if (!book) return;
@@ -512,10 +565,16 @@ export async function restoreLastSession(): Promise<void> {
 }
 
 export async function play(): Promise<void> {
-  const a = el();
   const s = get();
   if (!s.bookId || !s.chapters.length) return;
   const start = s.position >= s.duration - 1 ? 0 : s.position;
+  if (isNative()) {
+    set({ error: undefined });
+    if (nativeBook === s.bookId) await BoowiePlayer.play().catch(() => set({ error: t("Не удалось воспроизвести файл, нажмите ещё раз") }));
+    else await nativeLoad(start, true);
+    return;
+  }
+  const a = el();
   const ch = chapterAtGlobal(start);
   const expected = ch ? ch.fileStart + (start - ch.startTime) : 0;
   // The element lost its place (iOS drops a paused file's media while the app is away): load it again at the spot.
@@ -528,6 +587,11 @@ export async function play(): Promise<void> {
 }
 
 export function pause(): void {
+  if (isNative()) {
+    if (nativeBook) void BoowiePlayer.pause().catch(() => undefined);
+    set({ isPlaying: false, isLoading: false });
+    return;
+  }
   el().pause();
 }
 
@@ -569,9 +633,13 @@ export function prevChapter(): Promise<void> {
 }
 
 export function setRate(rate: number): void {
-  const a = el();
-  a.playbackRate = rate;
-  a.defaultPlaybackRate = rate;
+  if (isNative()) {
+    if (nativeBook) void BoowiePlayer.setRate({ rate }).catch(() => undefined);
+  } else {
+    const a = el();
+    a.playbackRate = rate;
+    a.defaultPlaybackRate = rate;
+  }
   set({ rate });
   try {
     localStorage.setItem(RATE_KEY, String(rate));
@@ -581,25 +649,32 @@ export function setRate(rate: number): void {
 }
 
 export function setSleepTimer(timer: { kind: "off" } | { kind: "minutes"; minutes: number } | { kind: "chapter" }): void {
-  el().volume = 1;
+  if (!isNative()) el().volume = 1;
   set({ sleep: timer.kind === "minutes" ? { ...timer, endsAt: Date.now() + timer.minutes * 60_000 } : timer });
+  if (isNative()) void applyNativeSleep();
 }
 
 export function closePlayer(): void {
-  const a = el();
-  a.pause();
-  void persist(true);
-  a.removeAttribute("src");
-  a.load();
+  if (isNative()) {
+    void persist(true);
+    nativeBook = null;
+    void BoowiePlayer.unload().catch(() => undefined);
+  } else {
+    const a = el();
+    a.pause();
+    void persist(true);
+    a.removeAttribute("src");
+    a.load();
+    arrived(a);
+  }
   currentFileId = null;
-  arrived(a);
   set({ bookId: null, chapters: [], expanded: false, isPlaying: false, position: 0 });
   try {
     localStorage.removeItem(LAST_KEY);
   } catch {
     /* ignore */
   }
-  if ("mediaSession" in navigator) navigator.mediaSession.metadata = null;
+  if (!isNative() && "mediaSession" in navigator) navigator.mediaSession.metadata = null;
 }
 
 /** Stop and forget if the given book is loaded (used before deleting it). */
@@ -614,4 +689,199 @@ export function persistNow(): Promise<void> {
     journalPosition(s.bookId, { audioTimestamp: s.position, currentChapterIndex: s.chapterIndex, percentage: s.duration ? (s.position / s.duration) * 100 : 0 });
   }
   return persist(true);
+}
+
+// ── Native player (the iOS and Android apps) ─────────────────────────────────────────────────────────────────
+
+/** The book the native player has (its files loaded); null while it has none, or another one. */
+let nativeBook: string | null = null;
+let nativeListening: Promise<void> | null = null;
+/** A seek the native player may not have made yet: its older state events must not move the position back. */
+let nativeTarget: { position: number; until: number } | null = null;
+let nativeWasPlaying = false;
+let nativeEndSeen = false;
+const PLAYED_KEY = "titan-native-played";
+/** The native counters already counted into the statistics (kept across restarts of the WebView). */
+let played: { session: number; wall: number; media: number } | null = null;
+
+function nativeInit(): Promise<void> {
+  if (!nativeListening) {
+    nativeListening = BoowiePlayer.addListener("state", onNativeState).then(
+      () => undefined,
+      () => undefined,
+    );
+  }
+  return nativeListening;
+}
+
+/** The book's files on the native timeline: one track per file, in order, each as long as its part of the book. */
+async function nativeTracks(chapters: PlayerChapter[], duration: number): Promise<{ path: string; duration: number }[] | null> {
+  const files: { fileId: string; start: number }[] = [];
+  for (const c of chapters) {
+    if (!files.some((f) => f.fileId === c.fileId)) files.push({ fileId: c.fileId, start: Math.max(0, c.startTime - c.fileStart) });
+  }
+  if (files.length) files[0].start = 0;
+  const tracks: { path: string; duration: number }[] = [];
+  for (let i = 0; i < files.length; i++) {
+    const path = await nativeFilePath(files[i].fileId);
+    if (!path) return null;
+    const end = i + 1 < files.length ? files[i + 1].start : duration;
+    tracks.push({ path, duration: Math.max(0, end - files[i].start) });
+  }
+  return tracks;
+}
+
+/** The cover as a file for the lock screen and the notification. */
+async function nativeArtwork(book: BookRecord): Promise<string | undefined> {
+  try {
+    if (book.coverFileId) {
+      const path = await nativeFilePath(book.coverFileId);
+      if (path) return path;
+    }
+    if (book.coverUrl) {
+      const res = await fetch(withBase(book.coverUrl));
+      if (res.ok) return await cacheNativeCopy(`cover-${book.id}`, await res.blob());
+    }
+  } catch {
+    /* no cover on the lock screen */
+  }
+  return undefined;
+}
+
+/** Give the book to the native player (its files are moved to the app's files first if they aren't there). */
+async function nativeLoad(position: number, autoplay: boolean): Promise<boolean> {
+  const s = get();
+  const bookId = s.bookId;
+  if (!bookId) return false;
+  const token = ++loadToken;
+  set({ isLoading: true, error: undefined });
+  await nativeInit();
+  try {
+    const [tracks, book] = await Promise.all([nativeTracks(s.chapters, s.duration), getDB().books.get(bookId)]);
+    if (token !== loadToken || get().bookId !== bookId) return false;
+    if (!tracks?.length || !book) {
+      set({ error: t("Файл аудиокниги не найден на устройстве"), isLoading: false });
+      return false;
+    }
+    const artwork = await nativeArtwork(book);
+    if (token !== loadToken || get().bookId !== bookId) return false;
+    const cur = get();
+    nativeTarget = { position, until: Date.now() + 3000 };
+    await BoowiePlayer.loadBook({
+      bookId,
+      tracks,
+      chapters: cur.chapters.map((c) => ({ start: c.startTime, title: c.title })),
+      position,
+      rate: cur.rate,
+      title: cur.title,
+      author: cur.author,
+      artwork,
+      autoplay,
+    });
+    nativeBook = bookId;
+    nativeEndSeen = false;
+    set({ position, chapterIndex: chapterAtGlobal(position)?.index ?? cur.chapterIndex });
+    await applyNativeSleep();
+    if (!autoplay) set({ isLoading: false });
+    return true;
+  } catch {
+    if (token === loadToken) set({ error: t("Не удалось воспроизвести файл, нажмите ещё раз"), isLoading: false, isPlaying: false });
+    return false;
+  }
+}
+
+async function nativeSeek(at: number, ch: PlayerChapter, autoplay: boolean | undefined): Promise<void> {
+  const s = get();
+  set({ position: at, chapterIndex: ch.index, error: undefined });
+  if (nativeBook === s.bookId) {
+    nativeTarget = { position: at, until: Date.now() + 3000 };
+    try {
+      await BoowiePlayer.seek({ position: at });
+      if (autoplay) await BoowiePlayer.play();
+      // «Until the end of the chapter» is now the end of this chapter.
+      if (s.sleep.kind === "chapter") await applyNativeSleep();
+    } catch {
+      set({ error: t("Не удалось воспроизвести файл, нажмите ещё раз") });
+    }
+  } else if (autoplay) {
+    await nativeLoad(at, true);
+  }
+  void persist(true);
+}
+
+/** The sleep timer of the store, set in the native player (which pauses even with the WebView asleep). */
+async function applyNativeSleep(): Promise<void> {
+  const s = get();
+  if (!nativeBook || nativeBook !== s.bookId) return;
+  let options: { at?: number; position?: number } = {};
+  if (s.sleep.kind === "minutes") options = { at: Math.round(s.sleep.endsAt) };
+  else if (s.sleep.kind === "chapter") {
+    const next = s.chapters[s.chapterIndex + 1];
+    options = { position: next ? next.startTime : s.duration };
+  }
+  await BoowiePlayer.setSleep(options).catch(() => undefined);
+}
+
+/** Count what the native player played since the last event into the statistics. */
+function countNativePlayed(n: NativeState, bookId: string): void {
+  if (!played) {
+    try {
+      played = JSON.parse(localStorage.getItem(PLAYED_KEY) ?? "null");
+    } catch {
+      played = null;
+    }
+  }
+  if (!played || played.session !== n.session) played = { session: n.session, wall: 0, media: 0 };
+  const wall = n.playedWall - played.wall;
+  const media = n.playedMedia - played.media;
+  if (wall <= 0 && media <= 0) return;
+  recordListen(bookId, Math.max(0, wall), Math.max(0, media));
+  played = { session: n.session, wall: n.playedWall, media: n.playedMedia };
+  try {
+    localStorage.setItem(PLAYED_KEY, JSON.stringify(played));
+  } catch {
+    /* ignore */
+  }
+}
+
+function onNativeState(n: NativeState): void {
+  const s = get();
+  if (!n.bookId || n.bookId !== s.bookId) return;
+  const bookId = s.bookId;
+  nativeBook = n.loaded ? n.bookId : null;
+  countNativePlayed(n, bookId);
+
+  const patch: Partial<PlayerState> = { isPlaying: n.playing, isLoading: n.buffering && !n.error };
+  if (n.error) Object.assign(patch, { error: t("Не удалось воспроизвести файл, нажмите ещё раз"), isLoading: false });
+  if (n.sleepFired) patch.sleep = { kind: "off" };
+  if (nativeTarget && (Date.now() > nativeTarget.until || Math.abs(n.position - nativeTarget.position) < 2)) nativeTarget = null;
+  if (n.loaded && !nativeTarget && !n.ended) {
+    const ch = chapterAtGlobal(n.position);
+    patch.position = n.position;
+    if (ch && ch.index !== s.chapterIndex) {
+      patch.chapterIndex = ch.index;
+      // Played on into the next chapter: the one before is heard.
+      if (ch.index > s.chapterIndex && n.playing) void markChaptersComplete(bookId, [s.chapterIndex]);
+    }
+  }
+  set(patch);
+
+  if (n.ended && !nativeEndSeen) {
+    nativeEndSeen = true;
+    void finishNative(bookId);
+  } else if (!n.ended) {
+    nativeEndSeen = false;
+  }
+  if (nativeWasPlaying && !n.playing) void persist(true);
+  else if (n.playing) void persist();
+  nativeWasPlaying = n.playing;
+}
+
+async function finishNative(bookId: string): Promise<void> {
+  const s = get();
+  if (s.bookId !== bookId) return;
+  set({ isPlaying: false, isLoading: false, position: s.duration, chapterIndex: Math.max(0, s.chapters.length - 1), ...(s.sleep.kind === "chapter" ? { sleep: { kind: "off" } } : {}) });
+  await markChaptersComplete(bookId, s.chapters.map((c) => c.index));
+  await updateProgress(bookId, { audioTimestamp: s.duration, percentage: 100, currentChapterIndex: Math.max(0, s.chapters.length - 1) });
+  recordFinish(bookId, "listen");
 }

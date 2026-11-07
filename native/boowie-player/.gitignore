@@ -1,0 +1,4 @@
+android/build/
+.build/
+.swiftpm/
+*.iml
