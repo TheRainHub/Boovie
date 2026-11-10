@@ -118,9 +118,9 @@ apps:
 Build: `npm run cap:sync`, then `cd android && ./gradlew assembleDebug` (JDK 21, Android SDK 36) or open
 `ios/App/App.xcodeproj` in Xcode. The **Apps** workflow (`.github/workflows/apps.yml`) builds both on every push that
 touches the app: an Android debug APK in the run's artifacts, and an iOS simulator build that checks the native
-code compiles (running on an iPhone needs an Apple developer account for signing). For accounts in the apps, add
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as repository *variables* (Settings → Secrets and
-variables → Actions → Variables).
+code compiles (running on an iPhone needs an Apple developer account for signing). The apps are built with the
+accounts' Supabase project (its URL and publishable key are in the workflow; repository *variables* of the same
+names, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, take precedence).
 
 ## Deploy
 

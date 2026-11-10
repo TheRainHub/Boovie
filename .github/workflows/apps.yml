@@ -18,9 +18,11 @@ concurrency:
 
 env:
   NEXT_TELEMETRY_DISABLED: 1
-  # Accounts in the apps: set these as repository variables (Settings → Secrets and variables → Actions → Variables).
-  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  # Accounts in the apps. Both values are public: the publishable key is meant to ship inside the app, and the
+  # accounts' data is protected by row-level security (supabase/schema.sql). Repository variables of the same names
+  # (Settings → Secrets and variables → Actions → Variables) take precedence.
+  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://qqfohfgodrwgzfeudcwr.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_DWAJT0sPvEfVGOWVreAK3g_W_TuqRrH' }}
 
 jobs:
   web:
