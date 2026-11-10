@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation";
 import { Fragment, useEffect, type ReactNode } from "react";
 import { FullPlayer } from "@/components/player/FullPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
-import { Toaster } from "@/components/ui/Toaster";
-import { startAccount, syncSoon } from "@/lib/account/session";
-import { persistNow, restoreLastSession, unlockAudio } from "@/lib/audio/player";
+import { toast, Toaster } from "@/components/ui/Toaster";
+import { pullSoon, pushWhilePlaying, startAccount, syncSoon } from "@/lib/account/session";
+import { persistNow, restoreLastSession, seek, unlockAudio, usePlayer } from "@/lib/audio/player";
+import { formatClock } from "@/lib/format";
+import { claimRemotePositions } from "@/lib/library/cloud";
 import { withBase } from "@/lib/basePath";
 import { markHydrated, t, useLang } from "@/lib/i18n";
 import { isNative } from "@/lib/native";
@@ -52,6 +54,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     const onHide = (e: Event) => {
       if (e.type === "visibilitychange" && document.visibilityState === "visible") {
         restoreStashedActivity();
+        // Back on the screen: what did the other devices do meanwhile?
+        pullSoon();
         return;
       }
       if (e.type !== "pagehide" && document.visibilityState !== "hidden") return;
@@ -72,8 +76,31 @@ export function AppShell({ children }: { children: ReactNode }) {
       navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => undefined);
     }
     const stopBackButton = isNative() ? listenBackButton() : undefined;
+
+    // Pausing is a natural moment to hand the place to the account; a long uninterrupted listen does it now and then.
+    const stopPlayerSync = usePlayer.subscribe((s, prev) => {
+      if (prev.isPlaying && !s.isPlaying) syncSoon(0);
+      else if (s.isPlaying) pushWhilePlaying();
+    });
+    // A newer place from another device for the book in the player: a paused player goes there, a playing one
+    // keeps its own place (it is the one being listened to).
+    const stopClaim = claimRemotePositions((bookId, p) => {
+      const s = usePlayer.getState();
+      if (s.bookId !== bookId) return false;
+      if (s.isPlaying) return true;
+      if (Math.abs(p.audioTimestamp - s.position) > 5) {
+        setTimeout(() => {
+          void seek(p.audioTimestamp, { autoplay: false });
+          const ch = [...usePlayer.getState().chapters].reverse().find((c) => c.startTime <= p.audioTimestamp + 0.001);
+          toast(t("Место с другого устройства: {where}", { where: ch ? `${ch.title} · ${formatClock(p.audioTimestamp - ch.startTime)}` : formatClock(p.audioTimestamp) }), "success");
+        }, 0);
+      }
+      return false;
+    });
     return () => {
       stopBackButton?.();
+      stopPlayerSync();
+      stopClaim();
       mq.removeEventListener("change", onScheme);
       window.removeEventListener("pointerup", unlock);
       window.removeEventListener("keydown", unlock);

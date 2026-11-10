@@ -7,8 +7,10 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { adoptCloudState } from "../library/cloud";
 import { importLocalFiles } from "../library/importer";
 import { getDB } from "../storage/db";
+import type { LibrarrSource } from "../storage/types";
 import { formatLabel, parseOpds, resolveHref, type OpdsEntry, type OpdsFeed } from "./opds";
 import { t } from "../i18n";
 
@@ -110,9 +112,28 @@ export async function downloadEntry(entry: OpdsEntry): Promise<string | null> {
   const [id] = await importLocalFiles([file]);
   if (id) {
     set({ owned: { ...owned, [entry.id]: id } });
+    // In the account it is this Librarr book: another device downloads it from Librarr too.
+    const source: LibrarrSource = { kind: "librarr", entryId: entry.id, href: link.href, type: link.type };
+    await getDB().books.update(id, { syncKey: `librarr:${entry.id}`, source });
+    await adoptCloudState(id).catch(() => undefined);
     return id;
   }
   return null;
+}
+
+/** Download a Librarr book that another device of the account has, from this device's Librarr. */
+export async function downloadFromSource(src: LibrarrSource, title: string): Promise<string | null> {
+  const { url } = useLibrarr.getState();
+  if (!url) throw new LibrarrError(t("Подключите Librarr в настройках, чтобы скачать эту книгу."));
+  // The link names the server as the other device reaches it: ask this device's address for the same path.
+  let href = src.href;
+  try {
+    const u = new URL(src.href);
+    href = `${url}${u.pathname}${u.search}`;
+  } catch {
+    /* a relative link: as it is */
+  }
+  return downloadEntry({ id: src.entryId, title, formats: [], acquisitions: [{ href, type: src.type ?? "", rel: "http://opds-spec.org/acquisition" }] });
 }
 
 /** Entry ids whose downloaded book is still in the library. */

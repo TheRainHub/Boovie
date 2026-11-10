@@ -1,8 +1,9 @@
 import { deleteFiles, newId, putFile, revokeFileUrls } from "../storage/blobStore";
 import { getDB } from "../storage/db";
-import type { BookRecord, Bookmark, ChapterRecord, ProgressRecord } from "../storage/types";
+import type { BookRecord, Bookmark, ChapterRecord, LibrarrSource, ProgressRecord } from "../storage/types";
 import type { ParsedBook } from "../parsers/types";
 import { renameBookActivity } from "../stats/activity";
+import { adoptCloudState, contentKey } from "./cloud";
 
 export interface SaveOptions {
   isStoreBook?: boolean;
@@ -15,6 +16,9 @@ export interface SaveOptions {
   narrator?: string;
   language?: string;
   coverSource?: BookRecord["coverSource"];
+  /** The book's key in the account (see library/cloud.ts); by default from the store id or the file. */
+  syncKey?: string;
+  source?: LibrarrSource;
 }
 
 /** Persist a parsed book: blobs first (OPFS/IndexedDB), then records in one transaction. */
@@ -87,6 +91,9 @@ export async function saveParsedBook(parsed: ParsedBook, opts: SaveOptions = {})
       pageCount: parsed.pageCount,
       totalChars: chapters.reduce((s, c) => s + (c.charCount ?? 0), 0) || undefined,
       sourceFileIds: sourceIds,
+      source: opts.source,
+      syncKey: opts.syncKey
+        ?? (opts.storeId ? `store:${opts.storeId}` : parsed.sources[0] ? await contentKey(parsed.format, sizeOf(parsed), parsed.sources[0].blob).catch(() => undefined) : undefined),
     };
 
     await db.transaction("rw", db.books, db.chapters, db.progress, async () => {
@@ -94,11 +101,17 @@ export async function saveParsedBook(parsed: ParsedBook, opts: SaveOptions = {})
       await db.chapters.bulkAdd(chapters);
       await db.progress.put(emptyProgress(bookId));
     });
+    // The account may know this book already (another device has it): take its names and place.
+    await adoptCloudState(bookId).catch(() => undefined);
     return bookId;
   } catch (e) {
     await deleteFiles(fileIds).catch(() => undefined);
     throw e;
   }
+}
+
+function sizeOf(parsed: ParsedBook): number {
+  return parsed.sources.reduce((s, f) => s + f.blob.size, 0);
 }
 
 export function emptyProgress(bookId: string): ProgressRecord {
@@ -153,8 +166,16 @@ export async function updateBookInfo(bookId: string, info: BookInfo, chapterTitl
   const before = await db.books.get(bookId);
   if (!before) return;
   const after: BookRecord = { ...before, title: info.title, author: info.author, narrator: info.narrator || undefined };
+  const editedChapters = { ...before.editedChapters, ...Object.fromEntries(chapterTitles) };
   await db.transaction("rw", db.books, db.chapters, async () => {
-    await db.books.update(bookId, { title: after.title, author: after.author, narrator: after.narrator });
+    // The account gets the new names with the next upload (`infoUpdatedAt` is newer than what it has).
+    await db.books.update(bookId, {
+      title: after.title,
+      author: after.author,
+      narrator: after.narrator,
+      editedChapters: Object.keys(editedChapters).length ? editedChapters : undefined,
+      infoUpdatedAt: Date.now(),
+    });
     for (const [index, title] of chapterTitles) await db.chapters.update(`${bookId}:${index}`, { title });
   });
   if (before.title !== after.title || before.author !== after.author) await renameBookActivity(before, after);
@@ -180,8 +201,13 @@ export async function updateProgress(bookId: string, patch: Partial<Omit<Progres
   const db = getDB();
   await db.transaction("rw", db.progress, db.books, async () => {
     const cur = (await db.progress.get(bookId)) ?? emptyProgress(bookId);
-    const completed = patch.completedChapters ?? cur.completedChapters ?? [];
-    await db.progress.put({ ...cur, ...patch, completedChapters: completed, bookId, updatedAt: Date.now() });
+    // The same place saved again (the app hidden, a pause) is not news: its time stays, so it isn't uploaded again
+    // and doesn't look newer than a place from another device.
+    const changed = (Object.keys(patch) as (keyof typeof patch)[]).some((k) => JSON.stringify(patch[k]) !== JSON.stringify(cur[k]));
+    if (changed || !cur.updatedAt) {
+      const completed = patch.completedChapters ?? cur.completedChapters ?? [];
+      await db.progress.put({ ...cur, ...patch, completedChapters: completed, bookId, updatedAt: Date.now() });
+    }
     if (opts.touch !== false) await db.books.update(bookId, { lastOpenedAt: Date.now() });
   });
 }
@@ -257,7 +283,8 @@ export async function updateBookmark(bookId: string, id: string, patch: Partial<
 
 export async function removeBookmark(bookId: string, id: string): Promise<void> {
   const cur = await getProgress(bookId);
-  await updateProgress(bookId, { bookmarks: cur.bookmarks.filter((b) => b.id !== id) });
+  // Remembered as deleted, so the copy on another device doesn't bring it back.
+  await updateProgress(bookId, { bookmarks: cur.bookmarks.filter((b) => b.id !== id), removedBookmarks: [...new Set([...(cur.removedBookmarks ?? []), id])] });
 }
 
 export async function getChapter(bookId: string, index: number): Promise<ChapterRecord | undefined> {

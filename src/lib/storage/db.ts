@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { ActivityRecord, BookRecord, ChapterRecord, FileRecord, ProgressRecord } from "./types";
+import type { ActivityRecord, BookRecord, ChapterRecord, CloudRecord, FileRecord, ProgressRecord } from "./types";
 
 export type TitanDB = Dexie & {
   books: EntityTable<BookRecord, "id">;
@@ -7,6 +7,7 @@ export type TitanDB = Dexie & {
   progress: EntityTable<ProgressRecord, "bookId">;
   files: EntityTable<FileRecord, "id">;
   activity: EntityTable<ActivityRecord, "id">;
+  cloud: EntityTable<CloudRecord, "id">;
 };
 
 let instance: TitanDB | null = null;
@@ -22,6 +23,10 @@ export function getDB(): TitanDB {
   });
   db.version(2).stores({
     activity: "id, owner, [owner+deviceId], [owner+bookKey]",
+  });
+  db.version(3).stores({
+    books: "id, addedAt, format, storeId, lastOpenedAt, syncKey",
+    cloud: "id, owner",
   });
   instance = db;
   return db;

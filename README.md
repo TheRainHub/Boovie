@@ -68,7 +68,16 @@ landscape the player and the store details go two-column and the reader shows a 
   forward page turns. Rows are kept per day and book in IndexedDB (`activity`), so it all works without an account.
 - **Accounts** (Supabase Auth: email + password, name, password reset) — statistics are saved to the account and
   add up across devices: each device uploads its own daily rows and downloads the others'. Time recorded before
-  signing in on a device moves into the account. Books and their files stay on each device. See *Accounts* below.
+  signing in on a device moves into the account. See *Accounts* below.
+- **Library across devices** — with an account, the books, the place in each (page, chapter, minute), bookmarks,
+  finished chapters and the user's renames are in the account. Another device lists the account's books under
+  *В аккаунте*: store and Librarr books download from there and open at the same place; the user's own files are
+  matched by content (the same file added on two devices is one book) and, for now, stay on their device. A
+  paused player moves to a newer place from another device; an open reader asks first. Deleting asks: from this
+  device only, or everywhere. Everything is written on the device as it happens; the server is asked only when
+  the app leaves the screen, when playback pauses (and every 10 minutes of uninterrupted playback), and when the
+  app opens — uploads carry only what changed, downloads only what the server got since the last time
+  (`src/lib/library/cloud.ts`, `src/lib/account/librarySync.ts`).
 - **PWA** — static export, generated service worker (precached shell, cache-first chunks, offline navigation),
   `manifest.webmanifest`, Apple status-bar meta, safe-area insets everywhere.
 
@@ -117,7 +126,8 @@ immutable caching for hashed chunks. Every push to `main` redeploys; pull reques
 
 1. Create a project at https://supabase.com (free plan is enough), or in Vercel → the project → *Storage* →
    *Supabase* (it creates one and adds the env vars below for you).
-2. Supabase → *SQL Editor* → paste `supabase/schema.sql` → *Run* (the `activity` table with row-level security).
+2. Supabase → *SQL Editor* → paste `supabase/schema.sql` → *Run* (the `activity`, `library` and `progress` tables
+   with row-level security). Run it again after an update that changes it: it only adds what is missing.
 3. Supabase → *Authentication* → *URL Configuration*: *Site URL* = the site's address (e.g.
    `https://boovie-kappa.vercel.app`), and add `https://boovie-kappa.vercel.app/profile/` to *Redirect URLs*
    (confirmation and password-reset links land there). To let people in without confirming their email,
@@ -137,7 +147,7 @@ src/app/                 routes: / (Слушаю/Читаю), /library, /store, 
 src/components/profile   ProfileView, ActivityChart, AuthSheet, Avatar
 src/lib/stats            activity tracking (daily rows), reading-time hook, profile summary
 src/lib/account          device identity, Supabase session and statistics sync
-supabase/schema.sql      the accounts' statistics table and its row-level security
+supabase/schema.sql      the accounts' tables (statistics, library, places) and their row-level security
 src/components/ui        Button, IconButton, Slider, Segmented, ChipTabs, Sheet, BookCover, CoverBackdrop, Toaster
 src/components/shell     AppShell, TopNav, ImportTray
 src/components/home      HomeView

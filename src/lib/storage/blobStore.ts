@@ -146,6 +146,22 @@ export function getFileUrl(id: string): Promise<string | null> {
   return url;
 }
 
+/** The first `bytes` of a stored file, without reading all of it where the storage allows. */
+export async function fileHead(id: string, bytes: number): Promise<Blob | null> {
+  const record = await getDB().files.get(id);
+  if (!record) return null;
+  if (record.storage === "native" && record.path) {
+    try {
+      const res = await fetch(await nativeFileSrc(record.path), { headers: { Range: `bytes=0-${bytes - 1}` } });
+      return res.ok ? (await res.blob()).slice(0, bytes) : null;
+    } catch {
+      return null;
+    }
+  }
+  // OPFS files and IndexedDB blobs are read lazily: slicing doesn't load the rest.
+  return (await getFileBlob(id))?.slice(0, bytes) ?? null;
+}
+
 /**
  * file:// URI of a file for the native player. A file kept in the WebView's storage (put there before, or too small
  * to go to the app's files) is moved to the app's files first.

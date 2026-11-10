@@ -29,6 +29,27 @@ export interface BookRecord {
   /** Original uploaded/downloaded files (PDF document, audio tracks, EPUB/FB2 source). */
   sourceFileIds: string[];
   lastOpenedAt?: number;
+  /**
+   * The same book on every device of an account: `store:<id>`, `librarr:<entry id>`, `voice:<text book key>` or
+   * `file:<format>:<size>:<hash of the first bytes>` for the user's own files (see library/cloud.ts).
+   */
+  syncKey?: string;
+  /** Where a downloaded book came from, so another device can download it again. */
+  source?: LibrarrSource;
+  /** Chapter titles the user changed, by chapter index (they go to the account with the book). */
+  editedChapters?: Record<number, string>;
+  /** When the title, author, narrator or chapter titles were last changed by the user. */
+  infoUpdatedAt?: number;
+  /** The `infoUpdatedAt` the account has (0 when it has the book as added). Unset: not uploaded yet. */
+  syncedAt?: number;
+}
+
+export interface LibrarrSource {
+  kind: "librarr";
+  entryId: string;
+  /** Download link of the entry (on the user's Librarr server). */
+  href: string;
+  type?: string;
 }
 
 export interface ChapterRecord {
@@ -77,6 +98,49 @@ export interface ProgressRecord {
   updatedAt: number;
   bookmarks: Bookmark[];
   completedChapters: number[];
+  /** Bookmarks deleted on this device, so they aren't brought back from another device. */
+  removedBookmarks?: string[];
+  /** The `updatedAt` the account has; the progress is uploaded when it changes. */
+  syncedAt?: number;
+}
+
+/** A book of the signed-in account as the account has it (see library/cloud.ts and account/librarySync.ts). */
+export interface CloudEntry {
+  key: string;
+  kind: "store" | "librarr" | "file";
+  format: BookFormat;
+  title: string;
+  author: string;
+  narrator?: string;
+  storeId?: string;
+  coverUrl?: string;
+  duration?: number;
+  fileSize?: number;
+  source?: LibrarrSource;
+  editedChapters?: Record<number, string>;
+  deleted: boolean;
+  updatedAt: number;
+}
+
+export interface CloudProgress {
+  currentChapterIndex: number;
+  scrollOffsetOrPage: number;
+  audioTimestamp: number;
+  percentage: number;
+  completedChapters: number[];
+  bookmarks: Bookmark[];
+  removedBookmarks: string[];
+  updatedAt: number;
+}
+
+/** The account's copy of one book, kept on the device (so the library shows it offline). */
+export interface CloudRecord {
+  /** `${owner}|${key}` */
+  id: string;
+  owner: string;
+  key: string;
+  entry?: CloudEntry;
+  progress?: CloudProgress;
 }
 
 export type ActivityKind = "listen" | "read";

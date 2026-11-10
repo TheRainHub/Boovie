@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, BookOpen, ChevronLeft, Download, Headphones } from "lucide-react";
+import { AudioLines, BookOpen, ChevronLeft, Download, Headphones, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VoiceoverSheet } from "@/components/integrations/VoiceoverSheet";
@@ -17,6 +17,7 @@ import { useToned } from "@/lib/covers/tone";
 import { formatClock } from "@/lib/format";
 import { useBook, useChapterList, useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { downloadStoreItem, useImports } from "@/lib/library/importer";
+import { claimRemotePositions, useRemoteJump } from "@/lib/library/cloud";
 import { getProgress, journaledPosition, updateProgress } from "@/lib/library/repository";
 import { PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
 import { mapChapterIndex } from "@/lib/reader/sync";
@@ -51,6 +52,8 @@ export function BookScreen() {
   const audioChapters = useChapterList(audioBook?.id);
   const textProgress = useProgress(textBook?.id);
   const [readerKey, setReaderKey] = useState(0);
+  // A place to open the next reader at, before the database query has caught up with it.
+  const [forcedAt, setForcedAt] = useState<{ key: number; currentChapterIndex: number; scrollOffsetOrPage: number } | null>(null);
 
   // Reader chrome follows the paper tint (dark paper → dark chrome); restore the app theme on exit.
   const paperDark = PAPERS[useReaderPrefs((s) => s.paper)].dark;
@@ -96,6 +99,30 @@ export function BookScreen() {
     [audioBook, audioChapters, book, mode, router, textBook, textChapters],
   );
 
+  // While the text is open, a newer place from another device is offered instead of moving the page underneath.
+  const readingId = mode === "read" ? textBook?.id : undefined;
+  useEffect(() => {
+    if (!readingId) return;
+    const stop = claimRemotePositions((bookId, progress) => {
+      if (bookId !== readingId) return false;
+      useRemoteJump.setState({ bookId, progress });
+      return true;
+    });
+    return () => {
+      stop();
+      useRemoteJump.setState({ bookId: null, progress: null });
+    };
+  }, [readingId]);
+  const jump = useRemoteJump();
+  const goToRemote = useCallback(async () => {
+    const p = jump.progress;
+    if (!textBook || !p || jump.bookId !== textBook.id) return;
+    useRemoteJump.setState({ bookId: null, progress: null });
+    await updateProgress(textBook.id, { currentChapterIndex: p.currentChapterIndex, scrollOffsetOrPage: p.scrollOffsetOrPage, percentage: p.percentage });
+    setForcedAt({ key: readerKey + 1, currentChapterIndex: p.currentChapterIndex, scrollOffsetOrPage: p.scrollOffsetOrPage });
+    setReaderKey((k) => k + 1);
+  }, [jump, readerKey, textBook]);
+
   // Make sure the player holds this audiobook when landing directly in listen mode.
   const loadedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -140,19 +167,36 @@ export function BookScreen() {
     if (!textChapters || textProgress === undefined) return <Center><Spinner /></Center>;
     // A spot saved while the app was being hidden may not have reached the database.
     const journal = journaledPosition(textBook.id, textProgress);
-    const at = journal ?? textProgress;
+    const at = (forcedAt?.key === readerKey ? forcedAt : null) ?? journal ?? textProgress;
+    const offer = jump.bookId === textBook.id && jump.progress ? (
+      <RemoteJump
+        where={textBook.format === "pdf"
+          ? t("страница {n}", { n: Math.round(jump.progress.scrollOffsetOrPage) })
+          : [textChapters[jump.progress.currentChapterIndex]?.title, `${Math.round(jump.progress.percentage)}%`].filter(Boolean).join(" · ")}
+        onGo={() => void goToRemote()}
+        onClose={() => useRemoteJump.setState({ bookId: null, progress: null })}
+      />
+    ) : null;
     if (textBook.format === "pdf") {
-      return <PdfReader key={`${textBook.id}-${readerKey}`} book={textBook} chapters={textChapters} initialPage={Math.round(at?.scrollOffsetOrPage ?? 1) || 1} toggle={toggle} />;
+      return (
+        <>
+          <PdfReader key={`${textBook.id}-${readerKey}`} book={textBook} chapters={textChapters} initialPage={Math.round(at?.scrollOffsetOrPage ?? 1) || 1} toggle={toggle} />
+          {offer}
+        </>
+      );
     }
     return (
-      <TextReader
-        key={`${textBook.id}-${readerKey}`}
-        book={textBook}
-        chapters={textChapters}
-        initialChapter={at?.currentChapterIndex ?? 0}
-        initialFraction={at?.scrollOffsetOrPage ?? 0}
-        toggle={toggle}
-      />
+      <>
+        <TextReader
+          key={`${textBook.id}-${readerKey}`}
+          book={textBook}
+          chapters={textChapters}
+          initialChapter={at?.currentChapterIndex ?? 0}
+          initialFraction={at?.scrollOffsetOrPage ?? 0}
+          toggle={toggle}
+        />
+        {offer}
+      </>
     );
   }
 
@@ -267,3 +311,21 @@ function Center({ children }: { children: React.ReactNode }) {
 }
 
 export type { ChapterMeta };
+
+/** «You were further on another device»: go there, or stay. */
+function RemoteJump({ where, onGo, onClose }: { where: string; onGo: () => void; onClose: () => void }) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--sab)+84px)] z-[70] flex justify-center px-4" role="status">
+      <div className="pointer-events-auto flex max-w-[520px] items-center gap-3 rounded-full bg-ink py-2 pl-5 pr-2 text-bg shadow-[0_12px_32px_-12px_rgb(0_0_0/0.5)]">
+        <div className="min-w-0 text-[14px] leading-tight">
+          <div className="font-semibold">{t("Место с другого устройства")}</div>
+          <div className="truncate opacity-75">{where}</div>
+        </div>
+        <button type="button" onClick={onGo} className="h-9 shrink-0 rounded-full bg-bg px-4 text-[14px] font-semibold text-ink active:opacity-80">{t("Перейти")}</button>
+        <button type="button" onClick={onClose} aria-label={t("Остаться здесь")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full active:bg-bg/10">
+          <X size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}

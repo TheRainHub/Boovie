@@ -7,11 +7,18 @@
  *
  * Statistics: each device uploads its own daily rows (absolute totals, so an upload can be repeated safely) and
  * downloads the other devices' rows; the profile adds them up. Time spent without an account on this device
- * moves into the account at sign-in.
+ * moves into the account at sign-in. The library and the reading places: see librarySync.ts.
+ *
+ * When the server is asked. Everything is written on the device as it happens; the server only at moments:
+ *  - upload — when the app leaves the screen (switching apps, locking the phone, closing it), when playback is
+ *    paused, and every 10 minutes of uninterrupted playback (a book playing in the pocket);
+ *  - download — at start and sign-in, and when the app comes back to the screen (at most once a minute).
+ * A phone doesn't say when an app is closed for good (the system ends it quietly in the background), so "leaving
+ * the screen" is the last moment that is sure to come. What doesn't get through stays marked and goes next time.
  */
 import type { AuthError, Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { withBase } from "../basePath";
-import { flushActivity, forgetMovedBookKeys, movedBookKeys, onActivityWritten, rowId } from "../stats/activity";
+import { flushActivity, forgetMovedBookKeys, movedBookKeys, rowId } from "../stats/activity";
 import { getDB } from "../storage/db";
 import type { ActivityRecord } from "../storage/types";
 import { deviceId, GUEST, useIdentity, type AccountUser } from "./identity";
@@ -24,6 +31,10 @@ export const accountsEnabled = !!(SUPABASE_URL && SUPABASE_KEY);
 const STORAGE_KEY = "boowie-auth";
 const TABLE = "activity";
 const CONFLICT = "user_id,device_id,day,book_key,kind";
+const STATS_PULLED_KEY = "boowie-stats-pulled";
+const PULL_EVERY_MS = 60_000;
+const PUSH_WHILE_PLAYING_MS = 10 * 60_000;
+const FULL_STATS_EVERY_MS = 24 * 60 * 60_000;
 
 let clientPromise: Promise<SupabaseClient> | null = null;
 
@@ -62,7 +73,6 @@ export async function startAccount(): Promise<void> {
     useIdentity.setState({ status: "off" });
     return;
   }
-  onActivityWritten(() => syncSoon());
   let saved = false;
   try {
     saved = !!localStorage.getItem(STORAGE_KEY);
@@ -227,10 +237,14 @@ async function afterSignIn(userId: string): Promise<void> {
 
 let syncing: Promise<void> | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
+let lastPull = 0;
+let lastPush = 0;
 
-/** Upload soon (batched): after new statistics were written, or right away when the app is hidden. */
+const signedIn = () => accountsEnabled && useIdentity.getState().status === "signedIn";
+
+/** Upload after `delay` ms (0: now — the app is leaving the screen). */
 export function syncSoon(delay = 30_000): void {
-  if (useIdentity.getState().status !== "signedIn") return;
+  if (!signedIn()) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
     timer = null;
@@ -238,7 +252,80 @@ export function syncSoon(delay = 30_000): void {
   }, delay);
 }
 
-/** Upload this device's changed rows; with `pull`, also download the other devices' rows. */
+/** The app is on the screen again (or the profile opened): download what other devices did, at most once a minute. */
+export function pullSoon(): void {
+  if (!signedIn() || Date.now() - lastPull < PULL_EVERY_MS) return;
+  lastPull = Date.now();
+  void syncNow({ pull: true }).catch(() => undefined);
+}
+
+/** Playback goes on and on (a book in the pocket): upload its place now and then, so another device can go on. */
+export function pushWhilePlaying(): void {
+  if (!signedIn() || Date.now() - lastPush < PUSH_WHILE_PLAYING_MS) return;
+  syncSoon(0);
+}
+
+interface StatsPulled {
+  /** Server time of the newest row seen. */
+  at: number;
+  /** When all the rows were last read (rows of renamed books are deleted on the server). */
+  full: number;
+}
+
+function readStatsPulled(user: string): StatsPulled | null {
+  try {
+    return (JSON.parse(localStorage.getItem(STATS_PULLED_KEY) ?? "{}") as Record<string, StatsPulled>)[user] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStatsPulled(user: string, v: StatsPulled): void {
+  try {
+    localStorage.setItem(STATS_PULLED_KEY, JSON.stringify({ ...(JSON.parse(localStorage.getItem(STATS_PULLED_KEY) ?? "{}") as object), [user]: v }));
+  } catch {
+    /* the next download reads everything */
+  }
+}
+
+/** The other devices' statistics: only rows the server got since the last time, all of them once a day. */
+async function pullStats(c: SupabaseClient, userId: string, device: string): Promise<void> {
+  const db = getDB();
+  const prev = readStatsPulled(userId);
+  let full = !prev || Date.now() - prev.full > FULL_STATS_EVERY_MS;
+  const read = async (since: number) => {
+    const rows: (RemoteRow & { synced_at?: string })[] = [];
+    for (let from = 0; ; from += 1000) {
+      let q = c.from(TABLE).select("*").eq("user_id", userId).neq("device_id", device);
+      if (since) q = q.gt("synced_at", new Date(since - 5 * 60_000).toISOString());
+      const { data, error } = await q.range(from, from + 999);
+      if (error) throw error;
+      rows.push(...((data ?? []) as RemoteRow[]));
+      if (!data || data.length < 1000) break;
+    }
+    return rows;
+  };
+  let rows: (RemoteRow & { synced_at?: string })[];
+  try {
+    rows = await read(full ? 0 : prev!.at);
+  } catch (e) {
+    // A table without `synced_at` (schema.sql not run again): read everything, as before.
+    if (full || !/synced_at|42703/.test(String((e as { message?: string; code?: string }).code ?? "") + String((e as Error).message ?? ""))) throw new Error((e as Error).message);
+    full = true;
+    rows = await read(0);
+  }
+  await db.transaction("rw", db.activity, async () => {
+    if (full) {
+      const others = await db.activity.where("owner").equals(userId).filter((r) => r.deviceId !== device).primaryKeys();
+      await db.activity.bulkDelete(others);
+    }
+    await db.activity.bulkPut(rows.map(fromRemote));
+  });
+  const newest = Math.max(prev?.at ?? 0, ...rows.map((r) => (r.synced_at ? Date.parse(r.synced_at) || 0 : 0)));
+  saveStatsPulled(userId, { at: newest, full: full ? Date.now() : prev!.full });
+}
+
+/** Upload this device's changes; with `pull`, first download what changed on the other devices. */
 export function syncNow(opts: { pull?: boolean } = {}): Promise<void> {
   if (syncing) return syncing.then(() => syncNow(opts));
   const user = useIdentity.getState().user;
@@ -268,24 +355,24 @@ export function syncNow(opts: { pull?: boolean } = {}): Promise<void> {
           });
         });
       }
-      if (opts.pull) {
-        const rows: RemoteRow[] = [];
-        for (let from = 0; ; from += 1000) {
-          const { data, error } = await c.from(TABLE).select("*").eq("user_id", user.id).neq("device_id", device).range(from, from + 999);
-          if (error) throw new Error(error.message);
-          rows.push(...((data ?? []) as RemoteRow[]));
-          if (!data || data.length < 1000) break;
-        }
-        await db.transaction("rw", db.activity, async () => {
-          const others = await db.activity.where("owner").equals(user.id).filter((r) => r.deviceId !== device).primaryKeys();
-          await db.activity.bulkDelete(others);
-          await db.activity.bulkPut(rows.map(fromRemote));
+      if (opts.pull) await pullStats(c, user.id, device);
+
+      let libraryOff = false;
+      try {
+        const { syncLibrary, LibraryNotSetUp } = await import("./librarySync");
+        await syncLibrary(c, user.id, { pull: !!opts.pull }).catch((e) => {
+          if (e instanceof LibraryNotSetUp) libraryOff = true;
+          else throw e;
         });
+      } finally {
+        useIdentity.setState((s) => ({ sync: { ...s.sync, libraryOff } }));
       }
-      useIdentity.setState({ sync: { state: "idle", at: Date.now() } });
+      lastPush = Date.now();
+      if (opts.pull) lastPull = Date.now();
+      useIdentity.setState((s) => ({ sync: { ...s.sync, state: "idle", at: Date.now(), error: undefined } }));
     } catch (e) {
       const text = e instanceof Error ? e.message : String(e);
-      useIdentity.setState({ sync: { state: "error", at: useIdentity.getState().sync.at, error: /fetch|network/i.test(text) ? t("нет связи с сервером") : text } });
+      useIdentity.setState((s) => ({ sync: { ...s.sync, state: "error", error: /fetch|network/i.test(text) ? t("нет связи с сервером") : text } }));
       throw e;
     } finally {
       syncing = null;

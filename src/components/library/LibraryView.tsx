@@ -19,9 +19,12 @@ import { t } from "@/lib/i18n";
 import { useCurrentBook, type CurrentBook } from "@/lib/library/current";
 import { useAllProgress, useBook, useBooks, useChapterList } from "@/lib/library/hooks";
 import { isPartialVoiceover, unfinishedVoiceover } from "@/lib/integrations/voiceover";
+import { useIdentity } from "@/lib/account/identity";
+import { removeFromAccount } from "@/lib/library/cloud";
 import { deleteBook } from "@/lib/library/repository";
 import type { BookRecord, ProgressRecord } from "@/lib/storage/types";
 import { BookEditor } from "./BookEditor";
+import { CloudShelf } from "./CloudShelf";
 import { CoverPicker } from "./CoverPicker";
 import { DropTarget, ImportSheet, useImportPicker } from "./ImportPicker";
 
@@ -59,7 +62,10 @@ export function LibraryView() {
         <TopNav />
 
         {empty ? (
-          <EmptyState onFiles={openFiles} onFolder={openFolder} />
+          <>
+            <EmptyState onFiles={openFiles} onFolder={openFolder} />
+            <CloudShelf />
+          </>
         ) : (
           <>
             <div className="mt-4 flex items-center gap-2 pl-5 pr-3 sm:mt-5 sm:pl-8 sm:pr-6">
@@ -89,6 +95,7 @@ export function LibraryView() {
               ))}
             </div>
             {filtered.length === 0 && !loading && <p className="px-5 py-10 text-center text-[16px] text-ink-2">{t("Здесь пока пусто.")}</p>}
+            {filter === "all" && <CloudShelf />}
           </>
         )}
 
@@ -190,6 +197,16 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
 }) {
   const [confirm, setConfirm] = useState(false);
   const companion = useBook(book?.companionId);
+  // With an account the book can leave this device only (it stays in the account) or the account too.
+  const inAccount = useIdentity((s) => s.status === "signedIn") && !!book?.syncKey;
+  const remove = async (everywhere: boolean) => {
+    if (!book) return;
+    unloadIfCurrent(book.id);
+    if (everywhere && book.syncKey) await removeFromAccount({ key: book.syncKey, format: book.format, title: book.title, author: book.author });
+    await deleteBook(book.id);
+    toast(!inAccount ? t("Книга удалена") : everywhere ? t("Книга удалена отовсюду") : t("Книга удалена с устройства и осталась в аккаунте"));
+    close();
+  };
   const close = () => {
     setConfirm(false);
     onClose();
@@ -245,21 +262,19 @@ function BookMenu({ book, onClose, onCover, onVoice, onEdit }: {
               <Button variant="ghost" size="lg" className="w-full text-ink-2" icon={<Trash2 size={18} strokeWidth={1.9} />} onClick={() => setConfirm(true)}>
                 {t("Удалить с устройства")}
               </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full text-[#B3261E] dark:text-[#F2B8B5]"
-                icon={<Trash2 size={18} />}
-                onClick={async () => {
-                  unloadIfCurrent(book.id);
-                  await deleteBook(book.id);
-                  toast(t("Книга удалена"));
-                  close();
-                }}
-              >
+            ) : !inAccount ? (
+              <Button variant="secondary" size="lg" className="w-full text-[#B3261E] dark:text-[#F2B8B5]" icon={<Trash2 size={18} />} onClick={() => void remove(false)}>
                 {t("Точно удалить")}
               </Button>
+            ) : (
+              <>
+                <Button variant="secondary" size="lg" className="w-full" icon={<Trash2 size={18} />} onClick={() => void remove(false)}>
+                  {t("Только с этого устройства")}
+                </Button>
+                <Button variant="secondary" size="lg" className="w-full text-[#B3261E] dark:text-[#F2B8B5]" icon={<Trash2 size={18} />} onClick={() => void remove(true)}>
+                  {t("Отовсюду, и из аккаунта")}
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -11,6 +11,7 @@
  */
 import { openAudioBook, unloadIfCurrent, usePlayer } from "../audio/player";
 import { onCancel, probeDuration, useImports } from "../library/importer";
+import { keyForBook, removeFromAccount } from "../library/cloud";
 import { deleteBook, getChapter, getChapters, linkCompanions, saveParsedBook } from "../library/repository";
 import { mp3Frames } from "../parsers/audioMetadata";
 import { parseAudio } from "../parsers/audioParser";
@@ -234,6 +235,8 @@ async function assemble(bookId: string, plan: VoiceoverPlan, job: SavedJob, fina
     narrator: final ? voice : `${voice} · ${t("озвучено {n} из {total} глав", { n: whole, total: plan.chapters.length })}`,
     coverUrl: book.coverFileId ? undefined : book.coverUrl,
     coverSource: book.coverSource,
+    // Every build of the voiced edition is one book in the account, whatever was voiced so far.
+    syncKey: `voice:${(await keyForBook(book)) ?? book.id}`,
   });
   const previous = job.audioId ? await db.books.get(job.audioId) : undefined;
   if (previous) {
@@ -265,6 +268,8 @@ async function dropJob(bookId: string, job: SavedJob): Promise<void> {
   await deleteFiles([...Object.values(job.files), ...(job.partial?.files ?? [])]);
   if (job.audioId) {
     unloadIfCurrent(job.audioId);
+    const audio = await getDB().books.get(job.audioId);
+    if (audio?.syncKey) await removeFromAccount({ key: audio.syncKey, format: audio.format, title: audio.title, author: audio.author });
     await deleteBook(job.audioId);
   }
   live.delete(bookId);

@@ -9,7 +9,7 @@ import { BookCover } from "@/components/ui/BookCover";
 import { Button, IconButton, Segmented, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { GUEST, useIdentity } from "@/lib/account/identity";
-import { signOut, syncNow, updateName } from "@/lib/account/session";
+import { pullSoon, signOut, updateName } from "@/lib/account/session";
 import { formatDuration } from "@/lib/format";
 import { locale, pl, t } from "@/lib/i18n";
 import { useBooks } from "@/lib/library/hooks";
@@ -74,8 +74,11 @@ function AccountCard({ onAuth }: { onAuth: (m: AuthMode) => void }) {
             )}
             <div className="truncate text-[14px] text-ink-2">{u.email}</div>
             <div className="mt-0.5 truncate text-[12.5px] text-ink-3">
-              {id.sync.state === "syncing" ? t("Синхронизация…") : id.sync.state === "error" ? t("Не синхронизировано: {error}", { error: id.sync.error ?? "" }) : id.sync.at ? t("Синхронизировано {when}", { when: ago(id.sync.at) }) : t("Статистика сохраняется в аккаунте")}
+              {id.sync.state === "syncing" ? t("Синхронизация…") : id.sync.state === "error" ? t("Не синхронизировано: {error}", { error: id.sync.error ?? "" }) : id.sync.at ? t("Синхронизировано {when}", { when: ago(id.sync.at) }) : t("Книги, места в них и статистика сохраняются в аккаунте")}
             </div>
+            {id.sync.libraryOff && (
+              <div className="mt-0.5 text-[12.5px] text-ink-3">{t("Книги пока не синхронизируются: на сервере аккаунтов нет таблиц библиотеки (supabase/schema.sql).")}</div>
+            )}
           </div>
         </div>
         {!editing && (
@@ -119,9 +122,9 @@ export function ProfileView() {
   const summary = useMemo(() => (rows ? summarize(rows, period) : null), [rows, period]);
   const covers = useMemo(() => new Map((books ?? []).map((b) => [bookKey(b), b])), [books]);
 
-  // Fresh numbers from the other devices whenever the profile is opened.
+  // Fresh numbers from the other devices when the profile is opened (at most once a minute).
   useEffect(() => {
-    if (status === "signedIn") void syncNow({ pull: true }).catch(() => undefined);
+    if (status === "signedIn") pullSoon();
   }, [status]);
   // Opened from a password-reset letter: ask for the new password first.
   const sheet = auth ?? (recovery ? "newPassword" : null);

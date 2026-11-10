@@ -38,7 +38,8 @@ interface IdentityState {
   user: AccountUser | null;
   /** Opened from a password-reset email: ask for a new password. */
   recovery: boolean;
-  sync: { state: "idle" | "syncing" | "error"; at?: number; error?: string };
+  /** `libraryOff`: the server has no tables for the library yet (supabase/schema.sql wasn't run again). */
+  sync: { state: "idle" | "syncing" | "error"; at?: number; error?: string; libraryOff?: boolean };
 }
 
 export const useIdentity = create<IdentityState>(() => ({ status: "loading", user: null, recovery: false, sync: { state: "idle" } }));
