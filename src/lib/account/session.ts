@@ -3,7 +3,7 @@
 /**
  * Accounts (Supabase Auth) and syncing statistics to them. The Supabase client is loaded only when it's needed —
  * a saved session, an auth link in the address, or the sign-in form — so the app stays as light without it.
- * Without the two public env vars below the build simply has no accounts and everything stays on the device.
+ * A build with NEXT_PUBLIC_SUPABASE_URL="" has no accounts, and everything stays on the device.
  *
  * Statistics: each device uploads its own daily rows (absolute totals, so an upload can be repeated safely) and
  * downloads the other devices' rows; the profile adds them up. Time spent without an account on this device
@@ -25,8 +25,14 @@ import { deviceId, GUEST, useIdentity, type AccountUser } from "./identity";
 import { t } from "../i18n";
 import { isNative } from "../native";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+// The accounts' Supabase project. Both values are public: the publishable key is meant to ship inside the app, and
+// the accounts' data is protected by row-level security (supabase/schema.sql). A build can use another project
+// through the env vars, or none: NEXT_PUBLIC_SUPABASE_URL="" turns accounts off.
+const PROJECT_URL = "https://qqfohfgodrwgzfeudcwr.supabase.co";
+const PROJECT_KEY = "sb_publishable_DWAJT0sPvEfVGOWVreAK3g_W_TuqRrH";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? PROJECT_URL;
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || (SUPABASE_URL === PROJECT_URL ? PROJECT_KEY : "");
 export const accountsEnabled = !!(SUPABASE_URL && SUPABASE_KEY);
 const STORAGE_KEY = "boowie-auth";
 const TABLE = "activity";
