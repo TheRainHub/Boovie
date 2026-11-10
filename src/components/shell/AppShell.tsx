@@ -8,7 +8,9 @@ import { toast, Toaster } from "@/components/ui/Toaster";
 import { pullSoon, pushWhilePlaying, startAccount, syncSoon } from "@/lib/account/session";
 import { persistNow, restoreLastSession, seek, unlockAudio, usePlayer } from "@/lib/audio/player";
 import { formatClock } from "@/lib/format";
-import { claimRemotePositions } from "@/lib/library/cloud";
+import { claimRemotePositions, onBookAdded } from "@/lib/library/cloud";
+import { kickUploads } from "@/lib/account/cloudFiles";
+import { useIdentity } from "@/lib/account/identity";
 import { withBase } from "@/lib/basePath";
 import { markHydrated, t, useLang } from "@/lib/i18n";
 import { isNative } from "@/lib/native";
@@ -54,8 +56,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     const onHide = (e: Event) => {
       if (e.type === "visibilitychange" && document.visibilityState === "visible") {
         restoreStashedActivity();
-        // Back on the screen: what did the other devices do meanwhile?
+        // Back on the screen: what did the other devices do meanwhile? Own files not in the cloud yet go on uploading.
         pullSoon();
+        kickUploads();
         return;
       }
       if (e.type !== "pagehide" && document.visibilityState !== "hidden") return;
@@ -97,10 +100,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       return false;
     });
+    // Own files go to the account's cloud in the background: once signed in, and after a book was added.
+    const stopAdded = onBookAdded(() => kickUploads());
+    const stopSignedIn = useIdentity.subscribe((s, prev) => {
+      if (s.status === "signedIn" && prev.status !== "signedIn") kickUploads(8000);
+    });
     return () => {
       stopBackButton?.();
       stopPlayerSync();
       stopClaim();
+      stopAdded();
+      stopSignedIn();
       mq.removeEventListener("change", onScheme);
       window.removeEventListener("pointerup", unlock);
       window.removeEventListener("keydown", unlock);

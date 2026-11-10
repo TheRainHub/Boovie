@@ -66,6 +66,8 @@ create table if not exists public.library (
   synced_at timestamptz not null default now(),
   primary key (user_id, book_key)
 );
+-- The user's own files are in the cloud (Cloudflare R2, workers/files): another device can download them.
+alter table public.library add column if not exists in_cloud boolean not null default false;
 create index if not exists library_user_synced on public.library (user_id, synced_at);
 drop trigger if exists library_synced_at on public.library;
 create trigger library_synced_at before insert or update on public.library

@@ -72,12 +72,18 @@ landscape the player and the store details go two-column and the reader shows a 
 - **Library across devices** — with an account, the books, the place in each (page, chapter, minute), bookmarks,
   finished chapters and the user's renames are in the account. Another device lists the account's books under
   *В аккаунте*: store and Librarr books download from there and open at the same place; the user's own files are
-  matched by content (the same file added on two devices is one book) and, for now, stay on their device. A
+  matched by content (the same file added on two devices is one book) and go to the account's cloud (below). A
   paused player moves to a newer place from another device; an open reader asks first. Deleting asks: from this
   device only, or everywhere. Everything is written on the device as it happens; the server is asked only when
   the app leaves the screen, when playback pauses (and every 10 minutes of uninterrupted playback), and when the
   app opens — uploads carry only what changed, downloads only what the server got since the last time
   (`src/lib/library/cloud.ts`, `src/lib/account/librarySync.ts`).
+- **Own files in the cloud** — books the user added (and voiced editions) are uploaded in the background to
+  Cloudflare R2 through a small Worker (`workers/files`), one at a time while the app is open, in 50 MB parts that
+  survive a restart, not over mobile data where the system tells; a book already there (uploaded from another
+  device) isn't sent again. Another device downloads it from *В аккаунте*. The Worker checks the Supabase session
+  and keeps each account in its own folder, with a 20 GB limit; deleting a book everywhere deletes its files.
+  It can be turned off in Settings → *Облако* (`src/lib/account/cloudFiles.ts`).
 - **PWA** — static export, generated service worker (precached shell, cache-first chunks, offline navigation),
   `manifest.webmanifest`, Apple status-bar meta, safe-area insets everywhere.
 
@@ -136,6 +142,12 @@ immutable caching for hashed chunks. Every push to `main` redeploys; pull reques
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the anon / publishable key — it is public by design; access is limited by the
    row-level security above). Redeploy.
 
+**Own files in the cloud** (optional — without it own files stay on their device): a Cloudflare account with an
+R2 bucket `boowie`, then `cd workers/files && npx wrangler deploy` (set `SUPABASE_URL` in `wrangler.toml` to the
+project's URL). The app expects the Worker at `NEXT_PUBLIC_FILES_URL` (default
+`https://boowie-files.theraintv94.workers.dev`); the Worker's `ALLOWED_ORIGINS` lists the site's and the apps'
+origins.
+
 **GitHub Pages** (optional): `.github/workflows/deploy-pages.yml`, run manually, builds with
 `NEXT_PUBLIC_BASE_PATH=/Boovie` for https://therainhub.github.io/Boovie/. Any other static host:
 `npm run build` and upload `out/` (set `NEXT_PUBLIC_BASE_PATH` when serving from a sub-path).
@@ -159,6 +171,7 @@ src/components/book      BookScreen (dual mode)
 src/lib/parsers          fb2Parser, epubParser, pdfParser, audioParser, audioMetadata, sanitize
 src/lib/storage          Dexie schema, OPFS/IndexedDB blob store, app files (nativeFiles)
 native/boowie-player     the apps' native book player (Capacitor plugin: Android Java, iOS Swift)
+workers/files            Cloudflare Worker: the accounts' own files in R2
 android/, ios/           Capacitor shells
 src/lib/library          repository (books, progress, bookmarks), importer, folder grouping, live-query hooks
 src/lib/covers           cover tone (colour), online lookup, generated covers

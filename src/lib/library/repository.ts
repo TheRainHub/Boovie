@@ -3,7 +3,7 @@ import { getDB } from "../storage/db";
 import type { BookRecord, Bookmark, ChapterRecord, LibrarrSource, ProgressRecord } from "../storage/types";
 import type { ParsedBook } from "../parsers/types";
 import { renameBookActivity } from "../stats/activity";
-import { adoptCloudState, contentKey } from "./cloud";
+import { adoptCloudState, contentKey, notifyBookAdded } from "./cloud";
 
 export interface SaveOptions {
   isStoreBook?: boolean;
@@ -103,6 +103,7 @@ export async function saveParsedBook(parsed: ParsedBook, opts: SaveOptions = {})
     });
     // The account may know this book already (another device has it): take its names and place.
     await adoptCloudState(bookId).catch(() => undefined);
+    notifyBookAdded();
     return bookId;
   } catch (e) {
     await deleteFiles(fileIds).catch(() => undefined);

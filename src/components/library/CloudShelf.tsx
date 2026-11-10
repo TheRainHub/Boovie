@@ -9,6 +9,7 @@ import { useIdentity } from "@/lib/account/identity";
 import { formatBytes, formatDuration, formatLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { downloadFromSource, LibrarrError } from "@/lib/integrations/librarr";
+import { downloadFromCloud } from "@/lib/account/cloudFiles";
 import { removeFromAccount, useCloudShelf } from "@/lib/library/cloud";
 import { downloadStoreItem, useImports } from "@/lib/library/importer";
 import type { CloudEntry } from "@/lib/storage/types";
@@ -34,7 +35,7 @@ export function CloudShelf({ className }: { className?: string }) {
 
 function CloudRow({ entry }: { entry: CloudEntry }) {
   const item = entry.storeId ? storeItem(entry.storeId) : undefined;
-  const job = useImports((s) => s.jobs.find((j) => j.status === "running" && (item ? j.storeId === item.id : j.label === entry.title)));
+  const job = useImports((s) => s.jobs.find((j) => j.status === "running" && (item ? j.storeId === item.id : j.id === `cloud-${entry.key}` || j.label === entry.title)));
   const [busy, setBusy] = useState(false);
   const audio = entry.format === "audio";
   const meta = [formatLabel(entry.format), entry.duration ? formatDuration(entry.duration) : entry.fileSize ? formatBytes(entry.fileSize) : null].filter(Boolean).join(" · ");
@@ -44,6 +45,7 @@ function CloudRow({ entry }: { entry: CloudEntry }) {
     try {
       if (item) await downloadStoreItem(item);
       else if (entry.source) await downloadFromSource(entry.source, entry.title);
+      else await downloadFromCloud(entry);
       toast(t("«{title}» в ваших книгах", { title: entry.title }), "success");
     } catch (e) {
       toast(e instanceof LibrarrError ? e.message : t("Не удалось скачать книгу. Проверьте подключение."), "error");
@@ -52,7 +54,7 @@ function CloudRow({ entry }: { entry: CloudEntry }) {
     }
   };
 
-  const canDownload = !!item || entry.kind === "librarr";
+  const canDownload = !!item || entry.kind === "librarr" || (entry.kind === "file" && !!entry.inCloud);
   return (
     <li className="flex items-center gap-3.5 py-3" data-cloud-key={entry.key}>
       <div className={audio ? "w-14 shrink-0" : "w-11 shrink-0"}>
@@ -61,7 +63,7 @@ function CloudRow({ entry }: { entry: CloudEntry }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-[16px] font-semibold leading-tight">{entry.title}</div>
         <div className="truncate text-[13.5px] text-ink-2">{[entry.author, meta].filter(Boolean).join(" · ")}</div>
-        {!canDownload && <div className="mt-0.5 text-[12.5px] text-ink-3">{t("Свой файл: пока есть только на другом устройстве")}</div>}
+        {!canDownload && <div className="mt-0.5 text-[12.5px] text-ink-3">{t("Свой файл: появится здесь, когда другое устройство загрузит его в облако")}</div>}
       </div>
       {canDownload && (
         <button

@@ -40,6 +40,7 @@ interface LibraryRow {
   file_size: number | null;
   source: LibrarrSource | null;
   edited_chapters: Record<string, string> | null;
+  in_cloud?: boolean;
   deleted: boolean;
   updated_at: string;
   synced_at?: string;
@@ -75,6 +76,7 @@ const entryFromRow = (r: LibraryRow): CloudEntry => ({
   fileSize: r.file_size ?? undefined,
   source: r.source ?? undefined,
   editedChapters: r.edited_chapters ? Object.fromEntries(Object.entries(r.edited_chapters).map(([k, v]) => [Number(k), v])) : undefined,
+  inCloud: !!r.in_cloud,
   deleted: !!r.deleted,
   updatedAt: time(r.updated_at),
 });
@@ -93,6 +95,7 @@ const rowFromBook = (user: string, b: BookRecord): LibraryRow => ({
   file_size: b.fileSize ?? null,
   source: b.source ?? null,
   edited_chapters: b.editedChapters ?? null,
+  in_cloud: !!b.cloudFilesAt,
   deleted: false,
   updated_at: new Date(b.infoUpdatedAt ?? b.addedAt).toISOString(),
 });
@@ -213,6 +216,9 @@ async function push(c: SupabaseClient, user: string): Promise<void> {
     const { error } = await c.from(LIBRARY).upsert(rows, { onConflict: CONFLICT });
     check(error);
     deletions.done();
+    // The files of an own book deleted everywhere leave the cloud too.
+    const { forgetCloudFiles } = await import("./cloudFiles");
+    forgetCloudFiles(deletions.items.filter((d) => d.kind === "file").map((d) => d.key));
   }
   const deleted = new Set(deletions.items.map((d) => d.key));
 

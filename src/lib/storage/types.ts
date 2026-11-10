@@ -42,6 +42,8 @@ export interface BookRecord {
   infoUpdatedAt?: number;
   /** The `infoUpdatedAt` the account has (0 when it has the book as added). Unset: not uploaded yet. */
   syncedAt?: number;
+  /** When the book's own files were found in the account's cloud storage (account/cloudFiles.ts). */
+  cloudFilesAt?: number;
 }
 
 export interface LibrarrSource {
@@ -118,6 +120,8 @@ export interface CloudEntry {
   fileSize?: number;
   source?: LibrarrSource;
   editedChapters?: Record<number, string>;
+  /** The user's own files are in the cloud: another device can download them. */
+  inCloud?: boolean;
   deleted: boolean;
   updatedAt: number;
 }

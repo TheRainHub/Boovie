@@ -1,0 +1,16 @@
+# The files service of Boowie accounts: `npx wrangler deploy` from this folder (Cloudflare account with the R2
+# bucket "boowie"). The app reaches it at https://boowie-files.<account subdomain>.workers.dev.
+name = "boowie-files"
+main = "index.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "boowie"
+
+[vars]
+SUPABASE_URL = "https://qqfohfgodrwgzfeudcwr.supabase.co"
+# 20 GB per account.
+QUOTA_BYTES = "21474836480"
+ALLOWED_ORIGINS = "https://boovie-kappa.vercel.app,https://boovie-*.vercel.app,https://therainhub.github.io,capacitor://localhost,https://localhost,http://localhost,http://localhost:3000"

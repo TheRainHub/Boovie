@@ -243,6 +243,20 @@ export async function adoptCloudState(bookId: string): Promise<void> {
   if (row?.progress) await applyProgress(bookId, row.progress);
 }
 
+// ── New books ──────────────────────────────────────────────────────────────────────────
+
+const addedListeners = new Set<() => void>();
+
+/** Called after a book was added on this device (its own files may need to go to the cloud). */
+export function onBookAdded(fn: () => void): () => void {
+  addedListeners.add(fn);
+  return () => void addedListeners.delete(fn);
+}
+
+export function notifyBookAdded(): void {
+  for (const fn of addedListeners) fn();
+}
+
 // ── The open reader's question ─────────────────────────────────────────────────────────
 
 /** A newer place from another device for the book open in the reader: the reader asks whether to go there. */

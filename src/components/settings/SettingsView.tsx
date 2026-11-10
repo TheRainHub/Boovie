@@ -14,6 +14,8 @@ import { setLang, t, useLang, type Lang } from "@/lib/i18n";
 import { useBooks } from "@/lib/library/hooks";
 import { deleteBook } from "@/lib/library/repository";
 import { requestPersistentStorage, storageEstimate } from "@/lib/storage/blobStore";
+import { useIdentity } from "@/lib/account/identity";
+import { cloudUsage, filesEnabled, kickUploads, useCloudFiles, useUploads } from "@/lib/account/cloudFiles";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -49,6 +51,52 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
     >
       <span className={cn("absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-[0_2px_4px_rgb(0_0_0/0.25)] transition-all duration-200", on ? "left-[22px]" : "left-[2px]")} />
     </button>
+  );
+}
+
+/** The account's cloud for the user's own files: on or off, how much is used, what is being uploaded. */
+function CloudGroup() {
+  const signedIn = useIdentity((s) => s.status === "signedIn");
+  const cloud = useCloudFiles();
+  const up = useUploads();
+  const [usage, setUsage] = useState<{ bytes: number; quota: number } | null>(null);
+  useEffect(() => {
+    if (!signedIn || !filesEnabled) return;
+    let alive = true;
+    void cloudUsage().then((u) => alive && setUsage(u));
+    return () => {
+      alive = false;
+    };
+  }, [signedIn, up.title]);
+  if (!signedIn || !filesEnabled) return null;
+  return (
+    <Group title={t("Облако")}>
+      <Row label={t("Свои файлы в облаке")} hint={t("Книги и аудиокниги, которые вы добавили сами, загружаются в аккаунт, чтобы скачать их на другом устройстве. Не по мобильной сети, где система это сообщает.")}>
+        <Switch on={cloud.upload} onChange={(v) => { cloud.set(v); if (v) kickUploads(500); }} label={t("Загружать свои файлы в облако")} />
+      </Row>
+      {(up.title || usage) && (
+        <div className="px-4 py-3.5">
+          {up.title ? (
+            <>
+              <div className="tabular flex justify-between gap-3 text-[14px] text-ink-2">
+                <span className="truncate">{t("Загружается «{title}»", { title: up.title })}</span>
+                <span>{up.total ? `${Math.round((up.done / up.total) * 100)}%` : ""}</span>
+              </div>
+              <ProgressBar value={up.total ? up.done / up.total : 0} className="mt-2" />
+            </>
+          ) : usage ? (
+            <>
+              <div className="tabular flex justify-between text-[14px] text-ink-2">
+                <span>{t("Занято {size}", { size: formatBytes(usage.bytes) })}</span>
+                {usage.quota > 0 && <span>{t("из {size}", { size: formatBytes(usage.quota) })}</span>}
+              </div>
+              {usage.quota > 0 && <ProgressBar value={usage.bytes / usage.quota} className="mt-2" />}
+            </>
+          ) : null}
+          {up.error && !up.title && <div className="mt-1.5 text-[13px] text-ink-2">{t("Последняя загрузка не удалась: {error}", { error: up.error })}</div>}
+        </div>
+      )}
+    </Group>
   );
 }
 
@@ -118,6 +166,8 @@ export function SettingsView() {
         <div className="border-b border-line"><ElevenLabsSettings /></div>
         <LibrarrSettings />
       </Group>
+
+      <CloudGroup />
 
       <Group title={`${t("Хранилище")} · ${formatBytes(libraryBytes)}`}>
         {estimate && estimate.quota > 0 && (

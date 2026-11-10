@@ -146,20 +146,27 @@ export function getFileUrl(id: string): Promise<string | null> {
   return url;
 }
 
-/** The first `bytes` of a stored file, without reading all of it where the storage allows. */
-export async function fileHead(id: string, bytes: number): Promise<Blob | null> {
+/** Bytes `start`..`end` (exclusive) of a stored file, without reading all of it where the storage allows. */
+export async function fileRange(id: string, start: number, end: number): Promise<Blob | null> {
   const record = await getDB().files.get(id);
   if (!record) return null;
   if (record.storage === "native" && record.path) {
     try {
-      const res = await fetch(await nativeFileSrc(record.path), { headers: { Range: `bytes=0-${bytes - 1}` } });
-      return res.ok ? (await res.blob()).slice(0, bytes) : null;
+      const res = await fetch(await nativeFileSrc(record.path), { headers: { Range: `bytes=${start}-${end - 1}` } });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      // A server that ignored the range sent the whole file.
+      return res.status === 206 ? blob.slice(0, end - start) : blob.slice(start, end);
     } catch {
       return null;
     }
   }
   // OPFS files and IndexedDB blobs are read lazily: slicing doesn't load the rest.
-  return (await getFileBlob(id))?.slice(0, bytes) ?? null;
+  return (await getFileBlob(id))?.slice(start, end) ?? null;
+}
+
+export function fileHead(id: string, bytes: number): Promise<Blob | null> {
+  return fileRange(id, 0, bytes);
 }
 
 /**

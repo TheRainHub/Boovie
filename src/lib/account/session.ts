@@ -381,6 +381,16 @@ export function syncNow(opts: { pull?: boolean } = {}): Promise<void> {
   return syncing;
 }
 
+/** The signed-in account's access token (refreshed when it has expired), for the files service. */
+export async function accessToken(): Promise<string | null> {
+  if (!accountsEnabled || useIdentity.getState().status !== "signedIn") return null;
+  const { data } = await (await client()).auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
+/** The project's public key: the files service passes it on when it asks Supabase who a session belongs to. */
+export const supabaseKey = SUPABASE_KEY;
+
 /** Load the client before showing the sign-in form, so the first tap isn't slowed by the download. */
 export function prepareAccount(): void {
   if (accountsEnabled) void client();
