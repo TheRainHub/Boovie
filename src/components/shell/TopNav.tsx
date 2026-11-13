@@ -26,7 +26,15 @@ export function TopNav({ className, toned }: { className?: string; toned?: boole
   return (
     // The same box on every page, so switching sections never moves the words.
     <div className={cn("mx-auto flex w-full max-w-[1280px] items-center gap-3 px-5 sm:px-8", className)}>
-      <nav aria-label={t("Разделы")} className="no-scrollbar flex min-w-0 flex-1 items-baseline gap-4 overflow-x-auto whitespace-nowrap sm:gap-6">
+      {/*
+        No scroll box here: it cut off the words' descenders («g»). The words shrink to fit narrow phones instead (the
+        longest row, «Главная Книги Магазин», fits a 320-pixel screen; clipped sideways only as a last resort), and
+        the inactive ones are a paler colour rather than a transparent layer.
+      */}
+      <nav
+        aria-label={t("Разделы")}
+        className="flex min-w-0 flex-1 items-baseline gap-4 overflow-x-clip whitespace-nowrap sm:gap-6"
+      >
         {items.map((it) => (
           <Link
             key={it.href}
@@ -34,9 +42,10 @@ export function TopNav({ className, toned }: { className?: string; toned?: boole
             data-nav={it.href}
             aria-current={it.active ? "page" : undefined}
             className={cn(
-              "display text-[27px] transition-opacity duration-200 sm:text-[34px] md:text-[38px]",
-              toned ? "text-t-ink" : "text-ink",
-              it.active ? "opacity-100" : "opacity-[0.36] hover:opacity-60",
+              "display text-[clamp(18px,calc(9vw_-_11px),27px)] transition-colors duration-200 sm:text-[34px] md:text-[38px]",
+              toned
+                ? it.active ? "text-t-ink" : "text-t-ink/36 hover:text-t-ink/60"
+                : it.active ? "text-ink" : "text-ink/36 hover:text-ink/60",
             )}
           >
             {it.label}
