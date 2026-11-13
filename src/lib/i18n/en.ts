@@ -499,4 +499,5 @@ export const EN: Record<string, string> = {
   "Слова «{word}» нет в словаре.": "“{word}” isn't in the dictionary.",
   "Викисловарь · CC BY-SA 4.0": "Wiktionary · CC BY-SA 4.0",
   "Подробнее": "More",
+  "англ.": "Eng.",
 };

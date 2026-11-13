@@ -126,8 +126,11 @@ function Entry({ entry, word, paper, first, sectionRef }: { entry: DictEntry; wo
           <li key={i} className="flex gap-2.5 text-[16.5px] leading-[1.4]">
             {entry.m.length > 1 && <span className="tabular w-4 shrink-0 text-right" style={{ color: paper.muted }}>{i + 1}.</span>}
             <div className="min-w-0">
-              {m.l && <span className="mr-1.5 text-[14px] italic" style={{ color: paper.accent }}>{m.l.join(", ")}</span>}
+              {(m.l || m.en) && (
+                <span className="mr-1.5 text-[14px] italic" style={{ color: paper.accent }}>{[...(m.l ?? []), ...(m.en ? [t("англ.")] : [])].join(", ")}</span>
+              )}
               <span>{m.d}</span>
+              {m.h && <span className="ml-1.5 text-[14px] italic" style={{ color: paper.muted }}>({m.h})</span>}
               {m.x && (
                 <div className="mt-1 text-[15px] leading-snug" style={{ color: paper.muted }}>
                   <span className="italic">{m.x}</span>

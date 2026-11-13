@@ -13,14 +13,18 @@
 import { getDB } from "../storage/db";
 
 /** The dictionary build: its files never change, a new build gets a new version (and the device's copy goes with it). */
-const VERSION = "v1";
+const VERSION = "v2";
 const BASE = `${(process.env.NEXT_PUBLIC_FILES_URL ?? "https://boowie-files.theraintv94.workers.dev").replace(/\/+$/, "")}/dict/${VERSION}`;
 
 export type DictLang = "ru" | "en";
 
 export interface DictMeaning {
-  /** The meaning. */
+  /** The meaning: an explanation, or Russian translations of an English word's meaning. */
   d: string;
+  /** For translations: which meaning of the English word they are for («not imprisoned»). */
+  h?: string;
+  /** The English definition, where no Russian translation is known. */
+  en?: 1;
   /** Usage labels: «устар.», «разг.», «перен.». */
   l?: string[];
   /** An example, its translation (English) or its source (Russian). */
@@ -208,7 +212,10 @@ export async function lookup(word: string): Promise<DictResult | null> {
   const isName = (e: DictEntry) => e.w[0] !== e.w[0]?.toLowerCase() || e.p === "имя собств."; // i18n-ignore
   const common = found.filter((e) => !isName(e));
   const entries = lower && common.length ? common : found;
-  return { lang, word: clean, entries: entries.slice(0, 5) };
+  // What a Russian reader can read first: words with Russian meanings before those with English definitions only.
+  const russian = (e: DictEntry) => e.m.some((m) => !m.en);
+  const ordered = [...entries.filter(russian), ...entries.filter((e) => !russian(e))];
+  return { lang, word: clean, entries: ordered.slice(0, 5) };
 }
 
 /** Wiktionary's page for a word, for «more». */

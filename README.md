@@ -80,10 +80,13 @@ landscape the player and the store details go two-column and the reader shows a 
   (`src/lib/library/cloud.ts`, `src/lib/account/librarySync.ts`).
 - **Dictionary in the reader** — select a word (a long press on a phone, a double click on a computer) and its
   meaning opens in a card in the page's colours: Russian words explained in Russian with usage labels («устар.»,
-  «разг.»), the stress and an example; English words with their meanings in Russian, the transcription and an
-  example with its translation. Inflected forms lead to their word («кавалеристом» → «кавалерист», «went» →
-  «go»); when the text's word is several words' form, all of them are offered. The data is Russian Wiktionary
-  (CC BY-SA 4.0, via wiktextract): 429 000 Russian words with 2.6 million forms and 53 000 English words, packed
+  «разг.»), the stress and an example; English words with Russian translations for each of their meanings (with a
+  short English note saying which meaning), labels («устар.», «брит.») and the transcription — or the English
+  definition where no Russian one is known. Inflected forms and other spellings lead to their word
+  («кавалеристом» → «кавалерист», «went» → «go», «colour» → «color»); when the text's word is several words' form,
+  all of them are offered, those with Russian meanings first. The data is Wiktionary (CC BY-SA 4.0, via
+  wiktextract): from Russian Wiktionary 429 000 Russian words with 2.6 million forms; for English, the translation
+  tables of English Wiktionary merged with Russian Wiktionary's English words, 572 000 words in all, packed
   by `scripts/dictionary/build_dict.py` into small compressed shards served by the files Worker
   (`/dict/v1/…`, Range requests). A lookup reads one shard of 10–50 KB and keeps it on the device, so words looked
   up before work offline (`src/lib/dictionary/lookup.ts`, `src/components/reader/DictionaryCard.tsx`).
@@ -158,8 +161,9 @@ project's URL). The app expects the Worker at `NEXT_PUBLIC_FILES_URL` (default
 origins.
 
 **Dictionary data** (once, or for a new build): download the Russian and English extracts of Russian Wiktionary
-from https://kaikki.org/ruwiktionary/ (`Русский`, `Английский` → JSONL), run
-`python3 scripts/dictionary/build_dict.py ru.jsonl en.jsonl out/` and upload the four files to the R2 bucket
+from https://kaikki.org/ruwiktionary/ (`Русский`, `Английский` → JSONL) and English Wiktionary's English words from
+https://kaikki.org/dictionary/English/ (3 GB), run
+`python3 scripts/dictionary/build_dict.py ru.jsonl en.jsonl out/ English.jsonl` and upload the four files to the R2 bucket
 under `dict/<version>/`; a new build takes a new version (and `VERSION` in `src/lib/dictionary/lookup.ts`).
 
 **GitHub Pages** (optional): `.github/workflows/deploy-pages.yml`, run manually, builds with
