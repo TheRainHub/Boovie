@@ -97,6 +97,28 @@ landscape the player and the store details go two-column and the reader shows a 
   by `scripts/dictionary/build_dict.py` into small compressed shards served by the files Worker
   (`/dict/v1/…`, Range requests). A lookup reads one shard of 10–50 KB and keeps it on the device, so words looked
   up before work offline (`src/lib/dictionary/lookup.ts`, `src/components/reader/DictionaryCard.tsx`).
+- **Bookshelf** — the library can also be a bookshelf (the shelf button next to the filters, remembered on the
+  device): every book a spine in its cover's colour (or a cloth colour of the store's palette when the cover has
+  little colour), as thick as the book is long, with the title along it (Russian spines read from the bottom up,
+  English ones from the top down) and the author on thick ones, a headphones mark on audiobooks, a ribbon over the
+  top of a book being read and a tick on a finished one; rows of spines stand on wooden shelves with a bookend. A
+  tap opens the book, a long press (or a right click) its menu (`src/components/library/Bookshelf.tsx`).
+- **Reading map** — in the profile, the year as twelve small month calendars, each day shaded by the time spent
+  with books (from under 15 minutes to over two hours); a tap on a day tells its time and books, and the arrows go
+  through the years (`src/lib/stats/yearMap.ts`, `src/components/profile/YearMap.tsx`).
+- **Achievements** — 17 badges with levels (bronze, silver, gold, then emerald and ruby for the long ones): books
+  finished, hours with books, days in a row, a marathon day, pages, listening hours, time saved by speed, reading and
+  listening on one day, bookish weekends, classics from the store, authors, days with books, the size of the
+  library, bookmarks, and two secret ones. They are worked out on the device from the same statistics, library and
+  bookmarks (so every device of an account agrees, with nothing extra stored or synced), with the day each level was
+  reached; a level reached today or yesterday is announced once with its badge (`src/lib/stats/achievements.ts`,
+  `src/components/profile/Achievements.tsx`, `Badge.tsx`).
+- **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night or a train while a book is
+  open (the button in the reader's bar). They are synthesised on the device with no files or network: filtered
+  noise and small events (drops, crackles, waves, birds, crickets, wheels over rail joints) rendered into a 20–40 s
+  loop whose end fades into its start, levelled to one loudness and played through Web Audio with a volume of its
+  own. The sound stops when the book is closed and comes back in the next one at the first touch
+  (`src/lib/audio/ambientSynth.ts`, `src/lib/audio/ambient.ts`, `src/components/reader/AmbientSheet.tsx`).
 - **Own files in the cloud** — books the user added (and voiced editions) are uploaded in the background to
   Cloudflare R2 through a small Worker (`workers/files`), one at a time while the app is open, in 50 MB parts that
   survive a restart, not over mobile data where the system tells; a book already there (uploaded from another
@@ -181,16 +203,16 @@ under `dict/<version>/`; a new build takes a new version (and `VERSION` in `src/
 
 ```
 src/app/                 routes: / (Слушаю/Читаю), /library, /store, /book?id=…&mode=read|listen, /profile, /settings
-src/components/profile   ProfileView, ActivityChart, AuthSheet, Avatar
-src/lib/stats            activity tracking (daily rows), reading-time hook, profile summary
+src/components/profile   ProfileView, ActivityChart, YearMap, Achievements, Badge, AuthSheet, Avatar
+src/lib/stats            activity tracking (daily rows), reading-time hook, profile summary, year map, achievements, Итоги года
 src/lib/account          device identity, Supabase session and statistics sync
 supabase/schema.sql      the accounts' tables (statistics, library, places) and their row-level security
 src/components/ui        Button, IconButton, Slider, Segmented, ChipTabs, Sheet, BookCover, CoverBackdrop, Toaster
 src/components/shell     AppShell, TopNav, ImportTray
 src/components/home      HomeView
-src/components/library   LibraryView, ImportPicker, CoverPicker
+src/components/library   LibraryView, Bookshelf, ImportPicker, CoverPicker
 src/components/store     StoreView, BookDetailsSheet, StoreCard
-src/components/reader    TextReader, PdfReader, TocDrawer, TypographyDrawer, ReaderChrome
+src/components/reader    TextReader, PdfReader, TocDrawer, TypographyDrawer, ReaderChrome, DictionaryCard, AmbientSheet
 src/components/player    MiniPlayer, FullPlayer, PlayerPanel
 src/components/book      BookScreen (dual mode)
 src/lib/parsers          fb2Parser, epubParser, pdfParser, audioParser, audioMetadata, sanitize
@@ -201,7 +223,7 @@ scripts/dictionary       the reader's dictionary, built from Russian Wiktionary
 android/, ios/           Capacitor shells
 src/lib/library          repository (books, progress, bookmarks), importer, folder grouping, live-query hooks
 src/lib/covers           cover tone (colour), online lookup, generated covers
-src/lib/audio            player engine (web <audio> or the native plugin), Media Session, store previews
+src/lib/audio            player engine (web <audio> or the native plugin), Media Session, store previews, sounds for reading
 src/lib/integrations     ElevenLabs API, speech chunking, voiceover jobs, OPDS parser, Librarr client
 src/components/integrations  ElevenLabsSettings, VoiceoverSheet, LibrarrSettings, LibrarrShelf
 scripts/content          store content pipeline (see its README for sources and licenses)

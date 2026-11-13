@@ -147,19 +147,24 @@ export function BookScreen() {
   // The other edition is still loading: don't flash «no audio/text edition» meanwhile.
   if (book.companionId && companion === undefined) return <Center><Spinner className="text-ink-2" /></Center>;
 
-  const makeToggle = (toned: boolean) => (
-    <Segmented
-      layoutKey={toned ? "read-listen-toned" : "read-listen"}
-      toned={toned}
-      size="sm"
-      value={mode}
-      onChange={(m) => void setMode(m)}
-      options={[
-        { value: "read", label: t("Читать"), icon: <BookOpen size={15} strokeWidth={2.1} /> },
-        { value: "listen", label: t("Слушать"), icon: <Headphones size={15} strokeWidth={2.1} /> },
-      ]}
-    />
-  );
+  // The reader's bar (not toned) holds four buttons too: on a phone narrower than 420 px the other mode shows as
+  // its sign only. The listening screen's bar has room for both words.
+  const makeToggle = (toned: boolean) => {
+    const label = (m: "read" | "listen", text: string) => <span className={!toned && m !== mode ? "max-[419px]:sr-only" : undefined}>{text}</span>;
+    return (
+      <Segmented
+        layoutKey={toned ? "read-listen-toned" : "read-listen"}
+        toned={toned}
+        size="sm"
+        value={mode}
+        onChange={(m) => void setMode(m)}
+        options={[
+          { value: "read", label: label("read", t("Читать")), icon: <BookOpen size={15} strokeWidth={2.1} /> },
+          { value: "listen", label: label("listen", t("Слушать")), icon: <Headphones size={15} strokeWidth={2.1} /> },
+        ]}
+      />
+    );
+  };
   const toggle = makeToggle(false);
 
   if (mode === "read") {

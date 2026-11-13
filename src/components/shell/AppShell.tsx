@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Fragment, useEffect, type ReactNode } from "react";
 import { FullPlayer } from "@/components/player/FullPlayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
-import { toast, Toaster } from "@/components/ui/Toaster";
+import { toast, toastBadge, Toaster } from "@/components/ui/Toaster";
 import { pullSoon, pushWhilePlaying, startAccount, syncSoon } from "@/lib/account/session";
 import { persistNow, restoreLastSession, seek, unlockAudio, usePlayer } from "@/lib/audio/player";
 import { formatClock } from "@/lib/format";
@@ -15,7 +15,9 @@ import { withBase } from "@/lib/basePath";
 import { markHydrated, t, useLang } from "@/lib/i18n";
 import { isNative } from "@/lib/native";
 import { flushJournal } from "@/lib/library/repository";
-import { backfillFinished, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
+import { backfillFinished, onActivityWritten, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
+import { levelName, metalOf, type AchievementState } from "@/lib/stats/achievements";
+import { checkAchievements } from "@/lib/stats/achievementsWatch";
 import { useTheme } from "@/lib/theme";
 import { ImportTray } from "./ImportTray";
 
@@ -100,12 +102,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       return false;
     });
+    // New achievements: a look at the start, after time with a book was written (at most once a minute) and after
+    // a book was added.
+    let checkedAt = 0;
+    const checkBadges = () => {
+      checkedAt = Date.now();
+      void checkAchievements(announceAchievement);
+    };
+    const firstCheck = setTimeout(checkBadges, 4000);
+    const stopActivity = onActivityWritten(() => {
+      if (Date.now() - checkedAt > 60_000) checkBadges();
+    });
     // Own files go to the account's cloud in the background: once signed in, and after a book was added.
-    const stopAdded = onBookAdded(() => kickUploads());
+    const stopAdded = onBookAdded(() => {
+      kickUploads();
+      setTimeout(checkBadges, 1500);
+    });
     const stopSignedIn = useIdentity.subscribe((s, prev) => {
       if (s.status === "signedIn" && prev.status !== "signedIn") kickUploads(8000);
     });
     return () => {
+      clearTimeout(firstCheck);
+      stopActivity();
       stopBackButton?.();
       stopPlayerSync();
       stopClaim();
@@ -130,6 +148,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </Fragment>
   );
+}
+
+function announceAchievement(s: AchievementState) {
+  const name = s.def.tiers.length > 1 ? `${s.def.name()} · ${levelName(s.def, s.level)}` : s.def.name();
+  toastBadge(t("Новое достижение: {name}", { name }), { icon: s.def.id, metal: metalOf(s.def, s.level) });
 }
 
 /**

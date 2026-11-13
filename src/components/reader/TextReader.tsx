@@ -11,6 +11,7 @@ import { recordFinish, recordPage } from "@/lib/stats/activity";
 import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
+import { AmbientButton, AmbientSheet, useAmbientInBook } from "./AmbientSheet";
 import { DictionaryCard } from "./DictionaryCard";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
@@ -50,6 +51,8 @@ export function TextReader({
   const [hud, setHud] = useState(true);
   const [tocOpen, setTocOpen] = useState(false);
   const [typoOpen, setTypoOpen] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
+  useAmbientInBook();
   const [size, setSize] = useState({ w: 0, h: 0, top: 0, bottom: 0 });
 
   const viewport = useRef<HTMLDivElement>(null);
@@ -233,13 +236,13 @@ export function TextReader({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (tocOpen || typoOpen || (e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (tocOpen || typoOpen || soundOpen || (e.target as HTMLElement)?.tagName === "INPUT") return;
       if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
       if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, tocOpen, typoOpen]);
+  }, [next, prev, tocOpen, typoOpen, soundOpen]);
 
   const followLink = useCallback(async (target: string) => {
     // EPUB: "ch:N#frag"; FB2 notes: "#noteId" (search all chapters for the anchor).
@@ -431,6 +434,7 @@ export function TextReader({
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
             <IconButton label={t("Оглавление")} onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
+            <AmbientButton onClick={() => setSoundOpen(true)} />
             <IconButton label={t("Оформление")} onClick={() => setTypoOpen(true)}><Type size={19} /></IconButton>
           </>
         }
@@ -474,6 +478,7 @@ export function TextReader({
         onDeleteBookmark={(b) => void removeBookmark(book.id, b.id)}
       />
       <TypographyDrawer open={typoOpen} onClose={() => setTypoOpen(false)} />
+      <AmbientSheet open={soundOpen} onClose={() => setSoundOpen(false)} />
       {lookupFor && <DictionaryCard word={lookupFor.word} place={lookupFor.place} paper={paper} onClose={closeLookup} />}
     </div>
   );

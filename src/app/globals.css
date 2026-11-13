@@ -126,6 +126,36 @@ button,
   font-feature-settings: "tnum" 1;
 }
 
+/* ── Bookshelf (library/Bookshelf.tsx): wooden shelves, rounded spines, a ribbon over a book being read ── */
+:root {
+  --plank-top: #dcb68b;
+  --plank: #b98a5c;
+  --plank-edge: #8a6140;
+}
+[data-theme="dark"] {
+  --plank-top: #6e4c33;
+  --plank: #523726;
+  --plank-edge: #352216;
+}
+.shelf-plank {
+  background: linear-gradient(180deg, var(--plank-top) 0%, var(--plank) 35%, var(--plank-edge) 100%);
+  box-shadow: 0 10px 16px -10px rgb(0 0 0 / 0.55);
+}
+/* Light from the left: the spine's rounded back, its edges in shadow. */
+.spine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.28), rgb(255 255 255 / 0.14) 16%, rgb(255 255 255 / 0.04) 42%, rgb(0 0 0 / 0.1) 82%, rgb(0 0 0 / 0.32));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  pointer-events: none;
+}
+.spine-ribbon {
+  background: #b3261e;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+}
+
 /* Big navigation words and screen titles. */
 @utility display {
   font-weight: 800;

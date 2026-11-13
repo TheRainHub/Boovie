@@ -12,13 +12,16 @@ import { GUEST, useIdentity } from "@/lib/account/identity";
 import { pullSoon, signOut, updateName } from "@/lib/account/session";
 import { formatDuration } from "@/lib/format";
 import { locale, pl, t } from "@/lib/i18n";
-import { useBooks } from "@/lib/library/hooks";
+import { useAllProgress, useBooks } from "@/lib/library/hooks";
 import { bookKey } from "@/lib/stats/activity";
+import { achievements } from "@/lib/stats/achievements";
 import { summarize, type Period } from "@/lib/stats/summary";
 import { getDB } from "@/lib/storage/db";
+import { Achievements } from "./Achievements";
 import { ActivityChart } from "./ActivityChart";
 import { AuthSheet, type AuthMode } from "./AuthSheet";
 import { Avatar } from "./Avatar";
+import { YearMap } from "./YearMap";
 import { WrappedCard } from "@/components/wrapped/WrappedCard";
 
 function ago(at?: number): string {
@@ -120,6 +123,13 @@ export function ProfileView() {
   const [auth, setAuth] = useState<AuthMode | null>(null);
   const rows = useLiveQuery(() => getDB().activity.where("owner").equals(owner).toArray(), [owner]);
   const books = useBooks();
+  const progress = useAllProgress();
+  const badges = useMemo(
+    () => rows && books && progress
+      ? achievements({ rows, added: books.map((b) => b.addedAt), bookmarks: [...progress.values()].flatMap((p) => p.bookmarks.map((b) => b.createdAt)) })
+      : null,
+    [rows, books, progress],
+  );
   const summary = useMemo(() => (rows ? summarize(rows, period) : null), [rows, period]);
   const covers = useMemo(() => new Map((books ?? []).map((b) => [bookKey(b), b])), [books]);
 
@@ -212,6 +222,9 @@ export function ProfileView() {
           )}
         </>
       )}
+
+      {rows && <YearMap rows={rows} />}
+      {badges && <Achievements list={badges} />}
 
       <AuthSheet
         mode={sheet}

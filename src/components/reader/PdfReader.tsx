@@ -13,6 +13,7 @@ import { recordFinish, recordPage } from "@/lib/stats/activity";
 import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileBlob } from "@/lib/storage/blobStore";
 import type { BookRecord } from "@/lib/storage/types";
+import { AmbientButton, AmbientSheet, useAmbientInBook } from "./AmbientSheet";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
 import { t } from "@/lib/i18n";
@@ -80,6 +81,8 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
   const [zoom, setZoom] = useState(1);
   const [hud, setHud] = useState(true);
   const [tocOpen, setTocOpen] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
+  useAmbientInBook();
   const [width, setWidth] = useState(0);
   const [visibleSet, setVisibleSet] = useState<Set<number>>(() => new Set([page]));
   const scroller = useRef<HTMLDivElement>(null);
@@ -220,7 +223,7 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (tocOpen) return;
+      if (tocOpen || soundOpen) return;
       if (paged && ["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); goTo(page + 1); }
       if (paged && ["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); goTo(page - 1); }
     };
@@ -291,6 +294,7 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
               {currentMark ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
             </IconButton>
             <IconButton label={t("Оглавление")} onClick={() => setTocOpen(true)}><List size={20} /></IconButton>
+            <AmbientButton onClick={() => setSoundOpen(true)} />
           </>
         }
         bottom={
@@ -331,6 +335,7 @@ export function PdfReader({ book, chapters, initialPage, toggle }: { book: BookR
         onBookmark={(b) => { setTocOpen(false); goTo(b.position); }}
         onDeleteBookmark={(b) => void removeBookmark(book.id, b.id)}
       />
+      <AmbientSheet open={soundOpen} onClose={() => setSoundOpen(false)} />
     </div>
   );
 }

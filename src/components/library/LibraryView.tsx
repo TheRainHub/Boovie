@@ -1,9 +1,9 @@
 "use client";
 
-import { AudioLines, BookOpen, FilePlus2, FolderPlus, Headphones, ImageIcon, MoreHorizontal, PencilLine, Plus, Settings, Trash2 } from "lucide-react";
+import { AudioLines, BookOpen, FilePlus2, FolderPlus, Headphones, ImageIcon, LayoutGrid, Library, MoreHorizontal, PencilLine, Plus, Settings, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { VoiceoverSheet } from "@/components/integrations/VoiceoverSheet";
 import { PauseGlyph, PlayGlyph } from "@/components/player/icons";
@@ -24,11 +24,43 @@ import { removeFromAccount } from "@/lib/library/cloud";
 import { deleteBook } from "@/lib/library/repository";
 import type { BookRecord, ProgressRecord } from "@/lib/storage/types";
 import { BookEditor } from "./BookEditor";
+import { Bookshelf } from "./Bookshelf";
 import { CloudShelf } from "./CloudShelf";
 import { CoverPicker } from "./CoverPicker";
 import { DropTarget, ImportSheet, useImportPicker } from "./ImportPicker";
 
 type Filter = "all" | "reading" | "listening" | "uploaded";
+type View = "grid" | "shelf";
+
+/* Covers or a bookshelf: remembered on the device. */
+const VIEW_KEY = "boowie-library-view";
+const viewListeners = new Set<() => void>();
+function storedView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "shelf" ? "shelf" : "grid";
+  } catch {
+    return "grid";
+  }
+}
+function setView(v: View) {
+  try {
+    localStorage.setItem(VIEW_KEY, v);
+  } catch {
+    /* private mode */
+  }
+  viewListeners.forEach((fn) => fn());
+}
+function useView(): View {
+  return useSyncExternalStore(
+    (fn) => {
+      viewListeners.add(fn);
+      return () => viewListeners.delete(fn);
+    },
+    storedView,
+    // The static export is prerendered without storage.
+    () => "grid",
+  );
+}
 
 /** «Книги»: filters, the book you are on, then every book as a cover with its progress underneath. */
 export function LibraryView() {
@@ -36,6 +68,7 @@ export function LibraryView() {
   const progress = useAllProgress();
   const current = useCurrentBook();
   const [filter, setFilter] = useState<Filter>("all");
+  const view = useView();
   const [menuFor, setMenuFor] = useState<BookRecord | null>(null);
   const [coverFor, setCoverFor] = useState<BookRecord | null>(null);
   const [voiceFor, setVoiceFor] = useState<BookRecord | null>(null);
@@ -81,19 +114,31 @@ export function LibraryView() {
                   { value: "uploaded", label: t("Файлы") },
                 ]}
               />
-              <Link href="/settings/" aria-label={t("Настройки")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5">
+              <button
+                type="button"
+                aria-label={view === "shelf" ? t("Показать обложками") : t("Показать на полке")}
+                onClick={() => setView(view === "shelf" ? "grid" : "shelf")}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5"
+              >
+                {view === "shelf" ? <LayoutGrid size={20} strokeWidth={1.9} /> : <Library size={21} strokeWidth={1.9} />}
+              </button>
+              <Link href="/settings/" aria-label={t("Настройки")} className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink active:bg-ink/5">
                 <Settings size={21} strokeWidth={1.9} />
               </Link>
             </div>
 
             {filter === "all" && current && <ContinueCard current={current} />}
 
-            <div className="grid grid-cols-3 items-end gap-x-3 gap-y-5 px-5 pt-5 sm:grid-cols-4 sm:gap-x-4 sm:gap-y-7 sm:px-8 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-              <AddTile onClick={() => setAdding(true)} />
-              {filtered.map((b, i) => (
-                <GridItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} onMenu={() => setMenuFor(b)} />
-              ))}
-            </div>
+            {view === "shelf" ? (
+              <Bookshelf books={filtered} progress={progress} onMenu={setMenuFor} onAdd={() => setAdding(true)} />
+            ) : (
+              <div className="grid grid-cols-3 items-end gap-x-3 gap-y-5 px-5 pt-5 sm:grid-cols-4 sm:gap-x-4 sm:gap-y-7 sm:px-8 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+                <AddTile onClick={() => setAdding(true)} />
+                {filtered.map((b, i) => (
+                  <GridItem key={b.id} book={b} progress={progress?.get(b.id)} index={i} onMenu={() => setMenuFor(b)} />
+                ))}
+              </div>
+            )}
             {filtered.length === 0 && !loading && <p className="px-5 py-10 text-center text-[16px] text-ink-2">{t("Здесь пока пусто.")}</p>}
             {filter === "all" && <CloudShelf />}
           </>
