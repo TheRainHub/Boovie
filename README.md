@@ -113,6 +113,17 @@ landscape the player and the store details go two-column and the reader shows a 
   bookmarks (so every device of an account agrees, with nothing extra stored or synced), with the day each level was
   reached; a level reached today or yesterday is announced once with its badge (`src/lib/stats/achievements.ts`,
   `src/components/profile/Achievements.tsx`, `Badge.tsx`).
+- **Daily goal** — minutes a day with books (5 to 90, 20 until changed, or none), reading and listening together
+  and from all of an account's devices: a ring with today's minutes on the home screen and in the profile, this
+  week's days with the goal reached and the days in a row; reaching it is announced once a day
+  (`src/lib/stats/goal.ts`, `src/components/home/GoalCard.tsx`).
+- **Quotes** — select a passage in the text (more than one word; a single word still opens the dictionary) and
+  keep it as a quote or share it as a picture (1080 × 1350: the passage in the reader's serif on the cover's colour,
+  the book and its author underneath; the system share sheet in the apps, Web Share or a download in the browser).
+  Kept quotes are marked in the text, listed in the contents under *Закладки*, open with a tap (share, copy,
+  delete) and travel with the book's bookmarks to the account's other devices — no new tables: a quote is a
+  bookmark with the passage and its place in the chapter's text (`src/lib/reader/quotes.ts`,
+  `src/lib/reader/quoteImage.ts`, `src/components/reader/Quotes.tsx`).
 - **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night or a train while a book is
   open (the button in the reader's bar). They are synthesised on the device with no files or network: filtered
   noise and small events (drops, crackles, waves, birds, crickets, wheels over rail joints) rendered into a 20–40 s

@@ -23,6 +23,7 @@ import { AuthSheet, type AuthMode } from "./AuthSheet";
 import { Avatar } from "./Avatar";
 import { YearMap } from "./YearMap";
 import { WrappedCard } from "@/components/wrapped/WrappedCard";
+import { GoalCard } from "@/components/home/GoalCard";
 
 function ago(at?: number): string {
   if (!at) return "";
@@ -155,6 +156,7 @@ export function ProfileView() {
       </header>
 
       <div className="mt-4"><AccountCard onAuth={setAuth} /></div>
+      <GoalCard className="mt-3" />
       <WrappedCard className="mt-3" />
 
       <Segmented<Period>

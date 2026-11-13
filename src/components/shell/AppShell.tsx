@@ -18,6 +18,7 @@ import { flushJournal } from "@/lib/library/repository";
 import { backfillFinished, onActivityWritten, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
 import { levelName, metalOf, type AchievementState } from "@/lib/stats/achievements";
 import { checkAchievements } from "@/lib/stats/achievementsWatch";
+import { checkGoal } from "@/lib/stats/goal";
 import { useTheme } from "@/lib/theme";
 import { ImportTray } from "./ImportTray";
 
@@ -102,12 +103,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       return false;
     });
-    // New achievements: a look at the start, after time with a book was written (at most once a minute) and after
-    // a book was added.
+    // New achievements and today's goal: a look at the start, after time with a book was written (at most once a
+    // minute) and after a book was added.
     let checkedAt = 0;
     const checkBadges = () => {
       checkedAt = Date.now();
       void checkAchievements(announceAchievement);
+      void checkGoal(announceGoal);
     };
     const firstCheck = setTimeout(checkBadges, 4000);
     const stopActivity = onActivityWritten(() => {
@@ -148,6 +150,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
     </Fragment>
   );
+}
+
+function announceGoal(goal: number, streak: number) {
+  toast(streak > 1 ? t("Цель на сегодня выполнена: {goal} мин, {n}-й день подряд", { goal, n: streak }) : t("Цель на сегодня выполнена: {goal} мин", { goal }), "success");
 }
 
 function announceAchievement(s: AchievementState) {

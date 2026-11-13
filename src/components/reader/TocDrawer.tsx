@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark as BookmarkIcon, Check, Trash2 } from "lucide-react";
+import { Bookmark as BookmarkIcon, Check, Highlighter, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cn, IconButton, Segmented } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
@@ -8,9 +8,9 @@ import type { ChapterMeta } from "@/lib/library/hooks";
 import type { Bookmark } from "@/lib/storage/types";
 import { t } from "@/lib/i18n";
 
-/** Table of contents (with completion marks and part groups) + bookmarks. */
+/** Table of contents (with completion marks and part groups) + bookmarks and quotes. */
 export function TocDrawer({
-  open, onClose, chapters, current, completed, bookmarks, onJump, onBookmark, onDeleteBookmark, pageLabel,
+  open, onClose, chapters, current, completed, bookmarks, quotes = [], onJump, onBookmark, onDeleteBookmark, pageLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -18,6 +18,8 @@ export function TocDrawer({
   current: number;
   completed: Set<number>;
   bookmarks: Bookmark[];
+  /** Passages kept as quotes (text books): listed after the bookmarks, opened and deleted the same way. */
+  quotes?: Bookmark[];
   onJump: (index: number) => void;
   onBookmark: (b: Bookmark) => void;
   onDeleteBookmark: (b: Bookmark) => void;
@@ -36,7 +38,7 @@ export function TocDrawer({
           onChange={setTab}
           options={[
             { value: "toc", label: `${t("Оглавление")} · ${chapters.length}` },
-            { value: "marks", label: `${t("Закладки")} · ${bookmarks.length}` },
+            { value: "marks", label: `${t("Закладки")} · ${bookmarks.length + quotes.length}` },
           ]}
         />
       }
@@ -66,23 +68,46 @@ export function TocDrawer({
             );
           })}
         </ol>
-      ) : bookmarks.length === 0 ? (
+      ) : bookmarks.length + quotes.length === 0 ? (
         <p className="px-6 py-10 text-center text-[16px] text-ink-2">{t("Закладок пока нет — отметьте страницу значком в верхней панели.")}</p>
       ) : (
-        <ul className="px-5 pb-4">
-          {bookmarks.map((b) => (
-            <li key={b.id} className="flex items-start gap-3 border-b border-line py-3 last:border-b-0">
-              <BookmarkIcon size={17} className="mt-0.5 shrink-0 text-accent" />
-              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onBookmark(b)}>
-                <div className="text-[13px] text-ink-2">{chapters[b.chapterIndex]?.title}</div>
-                <div className="mt-0.5 line-clamp-2 text-[16px] font-medium leading-snug">{b.note || b.snippet || t("Закладка")}</div>
-              </button>
-              <IconButton label={t("Удалить закладку")} size={30} className="text-ink-3" onClick={() => onDeleteBookmark(b)}>
-                <Trash2 size={15} />
-              </IconButton>
-            </li>
-          ))}
-        </ul>
+        <div className="px-5 pb-4">
+          {bookmarks.length > 0 && (
+            <ul>
+              {bookmarks.map((b) => (
+                <li key={b.id} className="flex items-start gap-3 border-b border-line py-3 last:border-b-0">
+                  <BookmarkIcon size={17} className="mt-0.5 shrink-0 text-accent" />
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onBookmark(b)}>
+                    <div className="text-[13px] text-ink-2">{chapters[b.chapterIndex]?.title}</div>
+                    <div className="mt-0.5 line-clamp-2 text-[16px] font-medium leading-snug">{b.note || b.snippet || t("Закладка")}</div>
+                  </button>
+                  <IconButton label={t("Удалить закладку")} size={30} className="text-ink-3" onClick={() => onDeleteBookmark(b)}>
+                    <Trash2 size={15} />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          {quotes.length > 0 && (
+            <>
+              <h3 className={cn("pb-1 text-[14px] font-bold text-ink-2", bookmarks.length ? "pt-5" : "pt-1")}>{t("Цитаты · {n}", { n: quotes.length })}</h3>
+              <ul data-quotes>
+                {quotes.map((b) => (
+                  <li key={b.id} className="flex items-start gap-3 border-b border-line py-3 last:border-b-0">
+                    <Highlighter size={17} className="mt-0.5 shrink-0 text-accent" />
+                    <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onBookmark(b)}>
+                      <div className="text-[13px] text-ink-2">{chapters[b.chapterIndex]?.title}</div>
+                      <div className="mt-0.5 line-clamp-3 font-serif text-[16px] leading-snug">{b.quote?.text}</div>
+                    </button>
+                    <IconButton label={t("Удалить цитату")} size={30} className="text-ink-3" onClick={() => onDeleteBookmark(b)}>
+                      <Trash2 size={15} />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
     </Sheet>
   );

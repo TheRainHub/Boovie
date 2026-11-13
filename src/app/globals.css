@@ -156,6 +156,19 @@ button,
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
 }
 
+/* A quote kept in the text (reader/quotes.ts): a soft marker stroke in the page's own tone. */
+.book-content mark.quote-mark {
+  color: inherit;
+  background: rgb(240 196 80 / 0.38);
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+}
+[data-paper="dark"] .book-content mark.quote-mark {
+  background: rgb(214 160 60 / 0.3);
+}
+
 /* Big navigation words and screen titles. */
 @utility display {
   font-weight: 800;

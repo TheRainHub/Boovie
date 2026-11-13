@@ -86,6 +86,11 @@ export interface Bookmark {
   note?: string;
   snippet?: string;
   createdAt: number;
+  /**
+   * A quote: a passage marked in the text (kind "text"), with where it is in the chapter's text (character
+   * offsets). Older versions of the app show it as a bookmark with the passage as its snippet.
+   */
+  quote?: { text: string; start: number; end: number };
 }
 
 export interface ProgressRecord {

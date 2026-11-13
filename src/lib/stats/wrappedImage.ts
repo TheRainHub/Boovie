@@ -6,7 +6,7 @@
  * files, or a download.
  */
 import { t } from "../i18n";
-import { isNative } from "../native";
+import { shareImage, wrapLines as wrap } from "../share";
 import { getFileUrl } from "../storage/blobStore";
 import type { Wrapped } from "./wrapped";
 
@@ -27,30 +27,6 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
-}
-
-/** Lines of `text` that fit `width`, at most `max` (the last one shortened with «…»). */
-function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, max: number): string[] {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (ctx.measureText(next).width <= width || !line) line = next;
-    else {
-      lines.push(line);
-      line = word;
-    }
-  }
-  if (line) lines.push(line);
-  if (lines.length > max) {
-    const cut = lines.slice(0, max);
-    let last = cut[max - 1];
-    while (last.length > 1 && ctx.measureText(`${last}…`).width > width) last = last.slice(0, -1);
-    cut[max - 1] = `${last}…`;
-    return cut;
-  }
-  return lines;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -172,26 +148,5 @@ export async function drawWrapped(w: Wrapped, info: ShareInfo): Promise<Blob> {
 /** Draw the picture and hand it to the share sheet (or download it where sharing files isn't possible). */
 export async function shareWrapped(w: Wrapped, info: ShareInfo): Promise<"shared" | "downloaded"> {
   const blob = await drawWrapped(w, info);
-  const name = `boowie-${w.year}.png`;
-  const title = t("Мой {year} с книгами", { year: w.year });
-  if (isNative()) {
-    const [{ cacheNativeCopy }, { Share }] = await Promise.all([import("../storage/nativeFiles"), import("@capacitor/share")]);
-    const uri = await cacheNativeCopy(name, blob);
-    await Share.share({ title, files: [uri] });
-    return "shared";
-  }
-  const file = new File([blob], name, { type: "image/png" });
-  if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-    await navigator.share({ files: [file], title });
-    return "shared";
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  return "downloaded";
+  return shareImage(blob, `boowie-${w.year}.png`, t("Мой {year} с книгами", { year: w.year }));
 }

@@ -6,13 +6,17 @@ import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, getChapter, getChapters, journalPosition, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
+import { useCoverTone } from "@/lib/covers/tone";
 import { FONT_STACKS, PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
+import { shareQuote } from "@/lib/reader/quoteImage";
+import { paintQuotes, rangeOffsets } from "@/lib/reader/quotes";
 import { recordFinish, recordPage } from "@/lib/stats/activity";
 import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
 import { AmbientButton, AmbientSheet, useAmbientInBook } from "./AmbientSheet";
 import { DictionaryCard } from "./DictionaryCard";
+import { QuoteBar, QuoteSheet } from "./Quotes";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
 import { TypographyDrawer } from "./TypographyDrawer";
@@ -52,6 +56,7 @@ export function TextReader({
   const [tocOpen, setTocOpen] = useState(false);
   const [typoOpen, setTypoOpen] = useState(false);
   const [soundOpen, setSoundOpen] = useState(false);
+  const [openQuote, setOpenQuote] = useState<BookmarkRecord | null>(null);
   useAmbientInBook();
   const [size, setSize] = useState({ w: 0, h: 0, top: 0, bottom: 0 });
 
@@ -236,13 +241,13 @@ export function TextReader({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (tocOpen || typoOpen || soundOpen || (e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (tocOpen || typoOpen || soundOpen || openQuote || (e.target as HTMLElement)?.tagName === "INPUT") return;
       if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
       if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, tocOpen, typoOpen, soundOpen]);
+  }, [next, prev, tocOpen, typoOpen, soundOpen, openQuote]);
 
   const followLink = useCallback(async (target: string) => {
     // EPUB: "ch:N#frag"; FB2 notes: "#noteId" (search all chapters for the anchor).
@@ -254,8 +259,10 @@ export function TextReader({
     if (hit) goChapter(hit.index, 0, frag);
   }, [book.id, goChapter]);
 
-  // ── Dictionary: a single word selected in the text (a long press, a double click) is looked up ───────────
+  // ── Selection: a single word (a long press, a double click) is looked up in the dictionary; a longer passage can
+  // be kept as a quote or shared as a picture ─────────────────────────────────────────────────────────────────
   const [lookupFor, setLookupFor] = useState<{ word: string; place: "top" | "bottom" } | null>(null);
+  const [quoteSel, setQuoteSel] = useState<{ text: string; start: number; end: number; place: "top" | "bottom" } | null>(null);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onSelection = () => {
@@ -264,11 +271,23 @@ export function TextReader({
       timer = setTimeout(() => {
         const sel = window.getSelection();
         const text = sel?.toString().trim() ?? "";
-        if (!sel || !sel.rangeCount || !text || !/^[\p{L}][\p{L}\p{M}'’-]{0,39}$/u.test(text)) return;
+        if (!sel || !sel.rangeCount || !text) {
+          setQuoteSel(null);
+          return;
+        }
         const range = sel.getRangeAt(0);
         if (!viewport.current?.contains(range.commonAncestorContainer)) return;
         const rect = range.getBoundingClientRect();
-        setLookupFor({ word: text, place: rect.top > window.innerHeight * 0.55 ? "top" : "bottom" });
+        const place = rect.top > window.innerHeight * 0.55 ? "top" : "bottom";
+        if (/^[\p{L}][\p{L}\p{M}'’-]{0,39}$/u.test(text)) {
+          setQuoteSel(null);
+          setLookupFor({ word: text, place });
+          return;
+        }
+        const at = content.current && /\s/.test(text) && text.length <= 4000 ? rangeOffsets(content.current, range) : null;
+        if (!at) return;
+        setLookupFor(null);
+        setQuoteSel({ ...at, place });
       }, 350);
     };
     document.addEventListener("selectionchange", onSelection);
@@ -307,13 +326,64 @@ export function TextReader({
     }
     if (link?.getAttribute("href")) return;
     const x = e.clientX / window.innerWidth;
+    const mark = (e.target as HTMLElement).closest<HTMLElement>("mark[data-quote]");
+    const tapped = mark && x >= 0.25 && x <= 0.75 ? quotes.find((q) => q.id === mark.dataset.quote) : undefined;
+    if (tapped) {
+      setOpenQuote(tapped);
+      return;
+    }
     if (x < 0.25) prev();
     else if (x > 0.75) next();
     else setHud((v) => !v);
   };
 
-  // ── Bookmarks ─────────────────────────────────────────────────────────────────────
-  const marks = (progress?.bookmarks ?? []).filter((b) => b.kind === "text");
+  // ── Bookmarks and quotes ─────────────────────────────────────────────────────────────
+  const marks = (progress?.bookmarks ?? []).filter((b) => b.kind === "text" && !b.quote);
+  const quotes = (progress?.bookmarks ?? [])
+    .filter((b) => b.kind === "text" && b.quote)
+    .sort((a, b) => a.chapterIndex - b.chapterIndex || a.quote!.start - b.quote!.start);
+  // The chapter's quotes, as a string: the marks are drawn again only when they change.
+  const spotsKey = JSON.stringify(quotes.filter((q) => q.chapterIndex === chapterIndex).map((q) => ({ id: q.id, ...q.quote! })));
+  // A quote to bring into view once its chapter is on the screen.
+  const quoteTarget = useRef<string | null>(null);
+  const showQuote = useCallback((id: string) => {
+    const el = content.current?.querySelector<HTMLElement>(`mark[data-quote="${CSS.escape(id)}"]`);
+    if (!el) return false;
+    if (paged) setPage(Math.max(0, Math.floor((el.offsetLeft + 1) / stride)));
+    else if (viewport.current) viewport.current.scrollTop = Math.max(0, el.getBoundingClientRect().top - viewport.current.getBoundingClientRect().top + viewport.current.scrollTop - size.top - 16);
+    return true;
+  }, [paged, size.top, stride]);
+  useLayoutEffect(() => {
+    if (html === null || !content.current) return;
+    paintQuotes(content.current, JSON.parse(spotsKey));
+    if (quoteTarget.current && showQuote(quoteTarget.current)) quoteTarget.current = null;
+  }, [html, paged, spotsKey, showQuote]);
+  const [sharing, setSharing] = useState(false);
+  const tone = useCoverTone(book.coverFileId, book.coverUrl);
+  const share = async (text: string) => {
+    setSharing(true);
+    try {
+      await shareQuote({ text, title: book.title, author: book.author, tone });
+    } catch (e) {
+      if ((e as Error)?.name !== "AbortError") toast(t("Не получилось поделиться картинкой"), "error");
+    } finally {
+      setSharing(false);
+    }
+  };
+  const saveQuote = async () => {
+    if (!quoteSel) return;
+    const total = content.current?.textContent?.length || 1;
+    await addBookmark(book.id, {
+      kind: "text",
+      chapterIndex,
+      position: Math.min(1, quoteSel.start / total),
+      snippet: quoteSel.text.slice(0, 120),
+      quote: { text: quoteSel.text, start: quoteSel.start, end: quoteSel.end },
+    });
+    setQuoteSel(null);
+    window.getSelection()?.removeAllRanges();
+    toast(t("Цитата сохранена"), "success");
+  };
   const tolerance = paged ? 0.5 / Math.max(1, pages - 1) : 0.02;
   const currentMark = marks.find((b) => b.chapterIndex === chapterIndex && Math.abs(b.position - fraction) <= tolerance + 1e-6);
 
@@ -337,6 +407,10 @@ export function TextReader({
 
   const openBookmark = (b: BookmarkRecord) => {
     setTocOpen(false);
+    if (b.quote) {
+      if (b.chapterIndex === chapterIndex && showQuote(b.id)) return;
+      quoteTarget.current = b.id;
+    }
     if (b.chapterIndex === chapterIndex) {
       fractionRef.current = b.position;
       if (paged) setPage(Math.round(b.position * (pages - 1)));
@@ -473,6 +547,7 @@ export function TextReader({
         current={chapterIndex}
         completed={completed}
         bookmarks={marks}
+        quotes={quotes}
         onJump={(i) => { setTocOpen(false); goChapter(i, 0); }}
         onBookmark={openBookmark}
         onDeleteBookmark={(b) => void removeBookmark(book.id, b.id)}
@@ -480,6 +555,39 @@ export function TextReader({
       <TypographyDrawer open={typoOpen} onClose={() => setTypoOpen(false)} />
       <AmbientSheet open={soundOpen} onClose={() => setSoundOpen(false)} />
       {lookupFor && <DictionaryCard word={lookupFor.word} place={lookupFor.place} paper={paper} onClose={closeLookup} />}
+      {quoteSel && !lookupFor && (
+        <QuoteBar
+          place={quoteSel.place}
+          paper={paper}
+          busy={sharing}
+          onSave={() => void saveQuote()}
+          onShare={() => void share(quoteSel.text)}
+          onClose={() => {
+            setQuoteSel(null);
+            window.getSelection()?.removeAllRanges();
+          }}
+        />
+      )}
+      <QuoteSheet
+        quote={openQuote}
+        chapterTitle={openQuote ? chapters[openQuote.chapterIndex]?.title : undefined}
+        busy={sharing}
+        onClose={() => setOpenQuote(null)}
+        onShare={() => openQuote?.quote && void share(openQuote.quote.text)}
+        onCopy={() => {
+          if (!openQuote?.quote) return;
+          void navigator.clipboard?.writeText(`${openQuote.quote.text}\n— ${[book.author, book.title].filter(Boolean).join(", ")}`).then(
+            () => toast(t("Скопировано"), "success"),
+            () => toast(t("Не получилось скопировать"), "error"),
+          );
+        }}
+        onDelete={() => {
+          if (!openQuote) return;
+          void removeBookmark(book.id, openQuote.id);
+          setOpenQuote(null);
+          toast(t("Цитата удалена"));
+        }}
+      />
     </div>
   );
 }
