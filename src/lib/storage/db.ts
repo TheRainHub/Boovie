@@ -8,6 +8,8 @@ export type TitanDB = Dexie & {
   files: EntityTable<FileRecord, "id">;
   activity: EntityTable<ActivityRecord, "id">;
   cloud: EntityTable<CloudRecord, "id">;
+  /** Dictionary data fetched so far (lib/dictionary): `${lang}:index` and `${lang}:${shard}`. */
+  dict: EntityTable<{ id: string; data: unknown }, "id">;
 };
 
 let instance: TitanDB | null = null;
@@ -27,6 +29,9 @@ export function getDB(): TitanDB {
   db.version(3).stores({
     books: "id, addedAt, format, storeId, lastOpenedAt, syncKey",
     cloud: "id, owner",
+  });
+  db.version(4).stores({
+    dict: "id",
   });
   instance = db;
   return db;

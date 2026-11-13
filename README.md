@@ -78,6 +78,15 @@ landscape the player and the store details go two-column and the reader shows a 
   the app leaves the screen, when playback pauses (and every 10 minutes of uninterrupted playback), and when the
   app opens — uploads carry only what changed, downloads only what the server got since the last time
   (`src/lib/library/cloud.ts`, `src/lib/account/librarySync.ts`).
+- **Dictionary in the reader** — select a word (a long press on a phone, a double click on a computer) and its
+  meaning opens in a card in the page's colours: Russian words explained in Russian with usage labels («устар.»,
+  «разг.»), the stress and an example; English words with their meanings in Russian, the transcription and an
+  example with its translation. Inflected forms lead to their word («кавалеристом» → «кавалерист», «went» →
+  «go»); when the text's word is several words' form, all of them are offered. The data is Russian Wiktionary
+  (CC BY-SA 4.0, via wiktextract): 429 000 Russian words with 2.6 million forms and 53 000 English words, packed
+  by `scripts/dictionary/build_dict.py` into small compressed shards served by the files Worker
+  (`/dict/v1/…`, Range requests). A lookup reads one shard of 10–50 KB and keeps it on the device, so words looked
+  up before work offline (`src/lib/dictionary/lookup.ts`, `src/components/reader/DictionaryCard.tsx`).
 - **Own files in the cloud** — books the user added (and voiced editions) are uploaded in the background to
   Cloudflare R2 through a small Worker (`workers/files`), one at a time while the app is open, in 50 MB parts that
   survive a restart, not over mobile data where the system tells; a book already there (uploaded from another
@@ -148,6 +157,11 @@ project's URL). The app expects the Worker at `NEXT_PUBLIC_FILES_URL` (default
 `https://boowie-files.theraintv94.workers.dev`); the Worker's `ALLOWED_ORIGINS` lists the site's and the apps'
 origins.
 
+**Dictionary data** (once, or for a new build): download the Russian and English extracts of Russian Wiktionary
+from https://kaikki.org/ruwiktionary/ (`Русский`, `Английский` → JSONL), run
+`python3 scripts/dictionary/build_dict.py ru.jsonl en.jsonl out/` and upload the four files to the R2 bucket
+under `dict/<version>/`; a new build takes a new version (and `VERSION` in `src/lib/dictionary/lookup.ts`).
+
 **GitHub Pages** (optional): `.github/workflows/deploy-pages.yml`, run manually, builds with
 `NEXT_PUBLIC_BASE_PATH=/Boovie` for https://therainhub.github.io/Boovie/. Any other static host:
 `npm run build` and upload `out/` (set `NEXT_PUBLIC_BASE_PATH` when serving from a sub-path).
@@ -171,7 +185,8 @@ src/components/book      BookScreen (dual mode)
 src/lib/parsers          fb2Parser, epubParser, pdfParser, audioParser, audioMetadata, sanitize
 src/lib/storage          Dexie schema, OPFS/IndexedDB blob store, app files (nativeFiles)
 native/boowie-player     the apps' native book player (Capacitor plugin: Android Java, iOS Swift)
-workers/files            Cloudflare Worker: the accounts' own files in R2
+workers/files            Cloudflare Worker: the accounts' own files in R2, and the dictionary data
+scripts/dictionary       the reader's dictionary, built from Russian Wiktionary
 android/, ios/           Capacitor shells
 src/lib/library          repository (books, progress, bookmarks), importer, folder grouping, live-query hooks
 src/lib/covers           cover tone (colour), online lookup, generated covers

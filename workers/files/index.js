@@ -17,6 +17,9 @@
  *   POST   /v1/books/:key/files/:n/uploads/:id/complete ← { parts: [{ partNumber, etag }] }
  *   DELETE /v1/books/:key/files/:n/uploads/:id         abandon an upload
  *
+ * And, without a session, the reader's dictionary (scripts/dictionary/build_dict.py, from Wiktionary, CC BY-SA):
+ *   GET    /dict/<version>/<lang>.index.json | <lang>.pack   (Range supported; the files never change)
+ *
  * Bindings: BUCKET (R2), SUPABASE_URL, QUOTA_BYTES (per account; 0 = no limit), SUPABASE_KEY (optional: the
  * project's publishable key when a request doesn't bring it in an `apikey` header),
  * ALLOWED_ORIGINS (comma-separated; `*` inside a name matches any letters, digits and dashes).
@@ -110,8 +113,29 @@ async function checkQuota(env, user, size) {
   if ((await usage(env, user)) + size > quota) throw new HttpError(413, "the account's cloud space is full");
 }
 
+/** A dictionary file: public, read in byte ranges, cached for good (a new build gets a new version path). */
+async function dictionary(request, env, path) {
+  if (request.method !== "GET" || !/^dict\/v\d+\/[a-z]{2}\.(index\.json|pack)$/.test(path)) throw new HttpError(404, "not found");
+  const range = request.headers.get("Range");
+  const m = range && /^bytes=(\d+)-(\d+)$/.exec(range);
+  const obj = await env.BUCKET.get(path, m ? { range: { offset: Number(m[1]), length: Number(m[2]) - Number(m[1]) + 1 } } : undefined);
+  if (!obj) throw new HttpError(404, "not found");
+  const headers = {
+    "Content-Type": path.endsWith(".json") ? "application/json" : "application/octet-stream",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "Accept-Ranges": "bytes",
+  };
+  if (m && obj.range) {
+    const start = obj.range.offset;
+    const length = obj.range.length;
+    return new Response(obj.body, { status: 206, headers: { ...headers, "Content-Length": String(length), "Content-Range": `bytes ${start}-${start + length - 1}/${obj.size}` } });
+  }
+  return new Response(obj.body, { headers: { ...headers, "Content-Length": String(obj.size) } });
+}
+
 async function route(request, env) {
   const url = new URL(request.url);
+  if (url.pathname.startsWith("/dict/")) return dictionary(request, env, url.pathname.slice(1));
   const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] !== "v1") throw new HttpError(404, "not found");
   const user = await userOf(request, env);

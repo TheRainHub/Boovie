@@ -11,6 +11,7 @@ import { recordFinish, recordPage } from "@/lib/stats/activity";
 import { useReadingTime } from "@/lib/stats/useReadingTime";
 import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
+import { DictionaryCard } from "./DictionaryCard";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
 import { TypographyDrawer } from "./TypographyDrawer";
@@ -250,6 +251,34 @@ export function TextReader({
     if (hit) goChapter(hit.index, 0, frag);
   }, [book.id, goChapter]);
 
+  // ── Dictionary: a single word selected in the text (a long press, a double click) is looked up ───────────
+  const [lookupFor, setLookupFor] = useState<{ word: string; place: "top" | "bottom" } | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onSelection = () => {
+      clearTimeout(timer);
+      // Wait until the selection settles (handles being dragged).
+      timer = setTimeout(() => {
+        const sel = window.getSelection();
+        const text = sel?.toString().trim() ?? "";
+        if (!sel || !sel.rangeCount || !text || !/^[\p{L}][\p{L}\p{M}'’-]{0,39}$/u.test(text)) return;
+        const range = sel.getRangeAt(0);
+        if (!viewport.current?.contains(range.commonAncestorContainer)) return;
+        const rect = range.getBoundingClientRect();
+        setLookupFor({ word: text, place: rect.top > window.innerHeight * 0.55 ? "top" : "bottom" });
+      }, 350);
+    };
+    document.addEventListener("selectionchange", onSelection);
+    return () => {
+      document.removeEventListener("selectionchange", onSelection);
+      clearTimeout(timer);
+    };
+  }, []);
+  const closeLookup = () => {
+    setLookupFor(null);
+    window.getSelection()?.removeAllRanges();
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     pointer.current = { x: e.clientX, y: e.clientY, t: Date.now(), swiped: false };
   };
@@ -445,6 +474,7 @@ export function TextReader({
         onDeleteBookmark={(b) => void removeBookmark(book.id, b.id)}
       />
       <TypographyDrawer open={typoOpen} onClose={() => setTypoOpen(false)} />
+      {lookupFor && <DictionaryCard word={lookupFor.word} place={lookupFor.place} paper={paper} onClose={closeLookup} />}
     </div>
   );
 }
