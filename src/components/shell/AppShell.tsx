@@ -21,12 +21,12 @@ import { ImportTray } from "./ImportTray";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const immersive = pathname?.startsWith("/book");
+  const immersive = pathname?.startsWith("/book") || pathname?.startsWith("/wrapped");
   // The page is mounted afresh in the chosen language (see lib/i18n): after hydration and on a switch in the settings.
   const lang = useLang();
   useEffect(() => markHydrated(), []);
   useEffect(() => {
-    const section = [["/library", t("Книги")], ["/store", t("Магазин")], ["/profile", t("Профиль")], ["/settings", t("Настройки")], ["/book", t("Книга")]]
+    const section = [["/library", t("Книги")], ["/store", t("Магазин")], ["/profile", t("Профиль")], ["/settings", t("Настройки")], ["/book", t("Книга")], ["/wrapped", t("Итоги года")]]
       .find(([p]) => pathname?.startsWith(p))?.[1];
     const want = section ? `${section} · Boowie` : t("Boowie — книги и аудиокниги");
     document.title = want;

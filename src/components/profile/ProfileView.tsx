@@ -19,6 +19,7 @@ import { getDB } from "@/lib/storage/db";
 import { ActivityChart } from "./ActivityChart";
 import { AuthSheet, type AuthMode } from "./AuthSheet";
 import { Avatar } from "./Avatar";
+import { WrappedCard } from "@/components/wrapped/WrappedCard";
 
 function ago(at?: number): string {
   if (!at) return "";
@@ -144,6 +145,7 @@ export function ProfileView() {
       </header>
 
       <div className="mt-4"><AccountCard onAuth={setAuth} /></div>
+      <WrappedCard className="mt-3" />
 
       <Segmented<Period>
         className="mt-6 w-full"

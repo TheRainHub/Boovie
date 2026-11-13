@@ -8,6 +8,7 @@ import { DropTarget, useImportPicker } from "@/components/library/ImportPicker";
 import { PlayGlyph } from "@/components/player/icons";
 import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { TopNav } from "@/components/shell/TopNav";
+import { WrappedCard } from "@/components/wrapped/WrappedCard";
 import { BookCover } from "@/components/ui/BookCover";
 import { CoverBackdrop } from "@/components/ui/CoverBackdrop";
 import { Button, cn, ProgressBar } from "@/components/ui/primitives";
@@ -46,6 +47,7 @@ function NowScreen({ current }: { current: CurrentBook }) {
         <CoverBackdrop fileId={book.coverFileId} url={book.coverUrl} fixed />
         <TopNav toned className="pt-[calc(var(--sat)+14px)]" />
         {audio ? <ListeningNow current={current} /> : <ReadingNow current={current} />}
+        <div className="mx-auto mt-8 max-w-[600px] px-5 wide:max-w-[1180px]"><WrappedCard seasonOnly /></div>
         <ContinueRow exclude={[book.id, book.companionId]} />
       </main>
     </DropTarget>

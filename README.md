@@ -78,6 +78,13 @@ landscape the player and the store details go two-column and the reader shows a 
   the app leaves the screen, when playback pauses (and every 10 minutes of uninterrupted playback), and when the
   app opens — uploads carry only what changed, downloads only what the server got since the last time
   (`src/lib/library/cloud.ts`, `src/lib/account/librarySync.ts`).
+- **Итоги года** — the year's reading and listening as full-screen stories in the spirit of Spotify Wrapped:
+  time with books (and how it split between reading and listening), days with books, the longest streak and the
+  biggest day, month by month, the book of the year in its cover's colour, the top five, finished books, pages
+  (as a stack) and the time playback speed saved, the author of the year, a reader type; then a summary picture
+  (1080 × 1920) to share — the system share sheet in the apps, Web Share or a download in the browser. Tap to go
+  on or back, hold to pause. Counted on the device from the profile's statistics (`src/lib/stats/wrapped.ts`);
+  offered in the profile all year and on the home screen in December and January.
 - **Dictionary in the reader** — select a word (a long press on a phone, a double click on a computer) and its
   meaning opens in a card in the page's colours: Russian words explained in Russian with usage labels («устар.»,
   «разг.»), the stress and an example; English words with Russian translations for each of their meanings (with a
