@@ -156,6 +156,29 @@ button,
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
 }
 
+/* Sounds for reading: a level per sound as a tall pill, like the phone's own volume — a dark track that fills with
+   warm white from the bottom, the sound's sign in the accent colour once the fill reaches it. */
+.ambient-pill {
+  background: #4a4440;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+[data-theme="dark"] .ambient-pill {
+  background: #3a3431;
+}
+.ambient-fill {
+  background: #fffaf3;
+}
+.ambient-icon-on {
+  color: var(--chart-listen);
+}
+.ambient-icon-off {
+  color: rgb(255 250 243 / 0.78);
+}
+.ambient-pill.ambient-silence-on {
+  background: #fffaf3;
+  color: var(--chart-listen);
+}
+
 /* A quote kept in the text (reader/quotes.ts): a soft marker stroke in the page's own tone. */
 .book-content mark.quote-mark {
   color: inherit;

@@ -596,8 +596,6 @@ export const EN: Record<string, string> = {
   "Поезд": "Train",
   "Звуки для чтения": "Sounds for reading",
   "Тишина": "Silence",
-  "Громкость звуков": "Sound volume",
-  "Звуки создаются прямо на устройстве и работают без интернета. Они играют, пока открыта книга, и вернутся в следующий раз.": "The sounds are made right on the device and work offline. They play while a book is open and come back next time.",
   "Новое достижение: {name}": "New achievement: {name}",
   "Первые шаги": "First steps",
   "Провести с книгой первые минуты": "Spend your first minutes with a book",
@@ -661,4 +659,6 @@ export const EN: Record<string, string> = {
   "Цитаты · {n}": "Quotes · {n}",
   "Цель на сегодня выполнена: {goal} мин, {n}-й день подряд": "Today's goal reached: {goal} min, day {n} in a row",
   "Цель на сегодня выполнена: {goal} мин": "Today's goal reached: {goal} min",
+  "выключено": "off",
+  "Звуки можно смешивать: у каждого своя громкость — потяните вверх или вниз, нажмите, чтобы включить или выключить. Они создаются прямо на устройстве, работают без интернета и играют, пока открыта книга.": "Mix the sounds: each has its own volume — drag up or down, tap to switch it on or off. They are made right on the device, work offline and play while a book is open.",
 };

@@ -124,12 +124,15 @@ landscape the player and the store details go two-column and the reader shows a 
   delete) and travel with the book's bookmarks to the account's other devices — no new tables: a quote is a
   bookmark with the passage and its place in the chapter's text (`src/lib/reader/quotes.ts`,
   `src/lib/reader/quoteImage.ts`, `src/components/reader/Quotes.tsx`).
-- **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night or a train while a book is
-  open (the button in the reader's bar). They are synthesised on the device with no files or network: filtered
-  noise and small events (drops, crackles, waves, birds, crickets, wheels over rail joints) rendered into a 20–40 s
-  loop whose end fades into its start, levelled to one loudness and played through Web Audio with a volume of its
-  own. The sound stops when the book is closed and comes back in the next one at the first touch
-  (`src/lib/audio/ambientSynth.ts`, `src/lib/audio/ambient.ts`, `src/components/reader/AmbientSheet.tsx`).
+- **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night and a train while a book is
+  open (the button in the reader's bar), as a mixer: each sound is a tall pill like the phone's own volume control,
+  filling from the bottom — drag it up or down for its level, tap to switch it on or off, arrow keys work too — so
+  rain can go with the fireplace; «Тишина» stops them all. They are synthesised on the device with no files or
+  network: filtered noise and small events (drops, crackles, waves, birds, crickets, wheels over rail joints)
+  rendered into a 20–40 s loop whose end fades into its start, levelled to one loudness and played through Web Audio,
+  each through its own gain, with a gentle limiter after the mix. The levels are remembered; the sounds stop when
+  the book is closed and come back in the next one at the first touch (`src/lib/audio/ambientSynth.ts`,
+  `src/lib/audio/ambient.ts`, `src/components/reader/AmbientSheet.tsx`).
 - **Own files in the cloud** — books the user added (and voiced editions) are uploaded in the background to
   Cloudflare R2 through a small Worker (`workers/files`), one at a time while the app is open, in 50 MB parts that
   survive a restart, not over mobile data where the system tells; a book already there (uploaded from another
