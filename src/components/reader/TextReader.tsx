@@ -6,7 +6,9 @@ import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
 import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, getChapter, getChapters, journalPosition, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
+import { playPageFlip, rustleSpeed, rustleStart, rustleStop } from "@/lib/audio/pageSound";
 import { useCoverTone } from "@/lib/covers/tone";
+import { constrain, curlFrame, type Pt } from "@/lib/reader/curl";
 import { FONT_STACKS, PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
 import { shareQuote } from "@/lib/reader/quoteImage";
 import { paintQuotes, rangeOffsets } from "@/lib/reader/quotes";
@@ -16,6 +18,7 @@ import { getFileUrl } from "@/lib/storage/blobStore";
 import type { BookRecord, Bookmark as BookmarkRecord } from "@/lib/storage/types";
 import { AmbientButton, AmbientSheet, useAmbientInBook } from "./AmbientSheet";
 import { DictionaryCard } from "./DictionaryCard";
+import { CurlFlap, paintCurl } from "./PageCurl";
 import { QuoteBar, QuoteSheet } from "./Quotes";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
@@ -78,6 +81,8 @@ export function TextReader({
   const pageLeft = Math.round((size.w - pageW) / 2);
   const stride = pageW + gutter;
   const pageH = Math.max(100, size.h - size.top - size.bottom);
+  // One page on the screen: it turns over like paper (unless the slide is chosen). A spread keeps the slide.
+  const curlOn = paged && cols === 1 && prefs.turn === "curl";
 
   // Show the HUD briefly on open so the controls are discoverable, then get out of the way —
   // unless it is already being used.
@@ -151,7 +156,9 @@ export function TextReader({
     const el = content.current;
     let alive = true;
     void document.fonts?.ready.then(() => alive && measure());
-    el?.querySelectorAll<HTMLImageElement>("img[data-asset]").forEach((img) => {
+    // The book's own pictures, in the page and in its copy beneath a turning page.
+    const imgs = [...(el?.querySelectorAll<HTMLImageElement>("img[data-asset]") ?? []), ...(underContent.current?.querySelectorAll<HTMLImageElement>("img[data-asset]") ?? [])];
+    imgs.forEach((img) => {
       if (img.src) return;
       void getFileUrl(img.dataset.asset!).then((u) => {
         if (!u || !alive) return;
@@ -162,7 +169,7 @@ export function TextReader({
     return () => {
       alive = false;
     };
-  }, [html, measure, prefs.fontSize, prefs.lineHeight, prefs.font, prefs.justify, pageH, pageW, cols]);
+  }, [html, measure, prefs.fontSize, prefs.lineHeight, prefs.font, prefs.justify, pageH, pageW, cols, curlOn]);
 
   // ── Position persistence ───────────────────────────────────────────────────────────
   const fraction = paged ? (pages > 1 ? page / (pages - 1) : 1) : scrollFrac;
@@ -210,7 +217,8 @@ export function TextReader({
     void loadChapter(index, frac, anchor);
   }, [book.id, chapterIndex, chapters.length, loadChapter]);
 
-  const next = useCallback(() => {
+  /** The next page at once (or the next chapter, or the end of the book). */
+  const advance = useCallback((keepHud = false) => {
     if (paged && page < pages - 1) {
       setPage(page + 1);
       recordPage(book.id, cols);
@@ -229,25 +237,204 @@ export function TextReader({
       recordFinish(book.id, "read");
       toast(t("Книга прочитана до конца"), "success");
     }
-    setHud(false);
+    if (!keepHud) setHud(false);
   }, [book.id, chapterIndex, chapters.length, cols, goChapter, page, paged, pages]);
 
-  const prev = useCallback(() => {
+  /** The previous page at once (or the end of the previous chapter). */
+  const retreat = useCallback(() => {
     if (paged && page > 0) setPage(page - 1);
     else if (!paged && viewport.current && viewport.current.scrollTop > 4) viewport.current.scrollBy({ top: -viewport.current.clientHeight * 0.9, behavior: "smooth" });
     else if (chapterIndex > 0) goChapter(chapterIndex - 1, 1);
     setHud(false);
   }, [chapterIndex, goChapter, page, paged]);
 
+  // ── Turning a page like paper (lib/reader/curl.ts) ──────────────────────────────────────────────────────────
+  // Forward: the page lifts off the next one (shown beneath). Back: the previous page is laid on top, turned away,
+  // and comes back over. The corner follows the finger, or a tap sends it over by itself.
+  const curlBoxRef = useRef<HTMLDivElement>(null);
+  const curlFlapRef = useRef<HTMLDivElement>(null);
+  const curlShadeRef = useRef<HTMLDivElement>(null);
+  const underContent = useRef<HTMLDivElement>(null);
+  const curl = useRef<{ dir: 1 | -1; C: Pt; P: Pt; W: number; H: number; from: number } | null>(null);
+  const [turn, setTurn] = useState<{ under: number | null } | null>(null);
+  const anim = useRef(0);
+  const queued = useRef<1 | -1 | null>(null);
+  const paintNow = useCallback(() => {
+    const c = curl.current;
+    const vp = viewport.current;
+    if (!vp) return;
+    paintCurl(vp, { boxRef: curlBoxRef, flapRef: curlFlapRef, shadeRef: curlShadeRef }, c ? curlFrame(c.W, c.H, c.C, c.P) : null, paper.dark, c?.W ?? 0, c?.H ?? 0);
+  }, [paper.dark]);
+  // A turn starting or ending: its first frame (or a clean page) goes with the same paint as the page change.
+  useLayoutEffect(() => {
+    paintNow();
+  }, [turn, paintNow]);
+
+  const beginTurn = (dir: 1 | -1, corner: "top" | "bottom"): boolean => {
+    const vp = viewport.current;
+    if (!vp || curl.current) return false;
+    const W = vp.clientWidth;
+    const H = vp.clientHeight;
+    const C = { x: W, y: corner === "bottom" ? H : 0 };
+    if (dir === 1) {
+      // The last page of the book doesn't turn; the last page of a chapter turns onto blank paper.
+      if (page >= pages - 1 && chapterIndex >= chapters.length - 1) return false;
+      curl.current = { dir, C, P: C, W, H, from: page };
+      setTurn({ under: page < pages - 1 ? page + 1 : null });
+    } else {
+      if (page <= 0) return false;
+      curl.current = { dir, C, P: { x: -W, y: C.y }, W, H, from: page };
+      setTurn({ under: page });
+      setPage(page - 1);
+    }
+    return true;
+  };
+
+  const endTurn = (complete: boolean) => {
+    const c = curl.current;
+    if (!c) return;
+    curl.current = null;
+    // The bars were put away when the turn began; a tap meanwhile may have brought them back.
+    if (c.dir === 1 && complete) advance(true);
+    else if (c.dir === -1 && !complete) setPage(c.from);
+    setTurn(null);
+  };
+
+  const animateTo = (target: Pt, ms: number, lift: number, done: () => void) => {
+    cancelAnimationFrame(anim.current);
+    const c = curl.current;
+    if (!c) return;
+    const from = c.P;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / ms);
+      const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
+      c.P = { x: from.x + (target.x - from.x) * e, y: from.y + (target.y - from.y) * e - Math.sin(Math.PI * e) * lift };
+      paintNow();
+      if (k < 1) anim.current = requestAnimationFrame(step);
+      else {
+        anim.current = 0;
+        done();
+      }
+    };
+    anim.current = requestAnimationFrame(step);
+  };
+
+  const flipSound = (strength = 1) => {
+    if (prefs.pageSound) playPageFlip(strength);
+  };
+
+  /** A tap, a key or a swipe: the page goes over by itself. */
+  const turnPage = (dir: 1 | -1) => {
+    if (curl.current) {
+      // One turn at a time: the next one follows this one.
+      queued.current = dir;
+      return;
+    }
+    if (!curlOn || !beginTurn(dir, "bottom")) {
+      const moved = dir === 1 ? paged && (page < pages - 1 || chapterIndex < chapters.length - 1) : paged && (page > 0 || chapterIndex > 0);
+      if (moved) flipSound(0.7);
+      if (dir === 1) advance();
+      else retreat();
+      return;
+    }
+    flipSound();
+    setHud(false);
+    const c = curl.current!;
+    const lift = c.H * 0.12;
+    // A frame for the page beneath to show, then over it goes.
+    requestAnimationFrame(() => animateTo(dir === 1 ? { x: -c.W, y: c.C.y } : c.C, 480, lift, () => endTurn(true)));
+  };
+  useEffect(() => {
+    if (turn || !queued.current) return;
+    const dir = queued.current;
+    queued.current = null;
+    turnPage(dir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turn, page, html]);
+
+  const next = () => turnPage(1);
+  const prev = () => turnPage(-1);
+  // The keys reach the latest turn functions without subscribing again on every render.
+  const turnKeys = useRef({ next, prev });
+  useEffect(() => {
+    turnKeys.current = { next, prev };
+  });
+
+  // A finger (or a pen, or a mouse from the page's edge) takes the page and bends it.
+  const hold = useRef<{ id: number; x0: number; y0: number; on: boolean; lastX: number; lastT: number; vx: number; frame: number } | null>(null);
+  const holdMove = (e: React.PointerEvent) => {
+    const d = hold.current;
+    if (!d || d.id !== e.pointerId || !curlOn) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (!d.on) {
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      const vp = viewport.current;
+      if (!vp || window.getSelection()?.toString() || (e.pointerType === "mouse" && d.x0 > vp.clientWidth * 0.15 && d.x0 < vp.clientWidth * 0.85)) {
+        hold.current = null;
+        return;
+      }
+      if (!beginTurn(dx < 0 ? 1 : -1, d.y0 > vp.clientHeight / 2 ? "bottom" : "top")) {
+        hold.current = null;
+        return;
+      }
+      d.on = true;
+      setHud(false);
+      if (pointer.current) pointer.current.swiped = true;
+      try {
+        vp.setPointerCapture(e.pointerId);
+      } catch {
+        /* the pointer is already gone */
+      }
+      if (prefs.pageSound) rustleStart();
+    }
+    const c = curl.current;
+    if (!c) return;
+    const now = performance.now();
+    d.vx = ((e.clientX - d.lastX) / Math.max(1, now - d.lastT)) * 0.6 + d.vx * 0.4;
+    d.lastX = e.clientX;
+    d.lastT = now;
+    const raw = c.dir === 1 ? { x: c.C.x + dx, y: c.C.y + dy } : { x: 2 * dx - c.W, y: c.C.y + dy };
+    c.P = constrain(raw, c.C, c.W, c.H);
+    rustleSpeed(d.vx);
+    if (!d.frame) {
+      d.frame = requestAnimationFrame(() => {
+        d.frame = 0;
+        paintNow();
+      });
+    }
+  };
+  const holdEnd = (): boolean => {
+    const d = hold.current;
+    hold.current = null;
+    if (!d?.on) return false;
+    if (d.frame) cancelAnimationFrame(d.frame);
+    rustleStop();
+    const c = curl.current;
+    if (!c) return true;
+    // A finger that stopped before letting go doesn't flick.
+    if (performance.now() - d.lastT > 90) d.vx = 0;
+    // Over it goes when brought a quarter of the way, or flicked; back it falls otherwise.
+    const progress = c.dir === 1 ? (c.W - c.P.x) / (2 * c.W) : (c.P.x + c.W) / (2 * c.W);
+    const flick = c.dir === 1 ? -d.vx : d.vx;
+    const complete = flick > 0.35 || (progress > 0.22 && flick > -0.35);
+    const target = complete ? (c.dir === 1 ? { x: -c.W, y: c.C.y } : c.C) : c.dir === 1 ? c.C : { x: -c.W, y: c.C.y };
+    const left = Math.hypot(target.x - c.P.x, target.y - c.P.y) / (2 * c.W);
+    if (complete) flipSound(0.8);
+    animateTo(target, Math.max(140, Math.min(420, 520 * left)), 0, () => endTurn(complete));
+    return true;
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (tocOpen || typoOpen || soundOpen || openQuote || (e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); next(); }
-      if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); prev(); }
+      if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); turnKeys.current.next(); }
+      if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); turnKeys.current.prev(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, tocOpen, typoOpen, soundOpen, openQuote]);
+  }, [tocOpen, typoOpen, soundOpen, openQuote]);
 
   const followLink = useCallback(async (target: string) => {
     // EPUB: "ch:N#frag"; FB2 notes: "#noteId" (search all chapters for the anchor).
@@ -303,8 +490,10 @@ export function TextReader({
 
   const onPointerDown = (e: React.PointerEvent) => {
     pointer.current = { x: e.clientX, y: e.clientY, t: Date.now(), swiped: false };
+    if (curlOn && e.isPrimary) hold.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false, lastX: e.clientX, lastT: performance.now(), vx: 0, frame: 0 };
   };
   const onPointerUp = (e: React.PointerEvent) => {
+    if (holdEnd()) return;
     const p = pointer.current;
     if (!p || !paged) return;
     const dx = e.clientX - p.x;
@@ -356,8 +545,9 @@ export function TextReader({
   useLayoutEffect(() => {
     if (html === null || !content.current) return;
     paintQuotes(content.current, JSON.parse(spotsKey));
+    if (underContent.current) paintQuotes(underContent.current, JSON.parse(spotsKey));
     if (quoteTarget.current && showQuote(quoteTarget.current)) quoteTarget.current = null;
-  }, [html, paged, spotsKey, showQuote]);
+  }, [html, paged, curlOn, spotsKey, showQuote]);
   const [sharing, setSharing] = useState(false);
   const tone = useCoverTone(book.coverFileId, book.coverUrl);
   const share = async (text: string) => {
@@ -440,8 +630,17 @@ export function TextReader({
       <div
         ref={viewport}
         className={cn("absolute inset-0", paged ? "overflow-hidden" : "overflow-y-auto overscroll-contain")}
+        // Turning pages by hand: the page is opaque paper over the next one, and a finger's moves are the page's.
+        style={curlOn ? { background: paper.bg, touchAction: "none" } : undefined}
         onPointerDown={onPointerDown}
+        // A mouse taking the page by its edge turns it rather than selecting text.
+        onMouseDown={curlOn ? (e) => {
+          const w = e.currentTarget.clientWidth;
+          if (e.clientX < w * 0.15 || e.clientX > w * 0.85) e.preventDefault();
+        } : undefined}
+        onPointerMove={curlOn ? holdMove : undefined}
         onPointerUp={onPointerUp}
+        onPointerCancel={curlOn ? () => void holdEnd() : undefined}
         onClick={onClick}
         onScroll={!paged ? (e) => {
           const sc = e.currentTarget;
@@ -470,7 +669,7 @@ export function TextReader({
                 columnGap: gutter,
                 columnFill: "auto",
                 transform: `translate3d(${-page * stride}px,0,0)`,
-                transition: "transform 280ms cubic-bezier(0.32,0.72,0,1)",
+                transition: curlOn ? "none" : "transform 280ms cubic-bezier(0.32,0.72,0,1)",
               }}
               dangerouslySetInnerHTML={{ __html: html }}
             />
@@ -489,6 +688,29 @@ export function TextReader({
         )}
       </div>
 
+      {/* The page beneath a turning one (drawn under the page): the next page (or, turning back, the one being left);
+          blank paper at a chapter's end. Laid out ahead, so a turn starts at once. */}
+      {curlOn && html !== null && (
+        <div
+          className="absolute inset-0 z-[-1]"
+          style={{ background: paper.bg, visibility: turn ? "visible" : "hidden" }}
+          aria-hidden
+          // While a page turns, a tap where it has lifted lands here: it counts like one on the page.
+          onPointerDown={(e) => {
+            pointer.current = { x: e.clientX, y: e.clientY, t: Date.now(), swiped: false };
+          }}
+          onClick={onClick}
+        >
+          <div className="absolute overflow-hidden" style={{ left: pageLeft, top: size.top, width: pageW, height: pageH, visibility: turn && turn.under === null ? "hidden" : undefined }}>
+            <div
+              ref={underContent}
+              className="book-content"
+              style={{ width: pageW, height: pageH, columnCount: 1, columnGap: gutter, columnFill: "auto", transform: `translate3d(${-(turn?.under ?? Math.min(page + 1, pages - 1)) * stride}px,0,0)` }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </div>
+        </div>
+      )}
       {/* Running header & footer (always visible, like a printed page) */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-end justify-center px-16 text-[13px] font-medium" style={{ height: size.top - 8, color: paper.muted }}>
         <span className="truncate">{chapter?.title}</span>
@@ -497,6 +719,7 @@ export function TextReader({
         <span>{paged ? `${page + 1} / ${pages}` : `${Math.round(scrollFrac * 100)}%`}</span>
         <span>{Math.round(percent)}%</span>
       </div>
+      {curlOn && <CurlFlap boxRef={curlBoxRef} flapRef={curlFlapRef} shadeRef={curlShadeRef} paper={paper} />}
 
       <ReaderChrome
         onTouch={() => (hudTouched.current = true)}

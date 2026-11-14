@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignJustify, AlignLeft, BookOpen, ScrollText } from "lucide-react";
+import { AlignJustify, AlignLeft, BookOpen, ChevronsRight, ScrollText, Volume2, VolumeX } from "lucide-react";
 import { cn, Segmented, Slider } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/Sheet";
 import { FONT_LABELS, FONT_STACKS, PAPERS, useReaderPrefs, type Paper, type ReaderFont } from "@/lib/reader/prefs";
@@ -78,6 +78,26 @@ export function TypographyDrawer({ open, onClose }: { open: boolean; onClose: ()
             options={[
               { value: "paged", label: t("Листание"), icon: <BookOpen size={13} /> },
               { value: "scroll", label: t("Лента"), icon: <ScrollText size={13} /> },
+            ]}
+          />
+          <Segmented
+            size="sm"
+            layoutKey="typo-turn"
+            value={p.turn}
+            onChange={(turn) => p.set({ turn })}
+            options={[
+              { value: "curl", label: t("Книга"), icon: <BookOpen size={13} /> },
+              { value: "slide", label: t("Сдвиг"), icon: <ChevronsRight size={13} /> },
+            ]}
+          />
+          <Segmented
+            size="sm"
+            layoutKey="typo-sound"
+            value={p.pageSound ? "on" : "off"}
+            onChange={(v) => p.set({ pageSound: v === "on" })}
+            options={[
+              { value: "on", label: t("Шелест"), icon: <Volume2 size={13} /> },
+              { value: "off", label: t("Тихо"), icon: <VolumeX size={13} /> },
             ]}
           />
           <Segmented

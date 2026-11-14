@@ -7,6 +7,8 @@ import { t } from "../i18n";
 export type ReaderFont = "inter" | "georgia" | "mono";
 export type Paper = "silver" | "sepia" | "carbon" | "oled";
 export type ReaderMode = "paged" | "scroll";
+/** How a page turns: over like paper («Книга»), or sliding aside. */
+export type PageTurn = "curl" | "slide";
 
 export const FONT_STACKS: Record<ReaderFont, string> = {
   inter: "var(--font-inter), -apple-system, system-ui, sans-serif",
@@ -44,6 +46,9 @@ export interface ReaderPrefs {
   justify: boolean;
   pdfMode: ReaderMode;
   pdfInvert: boolean;
+  turn: PageTurn;
+  /** The sound of paper when a page turns. */
+  pageSound: boolean;
   set: (patch: Partial<Omit<ReaderPrefs, "set">>) => void;
 }
 
@@ -59,6 +64,8 @@ export const useReaderPrefs = create<ReaderPrefs>()(
       justify: true,
       pdfMode: "scroll",
       pdfInvert: false,
+      turn: "curl",
+      pageSound: true,
       set: (patch) => set(patch),
     }),
     { name: "titan-reader-prefs", version: 1 },

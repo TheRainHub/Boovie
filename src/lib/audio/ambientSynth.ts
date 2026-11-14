@@ -3,12 +3,13 @@
  * Each is a loop of filtered noise and small events (drops, crackles, birds, wheels) rendered into a buffer, its
  * end cross-faded into its start so it goes round without a seam. No files, no network, nothing to license.
  *
- * Rendering runs in slices with pauses between them, so the screen stays responsive while a sound is made.
+ * Rendering runs in a worker (ambient.worker.ts); where workers aren't available it runs on the page in slices with
+ * pauses between them, so the screen stays responsive.
  */
 
 export type AmbientId = "rain" | "storm" | "fire" | "sea" | "forest" | "night" | "train";
 
-export const RATE = 32000;
+export const RATE = 24000;
 const XFADE = 2;
 
 /** Seconded random numbers (mulberry32): the same sound every time. */
@@ -365,7 +366,7 @@ function voices(id: AmbientId, seconds: number): Voice[] {
 }
 
 /** Render a sound's loop: stereo samples at RATE, levelled to a common loudness. */
-export async function renderAmbient(id: AmbientId): Promise<[Float32Array, Float32Array]> {
+export async function renderAmbient(id: AmbientId, { pause = true }: { pause?: boolean } = {}): Promise<[Float32Array, Float32Array]> {
   const seconds = AMBIENT_SECONDS[id];
   const total = (seconds + XFADE) * RATE;
   const L = new Float32Array(total);
@@ -375,8 +376,8 @@ export async function renderAmbient(id: AmbientId): Promise<[Float32Array, Float
   for (let from = 0; from < total; from += SLICE) {
     const to = Math.min(total, from + SLICE);
     for (const v of vs) v(L, R, from, to);
-    // Let the screen breathe between slices.
-    await new Promise((r) => setTimeout(r, 0));
+    // On the page's own thread, let the screen breathe between slices (a worker needn't).
+    if (pause) await new Promise((r) => setTimeout(r, 0));
   }
 
   // The tail fades into the head: the loop's end runs on into its start.

@@ -42,4 +42,5 @@ next-env.d.ts
 
 # generated: copied from pdfjs-dist on install
 /public/pdf.worker.min.mjs
+/public/ambient-worker.js
 /scripts/content/.manifests/

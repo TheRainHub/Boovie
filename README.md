@@ -126,13 +126,23 @@ landscape the player and the store details go two-column and the reader shows a 
   `src/lib/reader/quoteImage.ts`, `src/components/reader/Quotes.tsx`).
 - **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night and a train while a book is
   open (the button in the reader's bar), as a mixer: each sound is a tall pill like the phone's own volume control,
-  filling from the bottom — drag it up or down for its level, tap to switch it on or off, arrow keys work too — so
-  rain can go with the fireplace; «Тишина» stops them all. They are synthesised on the device with no files or
-  network: filtered noise and small events (drops, crackles, waves, birds, crickets, wheels over rail joints)
-  rendered into a 20–40 s loop whose end fades into its start, levelled to one loudness and played through Web Audio,
-  each through its own gain, with a gentle limiter after the mix. The levels are remembered; the sounds stop when
-  the book is closed and come back in the next one at the first touch (`src/lib/audio/ambientSynth.ts`,
-  `src/lib/audio/ambient.ts`, `src/components/reader/AmbientSheet.tsx`).
+  filling from the bottom — drag it up to bring the sound in and set its level, down to take it away (arrow keys
+  work too) — so rain can go with the fireplace. Every book starts in silence. The sounds are synthesised on the
+  device with no files or network — filtered noise and small events (drops, crackles, waves, birds, crickets, wheels
+  over rail joints) rendered into a 20–40 s loop whose end fades into its start, levelled to one loudness — in a web
+  worker (`public/ambient-worker.js`, bundled from `src/lib/audio/ambient.worker.ts` by `scripts/build-workers.mjs`
+  before every build) as soon as the sheet opens, so a slider brings its sound in while it moves; a drag only moves
+  the sound's gain, once a frame. Each sound has its own gain, with a gentle limiter after the mix; closing the book
+  stops them (`src/lib/audio/ambientSynth.ts`, `src/lib/audio/ambient.ts`, `src/components/reader/AmbientSheet.tsx`).
+- **Pages that turn like paper** — in the paged reader (one page on the screen) a page can be taken by its edge and
+  bent: it folds along the line halfway between its corner and the finger, its back shows over it with a highlight
+  where the paper bends, the next page shows beneath with the fold's shadow on it; let go past a quarter (or flick)
+  and it turns over, otherwise it falls back. Taps, swipes and the arrow keys send it over by itself; turning back
+  lays the previous page over the current one from the left; the last page of a chapter turns onto blank paper and
+  the next chapter opens. Paper sounds go with it — a swish and a soft landing when a page turns over, a rustle that
+  follows the finger while it holds one — made on the spot from noise. Settings → *Оформление*: *Книга* or *Сдвиг*
+  (the slide), *Шелест* or *Тихо* (`src/lib/reader/curl.ts`, `src/components/reader/PageCurl.tsx`,
+  `src/lib/audio/pageSound.ts`).
 - **Own files in the cloud** — books the user added (and voiced editions) are uploaded in the background to
   Cloudflare R2 through a small Worker (`workers/files`), one at a time while the app is open, in 50 MB parts that
   survive a restart, not over mobile data where the system tells; a book already there (uploaded from another

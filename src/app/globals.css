@@ -174,10 +174,6 @@ button,
 .ambient-icon-off {
   color: rgb(255 250 243 / 0.78);
 }
-.ambient-pill.ambient-silence-on {
-  background: #fffaf3;
-  color: var(--chart-listen);
-}
 
 /* A quote kept in the text (reader/quotes.ts): a soft marker stroke in the page's own tone. */
 .book-content mark.quote-mark {

@@ -2,11 +2,13 @@
 
 /**
  * Playing the sounds for reading (see ambientSynth.ts) while a book is open, as a mixer: every sound has a level of
- * its own (0 is off), so rain can go with the fireplace. Each plays as a loop through its own gain, faded in and
- * out. The levels are remembered on the device; a book opened later brings them back at the first touch (a
- * browser starts sound only on a touch), and closing the book stops them.
+ * its own (0 is off), so rain can go with the fireplace. Every book starts in silence; closing it stops the sounds.
+ *
+ * To keep the sliders quick, the sounds are made in a worker as soon as the sounds' sheet opens, and a drag only
+ * moves the sound's gain (the store is told when the drag ends).
  */
 import { create } from "zustand";
+import { withBase } from "../basePath";
 import { RATE, renderAmbient, type AmbientId } from "./ambientSynth";
 
 export type { AmbientId } from "./ambientSynth";
@@ -16,43 +18,11 @@ export const AMBIENT_IDS: AmbientId[] = ["rain", "storm", "fire", "sea", "forest
 type Levels = Partial<Record<AmbientId, number>>;
 
 interface AmbientState {
-  /** Each sound's level, 0..1 (absent or 0: off). Kept while the book is closed. */
+  /** Each sound's level, 0..1 (absent or 0: off), as of the last finished drag. */
   levels: Levels;
-  /** The level a sound had before it was switched off, for switching it on again. */
-  memory: Levels;
-  /** Sounds being made right now. */
-  loading: AmbientId[];
-  /** The sounds are playing (a book is open and was touched). */
-  playing: boolean;
 }
 
-const KEY = "boowie-ambient";
-const DEFAULT_LEVEL = 0.5;
-
-export const useAmbient = create<AmbientState>(() => ({ levels: {}, memory: {}, loading: [], playing: false }));
-
-let loaded = false;
-/** The remembered levels, read once on the client (also from the one-sound version: `{ id, volume }`). */
-function ensureLoaded() {
-  if (loaded || typeof window === "undefined") return;
-  loaded = true;
-  try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? "null") as { levels?: Levels; memory?: Levels; id?: AmbientId | null; volume?: number } | null;
-    if (!v) return;
-    if (v.levels) useAmbient.setState({ levels: v.levels, memory: v.memory ?? {} });
-    else if (v.id) useAmbient.setState({ levels: { [v.id]: v.volume ?? DEFAULT_LEVEL } });
-  } catch {
-    /* no storage */
-  }
-}
-function persist() {
-  const { levels, memory } = useAmbient.getState();
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ levels, memory }));
-  } catch {
-    /* private mode */
-  }
-}
+export const useAmbient = create<AmbientState>(() => ({ levels: {} }));
 
 /** The sounds that are on. */
 export function activeSounds(levels: Levels): AmbientId[] {
@@ -62,7 +32,10 @@ export function activeSounds(levels: Levels): AmbientId[] {
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 const voices = new Map<AmbientId, { src: AudioBufferSourceNode; gain: GainNode }>();
+const starting = new Set<AmbientId>();
 const buffers = new Map<AmbientId, Promise<AudioBuffer>>();
+/** Where each slider is right now (it runs ahead of the store during a drag). */
+const live: Levels = {};
 /** Bumped when the book is closed: sounds still being made then don't start. */
 let epoch = 0;
 let sleep: ReturnType<typeof setTimeout> | undefined;
@@ -79,10 +52,11 @@ function audioSession(type: "playback" | "auto") {
   }
 }
 
-function context(): AudioContext {
+/** The app's audio context (shared with the page sounds); created on first use. */
+export function audioContext(): AudioContext {
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    ctx = new AC({ latencyHint: "playback" });
+    ctx = new AC({ latencyHint: "interactive" });
     // Several sounds together must not clip: a gentle limiter after the mix.
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -8;
@@ -102,14 +76,70 @@ function context(): AudioContext {
   return ctx;
 }
 
-/** Loudness follows the slider the way the ear hears it. */
-const curve = (v: number) => v * v;
+/** A touch: the audio context may start now (browsers allow it only then). */
+export function unlockAudio(): AudioContext {
+  const ac = audioContext();
+  clearTimeout(sleep);
+  if (ac.state !== "running") void ac.resume();
+  return ac;
+}
+
+/**
+ * Let the audio context sleep when nothing plays (it holds the device's audio otherwise) — after a while, so page
+ * sounds while reading don't wake it every time.
+ */
+export function audioIdle(): void {
+  clearTimeout(sleep);
+  sleep = setTimeout(() => {
+    if (!voices.size && ctx && ctx.state === "running") void ctx.suspend();
+  }, 15_000);
+}
+
+/* ── making the sounds: in a worker, or on the page where there is none ─────────────────── */
+let worker: Worker | null | undefined;
+const waiting = new Map<AmbientId, { resolve: (v: [Float32Array, Float32Array]) => void; reject: (e: Error) => void }>();
+
+function getWorker(): Worker | null {
+  if (worker !== undefined) return worker;
+  try {
+    // A plain same-origin script, bundled by scripts/build-workers.mjs.
+    worker = new Worker(withBase("/ambient-worker.js"));
+    worker.onmessage = (e: MessageEvent<{ id: AmbientId; L?: Float32Array; R?: Float32Array; error?: string }>) => {
+      const { id, L, R, error } = e.data;
+      const w = waiting.get(id);
+      waiting.delete(id);
+      if (!w) return;
+      if (L && R) w.resolve([L, R]);
+      else w.reject(new Error(error ?? "render"));
+    };
+    worker.onerror = () => {
+      // The worker can't run here: make what is waiting on the page.
+      worker?.terminate();
+      worker = null;
+      const pending = [...waiting];
+      waiting.clear();
+      for (const [id, w] of pending) renderAmbient(id).then(w.resolve, w.reject);
+    };
+  } catch {
+    worker = null;
+  }
+  return worker;
+}
+
+function samples(id: AmbientId): Promise<[Float32Array, Float32Array]> {
+  const w = getWorker();
+  if (!w) return renderAmbient(id);
+  return new Promise((resolve, reject) => {
+    waiting.set(id, { resolve, reject });
+    w.postMessage({ id });
+  });
+}
 
 function buffer(id: AmbientId): Promise<AudioBuffer> {
   let b = buffers.get(id);
   if (!b) {
-    b = renderAmbient(id).then(([L, R]) => {
-      const buf = context().createBuffer(2, L.length, RATE);
+    b = samples(id).then(([L, R]) => {
+      const buf = audioContext().createBuffer(2, L.length, RATE);
       buf.copyToChannel(L as Float32Array<ArrayBuffer>, 0);
       buf.copyToChannel(R as Float32Array<ArrayBuffer>, 1);
       return buf;
@@ -120,54 +150,44 @@ function buffer(id: AmbientId): Promise<AudioBuffer> {
   return b;
 }
 
-/** Let the audio context sleep when nothing plays (it holds the device's audio otherwise). */
-function sleepSoon() {
-  clearTimeout(sleep);
-  sleep = setTimeout(() => {
-    if (!voices.size && ctx && ctx.state === "running") void ctx.suspend();
-  }, 1500);
+/** Make every sound ahead, so a slider brings its sound in at once. */
+export function prepareAmbient(): void {
+  for (const id of AMBIENT_IDS) void buffer(id).catch(() => undefined);
 }
 
-/** A touch: the audio context may start now (browsers allow it only then). */
-export function unlockAmbient(): void {
-  ensureLoaded();
-  const ac = context();
-  clearTimeout(sleep);
-  if (ac.state !== "running") void ac.resume();
-}
+/** Loudness follows the slider the way the ear hears it. */
+const curve = (v: number) => v * v;
 
 async function startVoice(id: AmbientId) {
-  if (voices.has(id)) return;
-  const ac = context();
+  if (voices.has(id) || starting.has(id)) return;
+  starting.add(id);
   const mine = epoch;
-  clearTimeout(sleep);
-  void ac.resume();
+  const ac = unlockAudio();
   audioSession("playback");
-  useAmbient.setState((s) => ({ loading: [...new Set([...s.loading, id])] }));
   let buf: AudioBuffer;
   try {
     buf = await buffer(id);
   } catch {
-    useAmbient.setState((s) => ({ loading: s.loading.filter((x) => x !== id) }));
+    starting.delete(id);
     return;
   }
-  useAmbient.setState((s) => ({ loading: s.loading.filter((x) => x !== id) }));
-  const level = useAmbient.getState().levels[id] ?? 0;
-  // Closed meanwhile, switched off meanwhile, or already started by another call.
-  if (mine !== epoch || level <= 0 || voices.has(id) || !useAmbient.getState().playing) return;
+  starting.delete(id);
+  const level = live[id] ?? 0;
+  // The book was closed meanwhile, or the slider went back to nothing.
+  if (mine !== epoch || level <= 0 || voices.has(id)) return;
   const src = ac.createBufferSource();
   src.buffer = buf;
   src.loop = true;
   const gain = ac.createGain();
   gain.gain.setValueAtTime(0, ac.currentTime);
-  gain.gain.linearRampToValueAtTime(curve(level), ac.currentTime + 1.6);
+  gain.gain.setTargetAtTime(curve(level), ac.currentTime, 0.05);
   src.connect(gain).connect(master!);
   // Start somewhere in the loop, so the same moment doesn't greet every opening.
   src.start(0, Math.random() * buf.duration);
   voices.set(id, { src, gain });
 }
 
-function stopVoice(id: AmbientId, seconds = 0.6) {
+function stopVoice(id: AmbientId, seconds = 0.25) {
   const v = voices.get(id);
   if (!v || !ctx) return;
   voices.delete(id);
@@ -177,79 +197,38 @@ function stopVoice(id: AmbientId, seconds = 0.6) {
   v.gain.gain.linearRampToValueAtTime(0, t + seconds);
   v.src.stop(t + seconds + 0.05);
   if (!voices.size) {
-    sleepSoon();
+    audioIdle();
     audioSession("auto");
   }
 }
 
-/** Set a sound's level (0 switches it off). Starting a sound must come from a touch or a key press. */
-export function setAmbientLevel(id: AmbientId, level: number): void {
-  ensureLoaded();
+/** While a slider moves: the sound follows at once (the store isn't touched). */
+export function setLevelLive(id: AmbientId, level: number): void {
   const v = Math.max(0, Math.min(1, level));
-  const s = useAmbient.getState();
-  useAmbient.setState({
-    levels: { ...s.levels, [id]: v },
-    memory: v > 0 ? { ...s.memory, [id]: v } : s.memory,
-    playing: v > 0 ? true : s.playing,
-  });
-  persist();
+  live[id] = v;
   if (v <= 0) {
     stopVoice(id);
     return;
   }
   const voice = voices.get(id);
-  if (voice && ctx) voice.gain.gain.setTargetAtTime(curve(v), ctx.currentTime, 0.04);
+  if (voice && ctx) voice.gain.gain.setTargetAtTime(curve(v), ctx.currentTime, 0.03);
   else void startVoice(id);
 }
 
-/** Switch a sound on (at its last level) or off. */
-export function toggleAmbient(id: AmbientId): void {
-  ensureLoaded();
-  const { levels, memory } = useAmbient.getState();
-  if ((levels[id] ?? 0) > 0) setAmbientLevel(id, 0);
-  else setAmbientLevel(id, memory[id] && memory[id]! > 0.04 ? memory[id]! : DEFAULT_LEVEL);
+/** A slider came to rest (or a key moved it): the level as it now stands. */
+export function setAmbientLevel(id: AmbientId, level: number): void {
+  const v = Math.max(0, Math.min(1, level));
+  setLevelLive(id, v);
+  useAmbient.setState((s) => ({ levels: { ...s.levels, [id]: v } }));
 }
 
-/** Silence: every sound off (their levels are remembered for switching them on again). */
-export function stopAmbient(): void {
-  ensureLoaded();
-  for (const id of [...voices.keys()]) stopVoice(id, 0.7);
-  const { levels, memory } = useAmbient.getState();
-  const kept = { ...memory };
-  for (const id of activeSounds(levels)) kept[id] = levels[id];
-  useAmbient.setState({ levels: {}, memory: kept });
-  persist();
-}
-
-/** The book was closed: the sounds stop, their levels stay for the next book. */
-export function pauseAmbient(): void {
-  epoch++;
-  for (const id of [...voices.keys()]) stopVoice(id, 0.5);
-  useAmbient.setState({ playing: false, loading: [] });
-}
-
-/** In an open book: the remembered sounds come back at the first touch, and stop when the book is closed. */
+/** In an open book: silence to begin with; closing the book stops the sounds and lets their samples go. */
 export function attachAmbient(): () => void {
-  ensureLoaded();
-  const start = () => {
-    off();
-    const { levels } = useAmbient.getState();
-    const on = activeSounds(levels);
-    if (!on.length) return;
-    unlockAmbient();
-    useAmbient.setState({ playing: true });
-    for (const id of on) void startVoice(id);
-  };
-  const off = () => {
-    window.removeEventListener("pointerdown", start, true);
-    window.removeEventListener("keydown", start, true);
-  };
-  if (activeSounds(useAmbient.getState().levels).length) {
-    window.addEventListener("pointerdown", start, true);
-    window.addEventListener("keydown", start, true);
-  }
   return () => {
-    off();
-    pauseAmbient();
+    epoch++;
+    for (const id of [...voices.keys()]) stopVoice(id, 0.5);
+    for (const id of AMBIENT_IDS) delete live[id];
+    buffers.clear();
+    useAmbient.setState({ levels: {} });
   };
 }
