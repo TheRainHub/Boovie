@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+/.site-ru/
 
 # production
 /build

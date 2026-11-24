@@ -15,10 +15,22 @@ landscape the player and the store details go two-column and the reader shows a 
 
 - **Слушаю / Читаю (home)** — the book you are on: a full player for audiobooks, the reading position and a
   «continue» button for texts, plus the other books you have started.
-- **Russian and English** — the interface speaks either (Settings → «Язык · Language»; the first choice follows the
-  phone's language). Strings are written in Russian where they are used and looked up in `src/lib/i18n/en.ts`;
-  `npm test` fails if one has no English. The store has English descriptions, titles and cover credits too, and
-  finds books by their names in both languages.
+- **Russian and English** — on the web each language is a site of its own, prerendered in it: Russian at the root,
+  English under `/en/` (`npm run build` builds both; `scripts/build-site.mjs`). A small script in each page's head
+  sends a visitor to the right one before anything shows — the language chosen in Settings → «Язык · Language», or
+  else the browser's (Russian for Russian, Ukrainian, Belarusian, Kazakh and the other languages whose readers mostly
+  read Russian; English for the rest) — keeping the page, its query and its anchor; an `/en/` address opened on
+  purpose stays English, and search robots aren't moved. So a page is in one language from its first paint, with
+  its own `<html lang>`, title and link preview, and the English site has its own manifest. Both share the files in
+  `public/` and, being one site, the library. The apps carry one local copy and choose the language on the device
+  (`src/lib/i18n/index.ts`). Strings are written in Russian where they are used and looked up in
+  `src/lib/i18n/en.ts`; `npm test` fails if one has no English. The store has English descriptions, titles and cover
+  credits too, and finds books by their names in both languages.
+- **As an app on the phone** — in a phone's browser the home screen offers to put Boowie on the home screen: in one
+  tap where the browser can (Chrome on Android), or with a three-step guide for iPhone and iPad (Share → Add to Home
+  Screen) and for other Android browsers; the card can be put away for a month, and the guide is in Settings →
+  «Установка на телефон». Not shown on a computer, once installed, or in the apps (`src/lib/install.ts`,
+  `src/components/shell/InstallGuide.tsx`).
 - **Книги (library)** — filters Все / Читаю / Слушаю / Файлы, a «continue» card in the book's colour, a cover grid
   with progress, «Добавить»: files (PDF/FB2/EPUB/MP3/M4B/ZIP, any mix) or a whole folder (one audiobook per
   folder, one file per chapter, CD/Disc subfolders merged, cover from the folder or found by name). An audiobook
@@ -157,9 +169,12 @@ landscape the player and the store details go two-column and the reader shows a 
 ```bash
 npm install          # also copies the pdf.js worker into public/
 npm run dev          # development server
-npm run build        # static export to out/ + service worker generation
+npm run build        # static export in Russian (out/) and English (out/en/) + service worker generation
+                     # (SITE_LOCALES=ru builds the Russian site alone)
 npm start            # serve out/ locally
-npm test             # parser tests against the bundled store files (Node + linkedom)
+npm test             # parser tests against the bundled store files (Node + linkedom), and the translations
+npm run e2e          # end-to-end checks of out/ in a browser (e2e/: language choice, install guide);
+                     # Playwright's Chromium (`npx playwright-core install chromium`) or CHROMIUM_PATH
 npm run lint && npm run typecheck
 npm run cap:sync     # build, then copy the export and the plugins into android/ and ios/
 ```

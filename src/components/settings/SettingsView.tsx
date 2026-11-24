@@ -17,6 +17,9 @@ import { requestPersistentStorage, storageEstimate } from "@/lib/storage/blobSto
 import { useIdentity } from "@/lib/account/identity";
 import { cloudUsage, filesEnabled, kickUploads, useCloudFiles, useUploads } from "@/lib/account/cloudFiles";
 import { useTheme, type ThemePreference } from "@/lib/theme";
+import { openInstallGuide } from "@/components/shell/InstallGuide";
+import { isInstalled } from "@/lib/install";
+import { isNative } from "@/lib/native";
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -104,6 +107,13 @@ export function SettingsView() {
   const router = useRouter();
   const theme = useTheme();
   const lang = useLang();
+  // Known only in the browser: in the apps, or opened from the home screen, there is nothing to install.
+  const [where, setWhere] = useState({ native: false, installed: false });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the browser
+    setWhere({ native: isNative(), installed: isInstalled() });
+  }, []);
+  const installedApp = where.installed;
   const books = useBooks();
   const covers = useCoverPrefs();
   const [estimate, setEstimate] = useState<Awaited<ReturnType<typeof storageEstimate>>>(null);
@@ -222,13 +232,15 @@ export function SettingsView() {
       </Group>
 
       <Group title={t("Установка на телефон")}>
-        {[
-          ["iPhone", t("Safari → «Поделиться» → «На экран „Домой“». Приложение откроется без панели браузера.")],
-          ["Android", t("Chrome → меню → «Установить приложение».")],
-          [t("Папки на iPhone"), t("В «Файлах» удерживайте папку с аудиокнигой → «Сжать» и добавьте получившийся ZIP.")],
-        ].map(([k, v]) => (
-          <Row key={k} label={k} hint={v} />
-        ))}
+        {!where.native && (
+          <Row
+            label={t("Экран «Домой»")}
+            hint={installedApp ? t("Boowie уже открыт как приложение.") : t("Откройте Boowie как приложение: во весь экран, со своим значком и без интернета.")}
+          >
+            {!installedApp && <Button size="sm" variant="secondary" onClick={openInstallGuide}>{t("Как это сделать")}</Button>}
+          </Row>
+        )}
+        <Row label={t("Папки на iPhone")} hint={t("В «Файлах» удерживайте папку с аудиокнигой → «Сжать» и добавьте получившийся ZIP.")} />
       </Group>
 
       <p className="mt-7 px-1 text-[13.5px] leading-[1.55] text-ink-2">

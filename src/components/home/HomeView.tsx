@@ -10,6 +10,7 @@ import { PlayerPanel } from "@/components/player/PlayerPanel";
 import { TopNav } from "@/components/shell/TopNav";
 import { WrappedCard } from "@/components/wrapped/WrappedCard";
 import { GoalCard } from "./GoalCard";
+import { InstallCard } from "@/components/shell/InstallGuide";
 import { BookCover } from "@/components/ui/BookCover";
 import { CoverBackdrop } from "@/components/ui/CoverBackdrop";
 import { Button, cn, ProgressBar } from "@/components/ui/primitives";
@@ -50,6 +51,7 @@ function NowScreen({ current }: { current: CurrentBook }) {
         {audio ? <ListeningNow current={current} /> : <ReadingNow current={current} />}
         <div className="mx-auto mt-8 grid max-w-[600px] gap-3 px-5 wide:max-w-[1180px] wide:grid-cols-2 wide:px-10">
           <GoalCard toned />
+          <InstallCard toned />
           <WrappedCard seasonOnly />
         </div>
         <ContinueRow exclude={[book.id, book.companionId]} />
@@ -217,6 +219,8 @@ function Welcome() {
               {t("Папку с аудиокнигой")}
             </Button>
           </div>
+          {/* First visit from a phone's browser: the site can live on the home screen as an app. */}
+          <InstallCard toned className="mt-6" />
         </div>
         <section className="mx-auto mt-12 max-w-[600px]">
           <div className="flex items-baseline justify-between px-5">

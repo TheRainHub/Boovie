@@ -2,17 +2,27 @@
  * Interface language: Russian (the source text) or English.
  *
  * Strings are written in Russian right where they are used and looked up in `EN` when the interface is English:
- * `t("Магазин")`, `t("Глава {n} из {total}", { n, total })`, `pl(n, "книга|книги|книг")`. The static HTML is
- * Russian, so the client renders Russian until it has hydrated; then the app shell re-mounts the page in the chosen
- * language (`useLang`), and does the same when the language is switched in the settings. That lets render code,
- * event handlers and library code alike just call `t`.
+ * `t("Магазин")`, `t("Глава {n} из {total}", { n, total })`, `pl(n, "книга|книги|книг")`.
+ *
+ * On the web each language is a site of its own, prerendered in it: Russian at the root, English under `/en/`
+ * (scripts/build-site.mjs). A script in the page's head sends a visitor to the right one before anything shows —
+ * by the language chosen in the settings, or else the browser's — so a page is in one language from its first
+ * paint. Switching in the settings opens the same page of the other site.
+ *
+ * The apps carry one local copy (the Russian one): there the language is chosen on the device, and after hydration
+ * the app shell re-mounts the page in it (`useLang`), as it does when the language is switched in the settings.
+ * That lets render code, event handlers and library code alike just call `t`.
  */
 import { useSyncExternalStore } from "react";
+import { BASE_PATH, SITE_LANG } from "../basePath";
+import { LANG_KEY, RUSSIAN_READERS } from "./detect";
 import { EN } from "./en";
+
+export { LANG_KEY, RUSSIAN_READERS } from "./detect";
 
 export type Lang = "ru" | "en";
 
-const KEY = "boowie-lang";
+const KEY = LANG_KEY;
 let chosen: Lang | null = null;
 let hydrated = false;
 const listeners = new Set<() => void>();
@@ -25,32 +35,55 @@ function initial(): Lang {
     /* no storage */
   }
   const langs = typeof navigator === "undefined" ? [] : navigator.languages?.length ? navigator.languages : [navigator.language];
-  // Russian for readers of Russian (and of the languages whose speakers mostly read it too), English for the rest.
-  return !langs.length || langs.some((l) => /^(ru|uk|be|kk|ky|uz|tg|hy|az|ka)\b/i.test(l)) ? "ru" : "en";
+  return !langs.length || langs.some((l) => RUSSIAN_READERS.test(l)) ? "ru" : "en";
+}
+
+/** In the apps the language is chosen on the device; on the web it is the site's own. */
+let onDevice: boolean | null = null;
+function chosenOnDevice(): boolean {
+  if (onDevice === null) {
+    const cap = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+    onDevice = !!cap?.isNativePlatform?.();
+  }
+  return onDevice;
 }
 
 export function getLang(): Lang {
-  if (typeof window === "undefined" || !hydrated) return "ru";
+  if (typeof window === "undefined" || !hydrated || !chosenOnDevice()) return SITE_LANG;
   return (chosen ??= initial());
 }
 
 const emit = () => listeners.forEach((fn) => fn());
 
-/** Called once the app has hydrated: from now on the chosen language is used. */
+/** Called once the app has hydrated: in the apps, from now on the chosen language is used. */
 export function markHydrated(): void {
   if (hydrated) return;
   hydrated = true;
   document.documentElement.lang = getLang();
-  if (getLang() !== "ru") emit();
+  if (getLang() !== SITE_LANG) emit();
+}
+
+/** The same page of the other language's site (with its query and anchor). */
+export function pageIn(lang: Lang, loc: Pick<Location, "pathname" | "search" | "hash"> = location): string {
+  const en = `${BASE_PATH}/en`;
+  let rest = loc.pathname;
+  if (rest === en || rest.startsWith(`${en}/`)) rest = rest.slice(en.length);
+  else if (BASE_PATH && (rest === BASE_PATH || rest.startsWith(`${BASE_PATH}/`))) rest = rest.slice(BASE_PATH.length);
+  return `${lang === "en" ? en : BASE_PATH}${rest || "/"}${loc.search}${loc.hash}`;
 }
 
 export function setLang(lang: Lang): void {
-  chosen = lang;
   try {
     localStorage.setItem(KEY, lang);
   } catch {
     /* the choice lasts until the app is closed */
   }
+  if (!chosenOnDevice()) {
+    // The web: the other language is the other site.
+    if (lang !== SITE_LANG) location.assign(pageIn(lang));
+    return;
+  }
+  chosen = lang;
   document.documentElement.lang = lang;
   emit();
 }
@@ -63,7 +96,7 @@ const subscribe = (fn: () => void) => {
 };
 
 export function useLang(): Lang {
-  return useSyncExternalStore(subscribe, getLang, () => "ru");
+  return useSyncExternalStore(subscribe, getLang, () => SITE_LANG);
 }
 
 /** `ru-RU` or `en-US`, for dates and numbers. */

@@ -13,6 +13,7 @@ import { kickUploads } from "@/lib/account/cloudFiles";
 import { useIdentity } from "@/lib/account/identity";
 import { withBase } from "@/lib/basePath";
 import { markHydrated, t, useLang } from "@/lib/i18n";
+import { listenInstall } from "@/lib/install";
 import { isNative } from "@/lib/native";
 import { flushJournal } from "@/lib/library/repository";
 import { backfillFinished, onActivityWritten, restoreStashedActivity, stashActivity } from "@/lib/stats/activity";
@@ -21,6 +22,7 @@ import { checkAchievements } from "@/lib/stats/achievementsWatch";
 import { checkGoal } from "@/lib/stats/goal";
 import { useTheme } from "@/lib/theme";
 import { ImportTray } from "./ImportTray";
+import { InstallSheet } from "./InstallGuide";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -82,6 +84,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => undefined);
     }
     const stopBackButton = isNative() ? listenBackButton() : undefined;
+    // The browser's offer to install the site as an app comes once, early: kept for the install card.
+    const stopInstall = isNative() ? undefined : listenInstall();
 
     // Pausing is a natural moment to hand the place to the account; a long uninterrupted listen does it now and then.
     const stopPlayerSync = usePlayer.subscribe((s, prev) => {
@@ -124,6 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (s.status === "signedIn" && prev.status !== "signedIn") kickUploads(8000);
     });
     return () => {
+      stopInstall?.();
       clearTimeout(firstCheck);
       stopActivity();
       stopBackButton?.();
@@ -144,6 +149,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className={immersive ? "" : "pb-[calc(var(--mini-h)+var(--sab)+28px)]"}>{children}</div>
       {!immersive && <MiniPlayer />}
       <FullPlayer />
+      {!immersive && <InstallSheet />}
       <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--sat)+10px)] z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         <ImportTray />
         <Toaster />
