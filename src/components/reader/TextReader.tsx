@@ -4,13 +4,12 @@ import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, List, Type } from "
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn, IconButton, Slider, Spinner } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toaster";
-import { useProgress, type ChapterMeta } from "@/lib/library/hooks";
+import { useFileUrl, useProgress, type ChapterMeta } from "@/lib/library/hooks";
 import { addBookmark, getChapter, getChapters, journalPosition, markChaptersComplete, removeBookmark, textPercentage, updateProgress } from "@/lib/library/repository";
 import { playPageFlip, rustleSpeed, rustleStart, rustleStop } from "@/lib/audio/pageSound";
 import { useCoverTone } from "@/lib/covers/tone";
 import { constrain, curlFrame, type Pt } from "@/lib/reader/curl";
 import { FONT_STACKS, PAPERS, useReaderPrefs } from "@/lib/reader/prefs";
-import { shareQuote } from "@/lib/reader/quoteImage";
 import { paintQuotes, rangeOffsets } from "@/lib/reader/quotes";
 import { recordFinish, recordPage } from "@/lib/stats/activity";
 import { useReadingTime } from "@/lib/stats/useReadingTime";
@@ -20,12 +19,27 @@ import { AmbientButton, AmbientSheet, useAmbientInBook } from "./AmbientSheet";
 import { DictionaryCard } from "./DictionaryCard";
 import { CurlFlap, paintCurl } from "./PageCurl";
 import { QuoteBar, QuoteSheet } from "./Quotes";
+import { RepostSheet } from "./RepostSheet";
 import { ReaderChrome } from "./ReaderChrome";
 import { TocDrawer } from "./TocDrawer";
 import { TypographyDrawer } from "./TypographyDrawer";
 import { t } from "@/lib/i18n";
 
 const HEAD = 46; // running header height (px, below the safe area)
+
+const PARAGRAPH = "p, li, blockquote, h1, h2, h3, h4, h5, h6, dd, dt, pre, td";
+
+/** A range widened from the first selected paragraph's start to the last one's end. */
+function paragraphRange(range: Range): Range | null {
+  const block = (n: Node) => (n.nodeType === Node.ELEMENT_NODE ? (n as Element) : n.parentElement)?.closest(PARAGRAPH) ?? null;
+  const first = block(range.startContainer);
+  const last = block(range.endContainer);
+  if (!first || !last) return null;
+  const r = document.createRange();
+  r.setStartBefore(first.firstChild ?? first);
+  r.setEndAfter(last.lastChild ?? last);
+  return r;
+}
 const FOOT = 40; // running footer height
 
 /**
@@ -449,7 +463,7 @@ export function TextReader({
   // ── Selection: a single word (a long press, a double click) is looked up in the dictionary; a longer passage can
   // be kept as a quote or shared as a picture ─────────────────────────────────────────────────────────────────
   const [lookupFor, setLookupFor] = useState<{ word: string; place: "top" | "bottom" } | null>(null);
-  const [quoteSel, setQuoteSel] = useState<{ text: string; start: number; end: number; place: "top" | "bottom" } | null>(null);
+  const [quoteSel, setQuoteSel] = useState<{ text: string; start: number; end: number; place: "top" | "bottom"; partial: boolean } | null>(null);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onSelection = () => {
@@ -474,7 +488,9 @@ export function TextReader({
         const at = content.current && /\s/.test(text) && text.length <= 4000 ? rangeOffsets(content.current, range) : null;
         if (!at) return;
         setLookupFor(null);
-        setQuoteSel({ ...at, place });
+        // Less than its paragraph(s): it can be widened to them.
+        const whole = paragraphRange(range)?.toString().trim() ?? text;
+        setQuoteSel({ ...at, place, partial: whole.length > text.length + 1 });
       }, 350);
     };
     document.addEventListener("selectionchange", onSelection);
@@ -483,6 +499,14 @@ export function TextReader({
       clearTimeout(timer);
     };
   }, []);
+  /** The selection widened to whole paragraphs. */
+  const selectParagraph = () => {
+    const sel = window.getSelection();
+    const r = sel?.rangeCount ? paragraphRange(sel.getRangeAt(0)) : null;
+    if (!sel || !r) return;
+    sel.removeAllRanges();
+    sel.addRange(r);
+  };
   const closeLookup = () => {
     setLookupFor(null);
     window.getSelection()?.removeAllRanges();
@@ -548,17 +572,14 @@ export function TextReader({
     if (underContent.current) paintQuotes(underContent.current, JSON.parse(spotsKey));
     if (quoteTarget.current && showQuote(quoteTarget.current)) quoteTarget.current = null;
   }, [html, paged, curlOn, spotsKey, showQuote]);
-  const [sharing, setSharing] = useState(false);
+  // Sharing a passage as a picture: the repost sheet, made on the device and kept nowhere.
   const tone = useCoverTone(book.coverFileId, book.coverUrl);
-  const share = async (text: string) => {
-    setSharing(true);
-    try {
-      await shareQuote({ text, title: book.title, author: book.author, tone });
-    } catch (e) {
-      if ((e as Error)?.name !== "AbortError") toast(t("Не получилось поделиться картинкой"), "error");
-    } finally {
-      setSharing(false);
-    }
+  const coverSrc = useFileUrl(book.coverFileId, book.coverUrl);
+  const [repost, setRepost] = useState<string | null>(null);
+  const share = (text: string) => {
+    setQuoteSel(null);
+    window.getSelection()?.removeAllRanges();
+    setRepost(text);
   };
   const saveQuote = async () => {
     if (!quoteSel) return;
@@ -782,21 +803,30 @@ export function TextReader({
         <QuoteBar
           place={quoteSel.place}
           paper={paper}
-          busy={sharing}
           onSave={() => void saveQuote()}
-          onShare={() => void share(quoteSel.text)}
+          onShare={() => share(quoteSel.text)}
+          onParagraph={quoteSel.partial ? selectParagraph : undefined}
           onClose={() => {
             setQuoteSel(null);
             window.getSelection()?.removeAllRanges();
           }}
         />
       )}
+      <RepostSheet
+        text={repost}
+        book={{ title: book.title, author: book.author, cover: coverSrc ?? undefined, audio: book.format === "audio", tone }}
+        onClose={() => setRepost(null)}
+      />
       <QuoteSheet
         quote={openQuote}
         chapterTitle={openQuote ? chapters[openQuote.chapterIndex]?.title : undefined}
-        busy={sharing}
         onClose={() => setOpenQuote(null)}
-        onShare={() => openQuote?.quote && void share(openQuote.quote.text)}
+        onShare={() => {
+          if (!openQuote?.quote) return;
+          const text = openQuote.quote.text;
+          setOpenQuote(null);
+          share(text);
+        }}
         onCopy={() => {
           if (!openQuote?.quote) return;
           void navigator.clipboard?.writeText(`${openQuote.quote.text}\n— ${[book.author, book.title].filter(Boolean).join(", ")}`).then(

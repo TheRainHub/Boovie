@@ -29,6 +29,26 @@ export async function shareImage(blob: Blob, name: string, title: string): Promi
   return "downloaded";
 }
 
+/**
+ * Keep a picture on the device: a download in the browser (on a phone it lands in Downloads / Files); in the apps
+ * the system's share sheet, whose «Save Image» puts it in the photos.
+ */
+export async function saveImage(blob: Blob, name: string, title: string): Promise<"saved" | "shared"> {
+  if (isNative()) {
+    await shareImage(blob, name, title);
+    return "shared";
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return "saved";
+}
+
 /** Lines of `text` that fit `width`, at most `max` (the last one shortened with «…»). */
 export function wrapLines(ctx: CanvasRenderingContext2D, text: string, width: number, max: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);

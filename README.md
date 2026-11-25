@@ -129,13 +129,19 @@ landscape the player and the store details go two-column and the reader shows a 
   and from all of an account's devices: a ring with today's minutes on the home screen and in the profile, this
   week's days with the goal reached and the days in a row; reaching it is announced once a day
   (`src/lib/stats/goal.ts`, `src/components/home/GoalCard.tsx`).
-- **Quotes** — select a passage in the text (more than one word; a single word still opens the dictionary) and
-  keep it as a quote or share it as a picture (1080 × 1350: the passage in the reader's serif on the cover's colour,
-  the book and its author underneath; the system share sheet in the apps, Web Share or a download in the browser).
-  Kept quotes are marked in the text, listed in the contents under *Закладки*, open with a tap (share, copy,
-  delete) and travel with the book's bookmarks to the account's other devices — no new tables: a quote is a
-  bookmark with the passage and its place in the chapter's text (`src/lib/reader/quotes.ts`,
-  `src/lib/reader/quoteImage.ts`, `src/components/reader/Quotes.tsx`).
+- **Sharing a passage** — select a phrase in the text (more than one word; a single word still opens the
+  dictionary), widen it to its paragraph with *Абзац* if you like, and *Поделиться* opens a picture of it to repost or
+  keep: the passage in the reader's serif, the author and the book with its small cover underneath, and «Boowie · by
+  MIW Labs» at the foot (the MIW wordmark in Onest, its «I» in comet blue). Four looks — the cover's colour, warm
+  paper, night, the cover itself blurred behind — and three shapes: a story (1080 × 1920), a post (1080 × 1350) and a
+  square (1080 × 1080), seen before it goes and remembered on the device. *Сохранить* saves the PNG on the device (a
+  download in the browser; the share sheet's «Save Image» in the apps), *Поделиться* hands it to the share sheet. The
+  picture is drawn on the device and stored or sent nowhere (`src/lib/reader/quoteImage.ts`,
+  `src/components/reader/RepostSheet.tsx`).
+- **Quotes** — a selected passage can also be kept as a quote (the marker button in the same bar): kept quotes are
+  marked in the text, listed in the contents under *Закладки*, open with a tap (share as a picture, copy, delete) and
+  travel with the book's bookmarks to the account's other devices — no new tables: a quote is a bookmark with the
+  passage and its place in the chapter's text (`src/lib/reader/quotes.ts`, `src/components/reader/Quotes.tsx`).
 - **Sounds for reading** — rain, a storm, a fireplace, the sea, a forest, a summer night and a train while a book is
   open (the button in the reader's bar), as a mixer: each sound is a tall pill like the phone's own volume control,
   filling from the bottom — drag it up to bring the sound in and set its level, down to take it away (arrow keys
@@ -173,7 +179,7 @@ npm run build        # static export in Russian (out/) and English (out/en/) + s
                      # (SITE_LOCALES=ru builds the Russian site alone)
 npm start            # serve out/ locally
 npm test             # parser tests against the bundled store files (Node + linkedom), and the translations
-npm run e2e          # end-to-end checks of out/ in a browser (e2e/: language choice, install guide);
+npm run e2e          # end-to-end checks of out/ in a browser (e2e/: language choice, install guide, sharing);
                      # Playwright's Chromium (`npx playwright-core install chromium`) or CHROMIUM_PATH
 npm run lint && npm run typecheck
 npm run cap:sync     # build, then copy the export and the plugins into android/ and ios/

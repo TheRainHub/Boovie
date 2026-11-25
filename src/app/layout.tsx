@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Golos_Text, Inter, JetBrains_Mono, Literata } from "next/font/google";
+import { Golos_Text, Inter, JetBrains_Mono, Literata, Onest } from "next/font/google";
 import { AppShell } from "@/components/shell/AppShell";
 import { BASE_PATH, PAGE_BASE, SITE_LANG, withBase } from "@/lib/basePath";
 import { LANG_KEY, RUSSIAN_READERS } from "@/lib/i18n/detect";
@@ -12,6 +12,8 @@ const ui = Golos_Text({ subsets: ["latin", "cyrillic"], variable: "--nf-ui", dis
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-jetbrains", display: "swap" });
 const literata = Literata({ subsets: ["latin", "cyrillic"], variable: "--font-literata", display: "swap" });
+// The MIW Labs wordmark at the foot of a shared quote (reader/quoteImage.ts); loaded only when one is drawn.
+const onest = Onest({ subsets: ["latin"], weight: ["500", "700"], variable: "--font-onest", display: "swap", preload: false });
 
 // Absolute URLs for link previews: NEXT_PUBLIC_SITE_URL, else Vercel's production domain, else the current one.
 const SITE_URL = (
@@ -79,7 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang={SITE_LANG}
       data-theme="light"
       suppressHydrationWarning
-      className={`${ui.variable} ${inter.variable} ${mono.variable} ${literata.variable}`}
+      className={`${ui.variable} ${inter.variable} ${mono.variable} ${literata.variable} ${onest.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: langScript }} />

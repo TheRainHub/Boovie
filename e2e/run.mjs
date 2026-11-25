@@ -14,7 +14,7 @@ if (!existsSync(join(root, 'index.html'))) {
 const port = Number(process.env.PORT ?? 4173);
 const server = await serve(root, port);
 const only = process.argv.slice(2);
-const suites = ['lang', 'install'].filter((s) => !only.length || only.includes(s));
+const suites = ['lang', 'install', 'repost'].filter((s) => !only.length || only.includes(s));
 let failed = 0;
 for (const s of suites) {
   console.log(`\n── ${s} ──`);
